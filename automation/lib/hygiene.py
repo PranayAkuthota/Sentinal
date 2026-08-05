@@ -10,8 +10,14 @@ from typing import List, Tuple
 
 
 def _load_fix_common():
-    """Load sentinel-ultra-review/scripts/fix_common.py (single NET / compose source)."""
-    scripts = Path(__file__).resolve().parents[2] / "sentinel-ultra-review" / "scripts"
+    """Load fix_common.py from the sentinel-ultra-review skill (single NET / compose source)."""
+    scripts = (
+        Path(__file__).resolve().parents[2]
+        / ".cursor"
+        / "skills"
+        / "sentinel-ultra-review"
+        / "scripts"
+    )
     path = scripts / "fix_common.py"
     if not path.is_file():
         raise FileNotFoundError(f"fix_common.py not found at {path}")

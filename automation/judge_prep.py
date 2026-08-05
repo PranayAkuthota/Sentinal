@@ -182,27 +182,90 @@ def extract_requirements(instruction: str) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------- assertion extraction
 
 
-def _grade_sets(cfg: Dict[str, Any]) -> Tuple[Set[str], Set[str], Set[str]]:
-    def as_set(key: str) -> Set[str]:
-        v = cfg.get(key) or []
-        if not isinstance(v, list):
-            return set()
-        return {str(x) for x in v}
+def _list_from_src(src: Any, key: str) -> Optional[List[str]]:
+    if not isinstance(src, dict):
+        return None
+    # case-insensitive key match
+    for k, v in src.items():
+        if str(k).lower() != key.lower():
+            continue
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list):
+            return [str(x) for x in v]
+        return []
+    return None
 
-    return as_set("fail_to_pass"), as_set("pass_to_pass"), as_set("required_pass")
+
+def extract_grade_lists(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Read fail_to_pass / pass_to_pass / required_pass from nested grading or top-level.
+
+    Prefer nested ``grading.*`` when both shapes exist; warn on disagreement.
+    Also resolve ``allow_extra_failures`` the same way.
+    """
+    grading = cfg.get("grading") if isinstance(cfg.get("grading"), dict) else {}
+    warnings: List[str] = []
+    out: Dict[str, Any] = {"warnings": warnings}
+
+    for key in ("fail_to_pass", "pass_to_pass", "required_pass"):
+        nested = _list_from_src(grading, key)
+        top = _list_from_src(cfg, key)
+        if nested is not None and top is not None:
+            if nested != top:
+                warnings.append(
+                    f"grading.{key} and top-level {key} disagree "
+                    f"(nested={len(nested)} top={len(top)}); preferring nested"
+                )
+            chosen, source = nested, "grading"
+        elif nested is not None:
+            chosen, source = nested, "grading"
+        elif top is not None:
+            chosen, source = top, "top-level"
+        else:
+            chosen, source = [], "missing"
+        out[key] = set(chosen)
+        out[f"{key}_source"] = source
+
+    ae_nested = grading.get("allow_extra_failures") if grading else None
+    ae_top = cfg.get("allow_extra_failures")
+    if ae_nested is not None and ae_top is not None and bool(ae_nested) != bool(ae_top):
+        warnings.append(
+            "grading.allow_extra_failures and top-level disagree; preferring nested"
+        )
+    if ae_nested is not None:
+        out["allow_extra_failures"] = bool(ae_nested)
+    elif ae_top is not None:
+        out["allow_extra_failures"] = bool(ae_top)
+    else:
+        out["allow_extra_failures"] = False
+    return out
+
+
+def _grade_sets(cfg: Dict[str, Any]) -> Tuple[Set[str], Set[str], Set[str], Dict[str, Any]]:
+    meta = extract_grade_lists(cfg)
+    return meta["fail_to_pass"], meta["pass_to_pass"], meta["required_pass"], meta
 
 
 def resolve_grade(test_id: Optional[str], f2p: Set[str], p2p: Set[str], req: Set[str]) -> str:
-    if not test_id:
+    if not test_id or test_id == "UNKNOWN":
         return "UNRESOLVED"
-    if test_id in f2p or test_id in p2p or test_id in req:
+    pools = f2p | p2p | req
+    if test_id in pools:
         return "GRADED"
-    # partial: config id ends with function name
-    short = test_id.split(".")[-1]
-    for pool in (f2p, p2p, req):
-        for cid in pool:
-            if cid == short or cid.endswith("." + short) or short in cid:
-                return "UNRESOLVED"  # ambiguous partial — do not treat as GRADED
+    # Pytest node ids: path::Class::test_name or path::test_name
+    exact_suffix = [cid for cid in pools if cid.endswith("::" + test_id) or cid.endswith("." + test_id)]
+    if len(exact_suffix) == 1:
+        return "GRADED"
+    if len(exact_suffix) > 1:
+        return "UNRESOLVED"
+    # Unique containment of the function name as a node-id segment
+    contains = [cid for cid in pools if f"::{test_id}" in cid or cid == test_id]
+    if len(contains) == 1:
+        return "GRADED"
+    if len(contains) > 1:
+        return "UNRESOLVED"
     return "UNGRADED"
 
 
@@ -212,8 +275,8 @@ ASSERT_LINE = re.compile(
 )
 
 
-def extract_assertions(patch_text: str, cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
-    f2p, p2p, req = _grade_sets(cfg)
+def extract_assertions(patch_text: str, cfg: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    f2p, p2p, req, grade_meta = _grade_sets(cfg)
     lines = patch_text.splitlines()
     assertions: List[Dict[str, Any]] = []
     aid = 0
@@ -243,35 +306,22 @@ def extract_assertions(patch_text: str, cfg: Dict[str, Any]) -> List[Dict[str, A
             if len(text) < 6:
                 continue
             aid += 1
-            # Prefer dotted id if we know file
-            test_id = None
-            if current_test:
-                mod = current_file.replace("/", ".").removesuffix(".py").removesuffix(".ts")
-                if mod.startswith("tests.") or mod.startswith("test"):
-                    test_id = f"{mod}::{current_test}" if "::" not in current_test else current_test
-                    # also keep short form for matching
-                test_id = current_test
+            test_id = current_test or "UNKNOWN"
             grade = resolve_grade(test_id, f2p, p2p, req)
-            # Also try matching full path-ish ids in config
-            if grade == "UNGRADED" and test_id:
-                for pool in (f2p, p2p, req):
-                    if any(test_id in c or c.endswith(test_id) for c in pool):
-                        grade = "GRADED"
-                        break
             assertions.append(
                 {
                     "id": f"A{aid}",
                     "file": current_file,
                     "line": i,
                     "loc": f"tests.patch:{i}",
-                    "test_id": test_id or "UNKNOWN",
+                    "test_id": test_id,
                     "assertion_text": text,
                     "grade": grade,
                     "tokens": sorted(tokens_from(text)),
                     "fingerprint": fingerprint(text),
                 }
             )
-    return assertions
+    return assertions, grade_meta
 
 
 def link_status(req_toks: Set[str], as_toks: Set[str]) -> str:
@@ -474,36 +524,68 @@ def is_junk_path(rel: str, name: str, is_dir: bool) -> bool:
     return False
 
 
+# Optional suppressions for junk-named paths that are genuinely upstream source.
+# Default is empty — any entry MUST carry a human justification string.
+# Format: { "environment/repo/some/path": "why this is real project source, not junk" }
+UPSTREAM_JUNK_NAME_SUPPRESSIONS: Dict[str, str] = {}
+
+
 def packaging_sweep(task_root: Path) -> Dict[str, Any]:
+    """Flag every junk-list hit. Never suppress on tracked-ness.
+
+    Annotate tracked=true|false:
+      tracked=false → delete from the bundle
+      tracked=true  → remove from shipped tree AND realign base_commit_sha (git hygiene)
+
+    Both severities hard-cap the packaging axis at 1.
+    Narrow optional suppressions only via UPSTREAM_JUNK_NAME_SUPPRESSIONS with justification.
+    """
     repo = task_root / "environment" / "repo"
     tracked = git_tracked_at_head(repo)
-    hits: List[Dict[str, str]] = []
+    hits: List[Dict[str, Any]] = []
+    suppressed: List[Dict[str, str]] = []
+
+    def annotate(path: str) -> Dict[str, Any]:
+        under_repo = path.startswith("environment/repo/")
+        rel_in_repo = path[len("environment/repo/") :] if under_repo else ""
+        is_tracked = bool(under_repo and rel_in_repo in tracked)
+        if is_tracked:
+            remediation = (
+                "tracked=true — remove from the shipped tree AND realign "
+                "base_commit_sha to the new HEAD (fixable git hygiene; heavier fix)"
+            )
+        else:
+            remediation = "tracked=false — delete from the bundle"
+        return {
+            "path": path,
+            "class": "stray_artifact",
+            "tracked": is_tracked,
+            "remediation": remediation,
+        }
+
     for dirpath, dirnames, filenames in os.walk(task_root):
-        # never descend into .git
         dirnames[:] = [d for d in dirnames if d != ".git"]
         rel_dir = Path(dirpath).relative_to(task_root).as_posix()
         for d in list(dirnames):
             path = f"{rel_dir}/{d}" if rel_dir != "." else d
             if not is_junk_path(path, d, True):
                 continue
-            # suppress if under environment/repo and tracked? dirs usually not in ls-files
-            under_repo = path == "environment/repo" or path.startswith("environment/repo/")
-            if under_repo:
-                # directory junk inside repo — always flag (caches are not tracked)
-                hits.append({"path": path, "class": "stray_artifact"})
-            else:
-                hits.append({"path": path, "class": "stray_artifact"})
+            if path in UPSTREAM_JUNK_NAME_SUPPRESSIONS:
+                suppressed.append(
+                    {"path": path, "justification": UPSTREAM_JUNK_NAME_SUPPRESSIONS[path]}
+                )
+                continue
+            hits.append(annotate(path))
         for fn in filenames:
             path = f"{rel_dir}/{fn}" if rel_dir != "." else fn
             if not is_junk_path(path, fn, False):
                 continue
-            under_repo = path.startswith("environment/repo/")
-            if under_repo:
-                rel_in_repo = path[len("environment/repo/") :]
-                if rel_in_repo in tracked:
-                    # tracked at HEAD — upstream project; suppress
-                    continue
-            hits.append({"path": path, "class": "stray_artifact"})
+            if path in UPSTREAM_JUNK_NAME_SUPPRESSIONS:
+                suppressed.append(
+                    {"path": path, "justification": UPSTREAM_JUNK_NAME_SUPPRESSIONS[path]}
+                )
+                continue
+            hits.append(annotate(path))
 
     instr = task_root / "instruction.md"
     ps = task_root / "environment" / "problem_statement.md"
@@ -529,6 +611,7 @@ def packaging_sweep(task_root: Path) -> Dict[str, Any]:
     return {
         "hard_cap": hard_cap,
         "hits": hits,
+        "suppressed_with_justification": suppressed,
         "instruction_sync_ok": sync_ok,
         "instruction_sync_detail": sync_detail,
         "leakage": leakage,
@@ -638,8 +721,13 @@ def join_decisions(
 # ---------------------------------------------------------------- allow_extra
 
 
-def allow_extra_rows(cfg: Dict[str, Any], asserts: List[Dict[str, Any]]) -> Tuple[bool, List[Dict[str, Any]]]:
-    enabled = bool(cfg.get("allow_extra_failures"))
+def allow_extra_rows(
+    cfg: Dict[str, Any], asserts: List[Dict[str, Any]], grade_meta: Optional[Dict[str, Any]] = None
+) -> Tuple[bool, List[Dict[str, Any]]]:
+    if grade_meta is not None:
+        enabled = bool(grade_meta.get("allow_extra_failures"))
+    else:
+        enabled = bool(extract_grade_lists(cfg).get("allow_extra_failures"))
     by_tid: Dict[str, List[Dict[str, Any]]] = {}
     for a in asserts:
         if a["grade"] != "UNGRADED":
@@ -691,6 +779,15 @@ def render_md(report: Dict[str, Any]) -> str:
 
     L.append("## 0. Static-check gate")
     L.append("")
+    gm = report.get("grade_meta") or {}
+    if gm:
+        L.append(
+            f"Grade lists: fail_to_pass×{gm.get('fail_to_pass_count')} "
+            f"(source={gm.get('fail_to_pass_source')})"
+        )
+        for w in gm.get("warnings") or []:
+            L.append(f"> grading warning: {w}")
+        L.append("")
     if sc.get("fixable_ids"):
         L.append("> **BANNER:** Open FIXABLE findings block packaging, but the bipartite map below was still built.")
         L.append("")
@@ -786,7 +883,7 @@ def render_md(report: Dict[str, Any]) -> str:
     L.append("|-------|--------|--------|")
     L.append(
         f"| stray artifacts | {'HIT → cap packaging at 1' if pk['hard_cap'] else 'OK'} | "
-        f"{len(pk['hits'])} hit(s); tracked-in-git suppressed |"
+        f"{len(pk['hits'])} hit(s); tracked annotated, not suppressed |"
     )
     L.append(f"| problem_statement ≡ instruction | {'OK' if pk['instruction_sync_ok'] else 'FAIL'} | {pk['instruction_sync_detail']} |")
     L.append(
@@ -796,8 +893,15 @@ def render_md(report: Dict[str, Any]) -> str:
     if pk["hits"]:
         L.append("")
         L.append("Hits:")
-        for h in pk["hits"][:30]:
-            L.append(f"- `{h['path']}` ({h['class']})")
+        for h in pk["hits"][:40]:
+            L.append(
+                f"- `{h['path']}` (tracked={h.get('tracked')}) — {h.get('remediation') or h.get('class')}"
+            )
+    if pk.get("suppressed_with_justification"):
+        L.append("")
+        L.append("Suppressed (justified upstream source):")
+        for h in pk["suppressed_with_justification"]:
+            L.append(f"- `{h['path']}` — {h.get('justification')}")
     L.append("")
 
     L.append("## 5. allow_extra_failures decision list")
@@ -949,7 +1053,7 @@ def run_judge_prep(
     instruction = instr_path.read_text(encoding="utf-8", errors="replace")
     patch_text = patch_path.read_text(encoding="utf-8", errors="replace")
     reqs = extract_requirements(instruction)
-    asserts = extract_assertions(patch_text, cfg)
+    asserts, grade_meta = extract_assertions(patch_text, cfg)
     coverage, faithfulness, map_stats = build_bipartite(reqs, asserts)
     auto_remove = cite_auto_remove(findings)
     # bipartite overreach feeds pattern status
@@ -967,7 +1071,7 @@ def run_judge_prep(
 
     packaging = packaging_sweep(task_root)
     dont = dont_list_scan(patch_text, findings)
-    ae_enabled, ae_rows = allow_extra_rows(cfg, asserts)
+    ae_enabled, ae_rows = allow_extra_rows(cfg, asserts, grade_meta)
 
     reqs_by_id = {r["id"]: r for r in reqs}
     asserts_by_id = {a["id"]: a for a in asserts}
@@ -1041,6 +1145,13 @@ def run_judge_prep(
         "coverage": coverage,
         "faithfulness": faithfulness,
         "map_stats": map_stats,
+        "grade_meta": {
+            "fail_to_pass_source": grade_meta.get("fail_to_pass_source"),
+            "pass_to_pass_source": grade_meta.get("pass_to_pass_source"),
+            "required_pass_source": grade_meta.get("required_pass_source"),
+            "fail_to_pass_count": len(grade_meta.get("fail_to_pass") or []),
+            "warnings": grade_meta.get("warnings") or [],
+        },
         "auto_remove": auto_remove,
         "overreach_unexplained": unexplained_overreach,
         "coverage_gaps_unexplained": unexplained_gaps,

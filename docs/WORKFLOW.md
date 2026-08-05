@@ -66,3 +66,10 @@ flowchart TD
 ## Handoff rule
 
 Do not claim a later stage complete if an earlier stage’s **Validation** failed, unless the failure is explicitly waived in `session/` with reason (and still never invent rewards).
+
+## Judge-prep backtest control note
+
+There is currently **no Valid-as-is package** in local history, so discrimination checks for
+`judge_prep` / S10.5 have used post-fix Fixable `working_copy` trees as a weak control.
+**Re-run the backtest control against the first genuinely Valid-as-is task we intake** before
+trusting gap/overreach pile comparisons as evidence of calibrations.

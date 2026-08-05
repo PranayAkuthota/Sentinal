@@ -144,12 +144,12 @@ class JudgePrepAllowExtraTests(unittest.TestCase):
 
 
 class JudgePrepPackagingTests(unittest.TestCase):
-    def test_untracked_junk_hard_caps_tracked_suppressed(self):
+    def test_untracked_junk_hard_caps_tracked_annotated_not_suppressed(self):
         src = FIX / "packaging_junk"
         with tempfile.TemporaryDirectory() as td:
             out = Path(td)
-            # Pretend environment/repo/.python-version is tracked at base — must suppress.
-            # Untracked .DS_Store / tests/.python-version / __pycache__ still flag.
+            # Pretend environment/repo/.python-version is tracked — must STILL flag,
+            # with tracked=true remediation (realign base_commit_sha).
             real = jp.git_tracked_at_head
 
             def fake_tracked(repo: Path):
@@ -162,18 +162,47 @@ class JudgePrepPackagingTests(unittest.TestCase):
                 )
             finally:
                 jp.git_tracked_at_head = real  # type: ignore
-        paths = [h["path"] for h in r["packaging"]["hits"]]
+        hits = r["packaging"]["hits"]
+        paths = [h["path"] for h in hits]
+        by_path = {h["path"]: h for h in hits}
         self.assertTrue(r["packaging"]["hard_cap"])
         self.assertTrue(any(p.endswith(".DS_Store") or p == ".DS_Store" for p in paths), paths)
         self.assertTrue(
             any(p.endswith("tests/.python-version") or p == "tests/.python-version" for p in paths),
             paths,
         )
-        self.assertFalse(
-            any(p == "environment/repo/.python-version" for p in paths),
-            f"tracked upstream junk should be suppressed: {paths}",
-        )
+        # tracked upstream junk MUST still be flagged
+        self.assertIn("environment/repo/.python-version", by_path)
+        self.assertTrue(by_path["environment/repo/.python-version"]["tracked"])
+        self.assertIn("realign", by_path["environment/repo/.python-version"]["remediation"])
+        # untracked tests/.python-version
+        tpy = next(h for h in hits if h["path"].endswith("tests/.python-version") or h["path"] == "tests/.python-version")
+        self.assertFalse(tpy["tracked"])
+        self.assertIn("delete", tpy["remediation"].lower())
         self.assertTrue(any("__pycache__" in p for p in paths), paths)
+
+
+class JudgePrepGradingShapeTests(unittest.TestCase):
+    def test_nested_grading_marks_assertions_graded(self):
+        r = run_fixture("grading_nested")
+        grades = {a["grade"] for a in r["assertions"]}
+        self.assertIn("GRADED", grades, r.get("grade_meta"))
+        self.assertEqual(r["grade_meta"]["fail_to_pass_source"], "grading")
+        self.assertEqual(r["grade_meta"]["fail_to_pass_count"], 4)
+        # Should not falsely gap every requirement once graded
+        self.assertLess(len(r.get("coverage_gaps_unexplained") or []), 4, r.get("coverage"))
+
+    def test_toplevel_grading_marks_assertions_graded(self):
+        r = run_fixture("grading_toplevel")
+        grades = {a["grade"] for a in r["assertions"]}
+        self.assertIn("GRADED", grades, r.get("grade_meta"))
+        self.assertEqual(r["grade_meta"]["fail_to_pass_source"], "top-level")
+
+    def test_disagree_prefers_nested_and_warns(self):
+        r = run_fixture("grading_disagree")
+        self.assertEqual(r["grade_meta"]["fail_to_pass_source"], "grading")
+        self.assertEqual(r["grade_meta"]["fail_to_pass_count"], 4)
+        self.assertTrue(any("disagree" in w for w in r["grade_meta"]["warnings"]))
 
 
 class JudgePrepPatternCiteTests(unittest.TestCase):

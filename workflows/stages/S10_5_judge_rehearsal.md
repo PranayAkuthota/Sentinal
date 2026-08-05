@@ -49,3 +49,9 @@ python3 automation/sentinel_submitter.py judge-prep --task-name TASK
 python3 automation/sentinel_submitter.py preflight --task-name TASK
 # optional: --accept-risk "…"
 ```
+
+## Backtest / control note
+
+No Valid-as-is package exists in current local history. Discrimination backtests used weak
+Fixable `working_copy` controls. Re-run Case-3 control against the first genuine
+Valid-as-is intake before treating gap-pile comparisons as calibration evidence.

@@ -1,0 +1,13 @@
+{
+  "fail_to_pass": [
+    "test_status_ok"
+  ],
+  "grading": {
+    "fail_to_pass": [
+      "tests/test_widget.py::test_status_ok",
+      "tests/test_widget.py::test_schema_keys",
+      "tests/test_widget.py::test_reject_missing",
+      "tests/test_widget.py::test_count_threshold"
+    ]
+  }
+}

@@ -46,6 +46,8 @@ python3 automation/checkpoint_ready.py --task-name TASK --next 06
 python3 automation/sentinel_submitter.py preflight --task-name TASK
 # only if ready_to_package:
 python3 automation/sentinel_submitter.py package-fixable --task-name TASK
+# writes judge_prediction.json automatically; or:
+python3 automation/write_judge_prediction.py --task-name TASK
 ```
 
    - Confirm upload ZIP: `work/task ready_to_submit/<TASK>__corrected.zip`
@@ -72,6 +74,20 @@ python3 automation/promote_learning.py failure --id F-0NN --title "…" --catego
 ```
 
 12. Write `06__handoff.md`: readiness, ZIP path or none, blockers clearance line, proposal path.
+
+### C. After platform Judge returns (forward calibration)
+13. Record actual vs predicted (required for calibration — see `docs/VALIDATION_STRATEGY.md`):
+
+```bash
+python3 automation/capture_judge_feedback.py --task-name TASK \
+  --verdict OK|DISCUSS|REMOVE \
+  --axes-json '{"test_coverage":3.0,"test_faithfulness":2.5,"prescriptiveness":2.5}' \
+  --cited-overreach 'semicolon-separated citations' \
+  --notes '…'
+python3 automation/judge_stats.py
+```
+
+Do **not** retune heuristics against historical bounced packages.
 
 ## Do not
 - Upload when preflight blocked

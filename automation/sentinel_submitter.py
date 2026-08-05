@@ -2078,6 +2078,14 @@ def cmd_package_fixable(args: argparse.Namespace) -> None:
         "ready_to_submit_zip": str(ready_dest),
     }
     paths["zip_manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    # Forward-validation prediction (docs/VALIDATION_STRATEGY.md)
+    try:
+        from write_judge_prediction import write_prediction  # type: ignore
+
+        pred_path = write_prediction(paths["outputs"], task_name)
+        print(f"  judge_prediction: {pred_path}")
+    except Exception as exc:  # noqa: BLE001 — packaging succeeded; prediction is best-effort
+        print(f"  WARNING: judge_prediction not written: {exc}", file=sys.stderr)
     session["current_workflow_phase"] = "packaged_fixable"
     save_session(task_name, session)
     save_workflow_state(task_name, state)

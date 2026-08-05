@@ -60,6 +60,6 @@ python3 automation/sentinel_submitter.py preflight --task-name TASK
 
 ## Backtest / control note
 
-No Valid-as-is package exists in current local history. Discrimination backtests used weak
-Fixable `working_copy` controls. Re-run Case-3 control against the first genuine
-Valid-as-is intake before treating CONFIRMED gap/overreach comparisons as calibration evidence.
+**Do not** calibrate against historical bounced packages. Forward validation only —
+`docs/VALIDATION_STRATEGY.md` (`judge_prediction.json` → `capture_judge_feedback.py` →
+`judge_stats.py`).

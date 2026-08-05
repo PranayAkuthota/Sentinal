@@ -67,11 +67,8 @@ flowchart TD
 
 Do not claim a later stage complete if an earlier stage’s **Validation** failed, unless the failure is explicitly waived in `session/` with reason (and still never invent rewards).
 
-## Judge-prep backtest control note
+## Judge-prep validation
 
-There is currently **no Valid-as-is package** in local history, so discrimination checks for
-`judge_prep` / S10.5 have used post-fix Fixable `working_copy` trees as a weak control.
-**Re-run the backtest control against the first genuinely Valid-as-is task we intake** before
-trusting CONFIRMED gap/overreach pile comparisons as evidence of calibrations.
-Measure discrimination on rehearsal **CONFIRMED_*** counts, not lexical `unlinked_lexically` /
-`no_graded_link` candidate piles (those stay large on behavioural instructions by design).
+Do **not** measure discrimination against historical bounced / pre-triage packages.
+See `docs/VALIDATION_STRATEGY.md` (forward prediction → feedback → `judge_stats.py`).
+Re-open retrospective controls only after the first genuine Valid-as-is / platform-accepted task.

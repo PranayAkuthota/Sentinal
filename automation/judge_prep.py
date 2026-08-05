@@ -109,6 +109,18 @@ def strong_tokens(toks: Set[str]) -> Set[str]:
     return {t for t in toks if len(t) >= 5 or "_" in t or "." in t or "/" in t}
 
 
+def _identifier_parts(toks: Set[str]) -> Set[str]:
+    """Snake/dot fragments of identifier tokens (cell_map → cell, map)."""
+    parts: Set[str] = set()
+    for t in toks:
+        if "_" not in t and "." not in t and "/" not in t:
+            continue
+        for p in re.split(r"[_\./]+", t):
+            if len(p) >= 3:
+                parts.add(p)
+    return parts
+
+
 # ---------------------------------------------------------------- requirement extraction
 
 
@@ -326,33 +338,54 @@ def extract_assertions(patch_text: str, cfg: Dict[str, Any]) -> Tuple[List[Dict[
 
 
 def link_status(req_toks: Set[str], as_toks: Set[str]) -> str:
+    """Lexical R↔A overlap class.
+
+    ``linked`` — strong behavioural overlap (≥2 effective strong tokens). Only this
+    bypasses rehearsal triage.
+    ``weak_link`` — single identifier hit, fragment noise, or weak-only overlap. Same
+    uncertainty as the old single-token UNRESOLVED; must not paint the row green.
+    ``none`` — no shared tokens.
+
+    Fragments of snake_case/dotted identifiers (e.g. ``shape`` from ``out_shape``,
+    ``map`` from ``cell_map``) do not count toward strong overlap — that is what made
+    Case 2 A6 falsely green against R11.
+    """
     if not req_toks or not as_toks:
         return "none"
     inter = req_toks & as_toks
     if not inter:
         return "none"
-    strong = strong_tokens(inter)
-    if strong:
+    frag_noise = _identifier_parts(req_toks) | _identifier_parts(as_toks)
+    effective_strong: Set[str] = set()
+    for t in strong_tokens(inter):
+        if "_" in t or "." in t or "/" in t:
+            effective_strong.add(t)
+            continue
+        if t in frag_noise:
+            continue
+        effective_strong.add(t)
+    if len(effective_strong) >= 2:
         return "linked"
-    if len(inter) >= 2:
-        return "linked"
-    if len(inter) == 1:
-        return "UNRESOLVED"
+    if effective_strong or inter:
+        return "weak_link"
     return "none"
 
 
 # Lexical statuses only — semantic overreach/gap confirmation is judge_rehearsal (P-011).
 STATUS_UNLINKED_LEXICALLY = "unlinked_lexically"
+STATUS_WEAK_LINK = "weak_link"
 STATUS_NO_GRADED_LINK = "no_graded_link"
+# Faithfulness rows that must be P-011-triaged (not confident green).
+FAITHFULNESS_TRIAGE_STATUSES = frozenset({STATUS_UNLINKED_LEXICALLY, STATUS_WEAK_LINK})
+COVERAGE_TRIAGE_STATUSES = frozenset({STATUS_NO_GRADED_LINK, STATUS_WEAK_LINK})
 
 
 def _faithfulness_severity(grade: str, status: str) -> Optional[str]:
-    """Severity for lexically unlinked faithfulness rows. Grade gates severity, not eligibility.
+    """Severity for triage-bound faithfulness rows. Grade gates severity, not eligibility.
 
-    GRADED unlinked → high (can zero reward). UNGRADED unlinked → medium (judge still
-    scores the whole suite / allow_extra shipping). Coverage stays graded-only elsewhere.
+    GRADED → high (can zero reward). UNGRADED → medium (judge still scores the whole suite).
     """
-    if status != STATUS_UNLINKED_LEXICALLY:
+    if status not in FAITHFULNESS_TRIAGE_STATUSES:
         return None
     if grade == "GRADED":
         return "high"
@@ -364,63 +397,64 @@ def build_bipartite(
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     coverage: List[Dict[str, Any]] = []
     faithfulness: List[Dict[str, Any]] = []
-    unresolved_cov = 0
-    unresolved_faith = 0
+    weak_cov = 0
+    weak_faith = 0
 
-    # Coverage: only GRADED asserts can close a gap (ungraded cannot fail the reward).
+    # Coverage: only strong ``linked`` GRADED asserts close a gap.
     for r in reqs:
         rt = set(r["tokens"])
         linked: List[str] = []
-        unresolved_as: List[str] = []
+        weak_as: List[str] = []
         for a in asserts:
             if a["grade"] != "GRADED":
                 continue
             st = link_status(rt, set(a["tokens"]))
             if st == "linked":
                 linked.append(a["id"])
-            elif st == "UNRESOLVED":
-                unresolved_as.append(a["id"])
+            elif st == "weak_link":
+                weak_as.append(a["id"])
         if linked:
             status = "ok"
-        elif unresolved_as:
-            status = "unresolved"
-            unresolved_cov += 1
+        elif weak_as:
+            status = STATUS_WEAK_LINK
+            weak_cov += 1
         else:
             status = STATUS_NO_GRADED_LINK
         coverage.append(
             {
                 "requirement_id": r["id"],
                 "assertion_ids": linked,
-                "unresolved_assertion_ids": unresolved_as,
+                "weak_assertion_ids": weak_as,
+                "unresolved_assertion_ids": weak_as,  # back-compat alias
                 "status": status,
                 "fingerprint": r["fingerprint"],
             }
         )
 
-    # Faithfulness: EVERY assertion (graded + ungraded). Judge reads the whole suite.
-    # Lexical unlink ≠ confirmed overreach — rehearsal applies P-011 triage.
+    # Faithfulness: EVERY assertion. Only strong linked bypasses triage.
     for a in asserts:
         at = set(a["tokens"])
         linked_r: List[str] = []
-        unresolved_r: List[str] = []
+        weak_r: List[str] = []
         for r in reqs:
             st = link_status(set(r["tokens"]), at)
             if st == "linked":
                 linked_r.append(r["id"])
-            elif st == "UNRESOLVED":
-                unresolved_r.append(r["id"])
+            elif st == "weak_link":
+                weak_r.append(r["id"])
         if linked_r:
             status = "ok"
-        elif unresolved_r:
-            status = "unresolved"
-            unresolved_faith += 1
+        elif weak_r:
+            status = STATUS_WEAK_LINK
+            weak_faith += 1
         else:
             status = STATUS_UNLINKED_LEXICALLY
         faithfulness.append(
             {
                 "assertion_id": a["id"],
                 "requirement_ids": linked_r,
-                "unresolved_requirement_ids": unresolved_r,
+                "weak_requirement_ids": weak_r,
+                "unresolved_requirement_ids": weak_r,  # back-compat alias
                 "grade": a["grade"],
                 "status": status,
                 "severity": _faithfulness_severity(a["grade"], status),
@@ -431,13 +465,15 @@ def build_bipartite(
     n_req = max(len(reqs), 1)
     n_assert = max(len(asserts), 1)
     stats = {
-        "unresolved_coverage_rows": unresolved_cov,
-        "unresolved_faithfulness_rows": unresolved_faith,
-        "unresolved_coverage_ratio": unresolved_cov / n_req,
-        "unresolved_faithfulness_ratio": unresolved_faith / n_assert,
+        "weak_link_coverage_rows": weak_cov,
+        "weak_link_faithfulness_rows": weak_faith,
+        "unresolved_coverage_rows": weak_cov,  # back-compat
+        "unresolved_faithfulness_rows": weak_faith,
+        "unresolved_coverage_ratio": weak_cov / n_req,
+        "unresolved_faithfulness_ratio": weak_faith / n_assert,
         "low_confidence": (
-            (unresolved_cov / n_req) > UNRESOLVED_WARN_RATIO
-            or (unresolved_faith / n_assert) > UNRESOLVED_WARN_RATIO
+            (weak_cov / n_req) > UNRESOLVED_WARN_RATIO
+            or (weak_faith / n_assert) > UNRESOLVED_WARN_RATIO
         ),
     }
     return coverage, faithfulness, stats
@@ -849,35 +885,40 @@ def render_md(report: Dict[str, Any]) -> str:
         L.append(f"| {a['id']} | {a['grade']} | {a['test_id']} | {a['loc']} | {trunc} |")
     L.append("")
     L.append("### COVERAGE (Requirement → Assertions)")
-    L.append("| R | linked GRADED A | status | decision |")
-    L.append("|---|-----------------|--------|----------|")
+    L.append("| R | strong-linked GRADED A | weak A | status | decision |")
+    L.append("|---|------------------------|--------|--------|----------|")
     for row in report["coverage"]:
         dec = report["decision_join"].get(f"coverage:{row['requirement_id']}", {})
         st = row["status"]
         if st == STATUS_NO_GRADED_LINK and dec.get("status") == "explained":
             st = "no_graded_link (explained)"
+        elif st == STATUS_WEAK_LINK and dec.get("status") == "explained":
+            st = "weak_link (explained)"
         aids = ", ".join(row["assertion_ids"]) or "—"
+        weaks = ", ".join(row.get("weak_assertion_ids") or []) or "—"
         L.append(
-            f"| {row['requirement_id']} | {aids} | {st} | {dec.get('status', '—')} |"
+            f"| {row['requirement_id']} | {aids} | {weaks} | {st} | {dec.get('status', '—')} |"
         )
     L.append("")
     L.append("### FAITHFULNESS (Assertion → Requirement)")
-    L.append("| A | grade | severity | linked R | status | decision |")
-    L.append("|---|-------|----------|----------|--------|----------|")
+    L.append("| A | grade | severity | strong R | weak R | status | decision |")
+    L.append("|---|-------|----------|----------|--------|--------|----------|")
     for row in report["faithfulness"]:
         dec = report["decision_join"].get(f"overreach:{row['assertion_id']}", {})
         st = row["status"]
-        if st == STATUS_UNLINKED_LEXICALLY and dec.get("status") == "explained":
-            st = "unlinked_lexically (explained)"
+        if st in FAITHFULNESS_TRIAGE_STATUSES and dec.get("status") == "explained":
+            st = f"{row['status']} (explained)"
         rids = ", ".join(row["requirement_ids"]) or "—"
+        wrids = ", ".join(row.get("weak_requirement_ids") or []) or "—"
         sev = row.get("severity") or "—"
         L.append(
-            f"| {row['assertion_id']} | {row['grade']} | {sev} | {rids} | {st} | {dec.get('status', '—')} |"
+            f"| {row['assertion_id']} | {row['grade']} | {sev} | {rids} | {wrids} | {st} | {dec.get('status', '—')} |"
         )
     L.append("")
     L.append(
-        "> Lexical statuses (`no_graded_link` / `unlinked_lexically`) are **candidate generators**, "
-        "not confirmed defects. `judge_rehearsal` applies P-011 triage; only CONFIRMED rows block preflight."
+        "> Lexical statuses (`no_graded_link` / `unlinked_lexically` / `weak_link`) are **candidate "
+        "generators**, not confirmed defects. A single identifier token (e.g. `cell_map`) is "
+        "`weak_link`, not green. `judge_rehearsal` applies P-011 triage; only CONFIRMED rows block preflight."
     )
     L.append("")
 
@@ -889,10 +930,10 @@ def render_md(report: Dict[str, Any]) -> str:
             f"| {name} | {row['status']} | {', '.join(row['static_ids']) or '—'} | {row.get('notes','')} |"
         )
     # bipartite lexical candidates (not confirmed overreach)
-    oc = report.get("unlinked_lexically_candidates") or report.get("overreach_unexplained") or []
+    oc = report.get("faithfulness_triage_candidates") or report.get("unlinked_lexically_candidates") or []
     if oc:
         L.append("")
-        L.append(f"Lexical unlinked candidates (for rehearsal P-011 triage): {', '.join(oc)}")
+        L.append(f"Faithfulness triage candidates (unlinked + weak_link): {', '.join(oc)}")
     L.append("")
 
     L.append("## 3. Don’t-list flags")
@@ -964,12 +1005,13 @@ def render_md(report: Dict[str, Any]) -> str:
     L.append("")
     L.append("## 7. Handoff to judge_rehearsal")
     L.append(
-        "Run `Prompts/modules/judge_rehearsal.md`: triage every `no_graded_link` and "
-        "`unlinked_lexically` row with P-011 (stated / public API / neither), score Pass A "
-        "(coverage-hostile) and Pass B (faithfulness-hostile), reconcile, flag axes differing "
-        "by ≥2 for human review. Write `judge_rehearsal.md` **and** machine-readable "
+        "Run `Prompts/modules/judge_rehearsal.md`: triage every `no_graded_link`, "
+        "`unlinked_lexically`, and `weak_link` row with P-011 (stated / public API / neither), "
+        "score Pass A (coverage-hostile) and Pass B (faithfulness-hostile), reconcile, flag "
+        "axes differing by ≥2 for human review. Write `judge_rehearsal.md` **and** "
         "`judge_rehearsal.json` (fingerprint = sha256 of `judge_prep.json`). Only "
-        "CONFIRMED_GAP / CONFIRMED_OVERREACH block preflight — not lexical candidates."
+        "CONFIRMED_GAP / CONFIRMED_OVERREACH block preflight — not lexical candidates. "
+        "A single shared identifier (e.g. `cell_map`) is `weak_link`, not green."
     )
     L.append("")
     return "\n".join(L)
@@ -1086,16 +1128,26 @@ def run_judge_prep(
     asserts, grade_meta = extract_assertions(patch_text, cfg)
     coverage, faithfulness, map_stats = build_bipartite(reqs, asserts)
     auto_remove = cite_auto_remove(findings)
-    # Lexical unlinked list for rehearsal — do NOT promote to auto_remove HIT (static cites only).
+    # Lexical unlinked + weak_link for rehearsal — do NOT promote to auto_remove HIT.
+    faithfulness_triage_candidates = [
+        row["assertion_id"]
+        for row in faithfulness
+        if row["status"] in FAITHFULNESS_TRIAGE_STATUSES
+    ]
     unlinked_lexically_candidates = [
         row["assertion_id"]
         for row in faithfulness
         if row["status"] == STATUS_UNLINKED_LEXICALLY
     ]
+    weak_link_candidates = [
+        row["assertion_id"]
+        for row in faithfulness
+        if row["status"] == STATUS_WEAK_LINK
+    ]
     no_graded_link_candidates = [
         row["requirement_id"]
         for row in coverage
-        if row["status"] == STATUS_NO_GRADED_LINK
+        if row["status"] in COVERAGE_TRIAGE_STATUSES
     ]
 
     packaging = packaging_sweep(task_root)
@@ -1124,7 +1176,7 @@ def run_judge_prep(
     # Still record unexplained lists for rehearsal handoff / decisions join display.
     unexplained_gaps = []
     for row in coverage:
-        if row["status"] != STATUS_NO_GRADED_LINK:
+        if row["status"] not in COVERAGE_TRIAGE_STATUSES:
             continue
         ref = f"coverage:{row['requirement_id']}"
         dec = by_ref.get(ref)
@@ -1134,7 +1186,7 @@ def run_judge_prep(
 
     unexplained_overreach = []
     for row in faithfulness:
-        if row["status"] != STATUS_UNLINKED_LEXICALLY:
+        if row["status"] not in FAITHFULNESS_TRIAGE_STATUSES:
             continue
         ref = f"overreach:{row['assertion_id']}"
         dec = by_ref.get(ref)
@@ -1185,7 +1237,9 @@ def run_judge_prep(
             "warnings": grade_meta.get("warnings") or [],
         },
         "auto_remove": auto_remove,
+        "faithfulness_triage_candidates": faithfulness_triage_candidates,
         "unlinked_lexically_candidates": unlinked_lexically_candidates,
+        "weak_link_candidates": weak_link_candidates,
         "no_graded_link_candidates": no_graded_link_candidates,
         # Back-compat aliases for older readers
         "overreach_unexplained": unexplained_overreach,
@@ -1198,7 +1252,7 @@ def run_judge_prep(
         "prep_passed": prep_passed,
         "blockers": blockers,
         "candidate_note": (
-            "no_graded_link / unlinked_lexically are lexical candidates only; "
+            "no_graded_link / unlinked_lexically / weak_link are lexical candidates only; "
             "judge_rehearsal confirms via P-011 before preflight blocks"
         ),
     }
@@ -1251,12 +1305,12 @@ def validate_judge_rehearsal(
         need_cov = {
             r["requirement_id"]
             for r in (prep_report.get("coverage") or [])
-            if r.get("status") == STATUS_NO_GRADED_LINK
+            if r.get("status") in COVERAGE_TRIAGE_STATUSES
         }
         need_faith = {
             r["assertion_id"]
             for r in (prep_report.get("faithfulness") or [])
-            if r.get("status") == STATUS_UNLINKED_LEXICALLY
+            if r.get("status") in FAITHFULNESS_TRIAGE_STATUSES
         }
         got_cov = {r.get("requirement_id") for r in cov_rows}
         got_faith = {r.get("assertion_id") for r in faith_rows}

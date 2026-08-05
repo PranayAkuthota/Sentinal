@@ -29,20 +29,23 @@ different adversarial framings, then reconcile.
 
 | Prep status | Meaning |
 |-------------|---------|
-| `no_graded_link` | No graded assertion token-linked to this R# |
-| `unlinked_lexically` | Assertion (any grade) has no lexical R# link |
+| `no_graded_link` | No graded assertion with strong token overlap to this R# |
+| `unlinked_lexically` | Assertion has no shared tokens with any R# |
+| `weak_link` | Only a single strong identifier or weak-only overlap (e.g. `cell_map`) — **not** green |
 
-These are **not** confirmed defects. Adjudicate every such row:
+These are **not** confirmed defects. Adjudicate every such row. Only status `ok`
+(strong overlap: ≥2 strong tokens) bypasses triage.
 
-### Coverage (`no_graded_link`)
+### Coverage (`no_graded_link` / `weak_link`)
 
 - **NOT_A_GAP** — requirement is tested by graded asserts that merely use different wording, **or** the R# is non-agent hygiene (e.g. “do not modify tests”) that should not be graded.
 - **CONFIRMED_GAP** — a real observable requirement has no graded enforcement.
 - **UNDECIDED** — cannot tell without human input (blocks preflight until resolved).
 
-### Faithfulness (`unlinked_lexically`) — P-011 three-way
+### Faithfulness (`unlinked_lexically` / `weak_link`) — P-011 three-way
 
-For each unlinked assertion (GRADED = high severity; UNGRADED = medium — both still scored):
+For each triage-bound assertion (GRADED = high severity; UNGRADED = medium — both still scored).
+`weak_link` is the same uncertainty as a single-token UNRESOLVED — do not treat it as covered.
 
 1. **(a)** Stated or reasonably implied in `instruction.md` → **NOT_OVERREACH** (`bucket: a`)
 2. **(b)** Public/API contract derivable from codebase symbols the instruction already points at → **NOT_OVERREACH** (`bucket: b`)
@@ -164,7 +167,7 @@ notes: ...
     "faithfulness": [
       {
         "assertion_id": "A1",
-        "prep_status": "unlinked_lexically",
+        "prep_status": "unlinked_lexically|weak_link",
         "grade": "GRADED|UNGRADED|UNRESOLVED",
         "severity": "high|medium",
         "bucket": "a|b|c",
@@ -180,13 +183,14 @@ notes: ...
 }
 ```
 
-Triage **every** prep candidate row. Do not omit medium-severity UNGRADED unlinked asserts.
+Triage **every** prep candidate row (`unlinked_lexically` **and** `weak_link`). Do not omit
+medium-severity UNGRADED asserts. A single shared identifier is never a free pass.
 
 ## Do not
 
 - Claim the live platform already scored this task
 - Skip Pass B or collapse to one pass
-- Treat `unlinked_lexically` / `no_graded_link` as confirmed without P-011 triage
+- Treat `unlinked_lexically` / `no_graded_link` / `weak_link` as confirmed without P-011 triage
 - Add filler f2p only to raise counts
 - Overwrite `judge_prep_decisions.json`
 - Dump implementation spoilers into the instruction to “fix” overreach

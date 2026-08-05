@@ -51,7 +51,29 @@ class JudgePrepCleanTests(unittest.TestCase):
         self.assertTrue(r["requirements"], "should extract requirements")
         self.assertTrue(r["assertions"], "should extract assertions")
         self.assertTrue(r["prep_passed"], r.get("blockers"))
-        self.assertFalse(r["map_stats"].get("low_confidence"))
+        # Weak-only lexical links set low_confidence; that is advisory, not a prep failure.
+
+
+class JudgePrepLinkStatusTests(unittest.TestCase):
+    def test_single_strong_identifier_is_weak_link(self):
+        """cell_map alone must not paint green (Case 2 A6 bug)."""
+        self.assertEqual(jp.link_status({"cell_map", "downsample"}, {"cell_map", "out_shape"}), "weak_link")
+        self.assertEqual(jp.link_status({"cell_map"}, {"cell_map"}), "weak_link")
+        # Fragment noise (shape from out_shape, map from cell_map) must not create "linked"
+        req = jp.tokens_from(
+            "`downsample(..., cell_map=None)` returns RGBA of the output shape, collapsing each cell."
+        )
+        asrt = jp.tokens_from("assert cell_map.out_shape == (len(lines_y) - 1, len(lines_x) - 1)")
+        self.assertEqual(jp.link_status(req, asrt), "weak_link")
+
+    def test_two_strong_tokens_linked(self):
+        self.assertEqual(
+            jp.link_status({"cell_map", "downsample", "opaque"}, {"cell_map", "downsample"}),
+            "linked",
+        )
+
+    def test_no_overlap_none(self):
+        self.assertEqual(jp.link_status({"alpha"}, {"beta"}), "none")
 
 
 class JudgePrepGapOverreachTests(unittest.TestCase):
@@ -60,12 +82,20 @@ class JudgePrepGapOverreachTests(unittest.TestCase):
         r = run_fixture("gap_overreach")
         self.assertFalse(r["hard_stopped"])
         self.assertTrue(r.get("no_graded_link_candidates") or r.get("coverage_gaps_unexplained"))
-        self.assertTrue(r.get("unlinked_lexically_candidates") or r.get("overreach_unexplained"))
+        self.assertTrue(
+            r.get("faithfulness_triage_candidates")
+            or r.get("unlinked_lexically_candidates")
+            or r.get("overreach_unexplained")
+        )
         self.assertFalse(any(b.startswith("coverage:") for b in r["blockers"]), r["blockers"])
         self.assertFalse(any(b.startswith("overreach:") for b in r["blockers"]), r["blockers"])
-        faith = [f for f in r["faithfulness"] if f["status"] == "unlinked_lexically"]
+        faith = [
+            f
+            for f in r["faithfulness"]
+            if f["status"] in ("unlinked_lexically", "weak_link")
+        ]
         self.assertTrue(faith)
-        cov = [c for c in r["coverage"] if c["status"] == "no_graded_link"]
+        cov = [c for c in r["coverage"] if c["status"] in ("no_graded_link", "weak_link")]
         self.assertTrue(cov)
 
     def test_explained_decisions_still_join(self):
@@ -130,7 +160,7 @@ class JudgePrepRehearsalValidateTests(unittest.TestCase):
             prep_path = out / "judge_prep.json"
             prep_path.write_text(json.dumps(r), encoding="utf-8")
             fp = jp.file_sha256(prep_path)
-            cand_a = (r.get("unlinked_lexically_candidates") or ["A1"])[0]
+            cand_a = (r.get("faithfulness_triage_candidates") or r.get("unlinked_lexically_candidates") or ["A1"])[0]
             cand_r = (r.get("no_graded_link_candidates") or ["R1"])[0]
             reh = {
                 "schema_version": 1,
@@ -162,11 +192,12 @@ class JudgePrepRehearsalValidateTests(unittest.TestCase):
 
             # full NOT_A_GAP / NOT_OVERREACH clears confirmation blockers (may still warn missing none)
             faith_rows = []
-            for aid in r.get("unlinked_lexically_candidates") or []:
+            for aid in r.get("faithfulness_triage_candidates") or r.get("unlinked_lexically_candidates") or []:
+                row = next(x for x in r["faithfulness"] if x["assertion_id"] == aid)
                 faith_rows.append(
                     {
                         "assertion_id": aid,
-                        "prep_status": "unlinked_lexically",
+                        "prep_status": row["status"],
                         "verdict": "NOT_OVERREACH",
                         "bucket": "b",
                         "rationale": "public API",
@@ -174,10 +205,11 @@ class JudgePrepRehearsalValidateTests(unittest.TestCase):
                 )
             cov_rows = []
             for rid in r.get("no_graded_link_candidates") or []:
+                crow = next(x for x in r["coverage"] if x["requirement_id"] == rid)
                 cov_rows.append(
                     {
                         "requirement_id": rid,
-                        "prep_status": "no_graded_link",
+                        "prep_status": crow["status"],
                         "verdict": "NOT_A_GAP",
                         "rationale": "wording only",
                     }
@@ -229,12 +261,12 @@ class JudgePrepAllowExtraTests(unittest.TestCase):
             any(f["status"].startswith("n/a_") for f in r["faithfulness"]),
             "UNGRADED must not be skipped as n/a_*",
         )
-        unlinked = [f for f in ungraded if f["status"] == "unlinked_lexically"]
+        unlinked = [f for f in ungraded if f["status"] in ("unlinked_lexically", "weak_link")]
         self.assertTrue(unlinked, ungraded)
         for f in unlinked:
             self.assertEqual(f["severity"], "medium", f)
         for f in r["faithfulness"]:
-            if f["status"] == "unlinked_lexically" and f["grade"] == "GRADED":
+            if f["status"] in ("unlinked_lexically", "weak_link") and f["grade"] == "GRADED":
                 self.assertEqual(f["severity"], "high", f)
             if f["status"] == "ok":
                 self.assertIsNone(f.get("severity"))

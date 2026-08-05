@@ -5,11 +5,11 @@ They are the production daily path. Do not invent a parallel mega-prompt.
 
 | Prefer | Avoid for daily work |
 |--------|----------------------|
-| `Prompts/Execution/01`…`06` (one chat per step) | One giant custom prompt |
+| `Prompts/Execution/01_boot_and_structural_audit.md` … `06_answers_package_and_learn.md` (one chat per step) | One giant custom prompt |
 | Stage detail in `workflows/stages/` + `Prompts/modules/` | Re-deriving Ultra policy from chat memory |
 
 Single-shot alternatives (only when you intentionally skip pauseable checkpoints):  
-`Prompts/Submitter_First_Pass.md` / `Submitter_Platform_Revision.md` — still follow S0–S12.
+`Prompts/Submitter_First_Pass.md` / `Prompts/Submitter_Platform_Revision.md` — still follow S0–S12.
 
 ---
 
@@ -18,11 +18,11 @@ Single-shot alternatives (only when you intentionally skip pauseable checkpoints
 ```text
 @Prompts/Execution/01_boot_and_structural_audit.md   + ZIP + metadata
   → inspect 01__handoff.md
-@Prompts/Execution/02_…  (after checkpoint_ready --next 02)
-@Prompts/Execution/03_…
-@Prompts/Execution/04_…  ← verdicts; no edits before this
-@Prompts/Execution/05_…  ← edits + oracle/NOP
-@Prompts/Execution/06_…  ← answers + ZIP + learning
+@Prompts/Execution/02_source_and_instruction.md  (after checkpoint_ready --next 02)
+@Prompts/Execution/03_spec_alignment.md
+@Prompts/Execution/04_tri_field_verdict.md  ← verdicts; no edits before this
+@Prompts/Execution/05_branch_fix_and_validate.md  ← edits + oracle/NOP
+@Prompts/Execution/06_answers_package_and_learn.md  ← answers + ZIP + learning
 ```
 
 Before **02–06**:
@@ -68,11 +68,11 @@ work/task ready_to_submit/<task-name>__corrected.zip
 
 | Step | File | Stages |
 |------|------|--------|
-| **01** | `01_boot_and_structural_audit.md` | S0–S2 |
-| **02** | `02_source_and_instruction.md` | S3–S4 |
-| **03** | `03_spec_alignment.md` | S5–S7 |
-| **04** | `04_tri_field_verdict.md` | S8 |
-| **05** | `05_branch_fix_and_validate.md` | S9–S10 |
-| **06** | `06_answers_package_and_learn.md` | S11–S12 |
+| **01** | `Prompts/Execution/01_boot_and_structural_audit.md` | S0–S2 |
+| **02** | `Prompts/Execution/02_source_and_instruction.md` | S3–S4 |
+| **03** | `Prompts/Execution/03_spec_alignment.md` | S5–S7 |
+| **04** | `Prompts/Execution/04_tri_field_verdict.md` | S8 |
+| **05** | `Prompts/Execution/05_branch_fix_and_validate.md` | S9–S10 |
+| **06** | `Prompts/Execution/06_answers_package_and_learn.md` | S11–S12 |
 
-Full guide: `docs/EXECUTION_LAYER.md` · Commands: `docs/COMMANDS.md` · Policy: `Review_Guidelines.mdc`
+Full guide: `docs/EXECUTION_LAYER.md` · Commands: `docs/COMMANDS.md` · Policy: `.cursor/rules/Review_Guidelines.mdc`

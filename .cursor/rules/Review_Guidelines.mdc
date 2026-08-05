@@ -23,6 +23,12 @@ items below, follow this file.
 - **Verifiability** — every requirement tested; every assertion stated or reasonably implied; deterministic; no gaming.
 - **Authenticity** — real engineering work grounded in the source PR (expand scope only; never replace).
 
+## Tests and packaging (high-traffic)
+
+- Fail-to-pass: official minimum **≥ 10** meaningful tests (ideally **10–20**); Fixable if fewer than 10.
+- `environment/problem_statement.md` must be **byte-identical** to `instruction.md`.
+- Solution patch name is **`golden.patch`** (rename `solution.patch` if present).
+
 ## Agent Judge bar
 
 - Blocking axes: **`test_coverage`** and **`test_faithfulness`**.
@@ -42,7 +48,8 @@ items below, follow this file.
 | Harbor network | `[environment]=public`; `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`; `[verifier]=no-network` |
 | Compose | remove `network_mode="none"` from `docker_compose.yaml` if present |
 
-Check **all** metadata fields — not only source/timeouts. Full narrative: `reference/harbor-format.md`.
+Check **all** metadata fields — not only source/timeouts. Full narrative:
+`.cursor/skills/sentinel-ultra-review/reference/harbor-format.md`.
 
 ## Never
 
@@ -55,11 +62,11 @@ Check **all** metadata fields — not only source/timeouts. Full narrative: `ref
 
 | Need | Open |
 |------|------|
-| Expanded policy (precedence, roles, branch-aware, evals) | `Sentinel_Ultra_Policy_Detail.mdc` |
-| Submitter ZIP / platform answers | `Sentinel_Submitter_Platform_Workflow.mdc` |
-| Reviewer Accept / Needs Revision / Reject | `Sentinel_Reviewer_Step_by_Step.mdc` |
-| Quick checklists | `Sentinel_Expert_Contributor_Reference.mdc` |
+| Expanded policy (precedence, roles, branch-aware, evals) | `.cursor/rules/Sentinel_Ultra_Policy_Detail.mdc` |
+| Submitter ZIP / platform answers | `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` |
+| Reviewer Accept / Needs Revision / Reject | `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` |
+| Quick checklists | `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` |
 | Harbor layout, tests, oracle, env/git | `.cursor/skills/sentinel-ultra-review/reference/` |
-| Automation Python invariants | `Sentinel_Automation_Invariants.mdc` (`automation/**/*.py`) |
+| Automation Python invariants | `.cursor/rules/Sentinel_Automation_Invariants.mdc` (`automation/**/*.py`) |
 | Orchestration | `CLAUDE.md` / `AGENTS.md` |
 | Placement audit for this trim | `docs/PROMPT7_RULE_BUDGET_PLACEMENT.md` |

@@ -12,7 +12,7 @@ This file routes work. It does **not** redefine Ultra policy.
 2. `.cursor/skills/sentinel-ultra-review/reference/` (Harbor format, checklists, verdict rubric, test quality)  
 3. Current user instruction, only when it does not conflict with authoritative project requirements  
 4. `.cursor/rules/Review_Guidelines.mdc`  
-5. Role workflow (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` / `Sentinel_Reviewer_Step_by_Step.mdc`)  
+5. Role workflow (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` / `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc`)  
 6. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`  
 7. `docs/WORKFLOW.md` stages + `docs/EXECUTION_LAYER.md`  
 8. `Prompts/` modules + Execution checkpoints  
@@ -34,7 +34,7 @@ This file routes work. It does **not** redefine Ultra policy.
 Triggers: “I am working as a submitter…”, process/prepare/audit submission, ZIP + metadata provided.
 
 Daily: `Prompts/Execution/` **01→06** with `checkpoint_ready` between steps.  
-Orchestrators: `Submitter_First_Pass.md` / `Submitter_Platform_Revision.md`.  
+Orchestrators: `Prompts/Submitter_First_Pass.md` / `Prompts/Submitter_Platform_Revision.md`.  
 Skills: `.cursor/skills/sentinel-submitter`, `.cursor/skills/sentinel-ultra-review`, `.cursor/skills/sentinel-packager`.  
 Stages: S0–S12 in `docs/WORKFLOW.md`.
 

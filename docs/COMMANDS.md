@@ -9,6 +9,7 @@ Interactive daily flow (does not change S0–S12): `docs/EXECUTION_LAYER.md` and
 ```bash
 python3 automation/sentinel_submitter.py intake --zip /ABS/PATH/task.zip
 python3 automation/sentinel_submitter.py prepare --task-name TASK
+python3 automation/sentinel_submitter.py select-task --task-name TASK   # optional; pin task root
 python3 automation/sentinel_submitter.py audit --task-name TASK
 python3 automation/sentinel_submitter.py static-check --task-name TASK
 # → task_outputs/<TASK>/static_check_report.{json,md}
@@ -16,7 +17,8 @@ python3 automation/sentinel_submitter.py static-check --task-name TASK
 python3 automation/sentinel_submitter.py judge-prep --task-name TASK
 # → task_outputs/<TASK>/judge_prep.{md,json}
 # Human decisions (never overwritten): task_outputs/<TASK>/judge_prep_decisions.json
-# Then: Prompts/modules/judge_rehearsal.md → judge_rehearsal.md
+# Then: Prompts/modules/judge_rehearsal.md → judge_rehearsal.md / .json
+# Preflight READS existing judge_prep.json (does not regenerate); fails if inputs changed
 python3 automation/sentinel_submitter.py set-verdicts --task-name TASK \
   --public-analysis Fixable|Invalid/Not Fixable|Valid as-is \
   --internal-validity Invalid|Fixable|Valid-as-is \
@@ -74,6 +76,16 @@ python3 automation/promote_learning.py failure --id F-0NN --title "…" --catego
 `promote_learning` assists human promotion into `knowledge/patterns/` or `knowledge/failures/`.  
 Neither modifies historical ZIPs nor auto-edits Ultra policy.
 
+### Judge feedback ledger (forward validation)
+
+```bash
+python3 automation/write_judge_prediction.py --task-name TASK
+python3 automation/capture_judge_feedback.py --task-name TASK
+python3 automation/judge_stats.py
+```
+
+See `docs/VALIDATION_STRATEGY.md` and `knowledge/judge_feedback/`.
+
 Pre-submit blockers: `docs/SUBMITTER_BLOCKERS.md`. Failure catalog: `docs/FAILURE_CATALOG.md`.
 
 ## Doctor (repo health)
@@ -86,13 +98,17 @@ Scores layout, stage/module depth, skills, learning artifacts, checkpoint toolin
 
 ## Framework tests / CI
 
+Canonical runner (always available):
+
 ```bash
 bash ci_checks/run_framework_checks.sh
-# or unittest fallback:
+# or:
 python3 ci_checks/run_unittest_suite.py
-# or pytest if installed:
-python3 -m pytest repo_tests/ -q
 ```
+
+`pytest` is **not** installed in this workspace by default. Do not treat
+`python3 -m pytest …` as the CI path unless you have installed pytest locally for
+ad-hoc use.
 
 ## Cross-task aggregate (optional, read-only)
 

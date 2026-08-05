@@ -98,12 +98,14 @@ Legacy needing review/normalization: `solution/solution.patch`, `solution/init_s
 ## 7–15. Checklists (pointer)
 
 Instruction, tests, oracle, environment/git, validation-by-role, Fixable traps, and packaging:  
-use `.cursor/skills/sentinel-ultra-review/reference/checklists.md`, `test-quality.md`,  
-`environment-and-git.md`, `verdict-rubric.md`, plus `docs/SUBMITTER_BLOCKERS.md`.  
+use `.cursor/skills/sentinel-ultra-review/reference/checklists.md`,
+`.cursor/skills/sentinel-ultra-review/reference/test-quality.md`,  
+`.cursor/skills/sentinel-ultra-review/reference/environment-and-git.md`,
+`.cursor/skills/sentinel-ultra-review/reference/verdict-rubric.md`, plus `docs/SUBMITTER_BLOCKERS.md`.  
 Mechanical gate: `python3 automation/sentinel_submitter.py static-check --task-name TASK`.
 
 Harbor REQUIRED vs dialect-optional paths: `docs/REPO_CONVENTIONS.md`.  
-Network blocks + agent timeout ≤7200: skill `reference/harbor-format.md`.
+Network blocks + agent timeout ≤7200: `.cursor/skills/sentinel-ultra-review/reference/harbor-format.md`.
 
 ## 16. Master rules
 

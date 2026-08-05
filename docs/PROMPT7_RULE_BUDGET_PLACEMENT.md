@@ -96,3 +96,9 @@ Legend:
 - [x] Automation glob rule present (`Sentinel_Automation_Invariants.mdc`)  
 
 **Completed:** 2026-08-06 — always-on rewritten; old body deleted only after destinations existed.
+
+## Deliberate silence (do not re-raise)
+
+| Fact | Surface silent | Why |
+|------|----------------|-----|
+| Internal ≥3.5 all-axes bar | `.cursor/skills/sentinel-ultra-review/reference/` | Skill `reference/` is derived from **official Ultra docs only** (`SKILL.md`: do not invent rules). ≥3.5 is our **internal** operational bar from `knowledge/patterns/P-010_*` / `P-011_*` and the always-on / Policy_Detail rules — not Snorkel policy. Correct placement; next audit should not flag REF silence as a defect. |

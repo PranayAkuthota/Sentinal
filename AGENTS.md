@@ -12,9 +12,9 @@ Follow `CLAUDE.md` for mode routing. Policy authority: official Ultra docs + `.c
 6. Fixable upload ZIP: `work/task ready_to_submit/<task>__corrected.zip` (delete-first).
 7. Walk `docs/SUBMITTER_BLOCKERS.md` before Fixable upload.
 8. Snorkel narrative fields = human paragraphs (workflow §13).
-9. End tasks with `capture_learning.py`; promote via `promote_learning.py` (human).
+9. End tasks with `python3 automation/capture_learning.py`; promote via `python3 automation/promote_learning.py` (human).
 10. Long framework health: `python3 automation/sentinel_doctor.py`.
-11. Before Fixable `preflight` / upload: `static-check` then `judge-prep` (S10.5); write `judge_rehearsal.md` + `.json` via `Prompts/modules/judge_rehearsal.md`. After platform Judge returns: `capture_judge_feedback.py` (see `docs/VALIDATION_STRATEGY.md`). Do not calibrate against historical bounced packages.
+11. Before Fixable `preflight` / upload: `static-check` then `judge-prep` (S10.5); write `judge_rehearsal.md` + `.json` via `Prompts/modules/judge_rehearsal.md`. After platform Judge returns: `python3 automation/capture_judge_feedback.py` (see `docs/VALIDATION_STRATEGY.md`). Do not calibrate against historical bounced packages.
 
 ## Map
 
@@ -26,8 +26,8 @@ Follow `CLAUDE.md` for mode routing. Policy authority: official Ultra docs + `.c
 | Commands | `docs/COMMANDS.md` |
 | Blockers | `docs/SUBMITTER_BLOCKERS.md` |
 | Harbor format / mechanical checks | `.cursor/skills/sentinel-ultra-review/` |
-| Daily interactive | `Prompts/Execution/README.md` (`01`→`06`) |
-| First-pass / revision | `Prompts/Submitter_First_Pass.md` / `Submitter_Platform_Revision.md` |
+| Daily interactive | `Prompts/Execution/README.md` (`01_boot_…` → `06_answers_…`) |
+| First-pass / revision | `Prompts/Submitter_First_Pass.md` / `Prompts/Submitter_Platform_Revision.md` |
 | Execution layer | `docs/EXECUTION_LAYER.md` |
 | Patterns | `knowledge/patterns/INDEX.md` |
 | Reviewer | `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` |

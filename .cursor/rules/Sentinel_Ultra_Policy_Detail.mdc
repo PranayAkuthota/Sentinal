@@ -38,7 +38,7 @@ Official Ultra documentation, live platform fields, and the ultra-review skill `
 Operational precedence (highest first):
 
 1. Latest authoritative Sentinel Ultra documentation and **live platform fields**
-2. `.cursor/skills/sentinel-ultra-review/reference/` + `scripts/check_task.py` (Harbor mechanical policy)
+2. `.cursor/skills/sentinel-ultra-review/reference/` + `.cursor/skills/sentinel-ultra-review/scripts/check_task.py` (Harbor mechanical policy)
 3. Current user instruction, only when it does not conflict with authoritative project requirements
 4. `.cursor/rules/Review_Guidelines.mdc` (always-on budget)
 5. Role-specific workflow (submitter / reviewer `.mdc`)
@@ -89,7 +89,7 @@ Workflow:
 4. **Adjudication** — a final pass resolves disagreements.
 5. **Delivery** — accepted tasks are delivered to train and evaluate coding agents.
 
-If unfamiliar with Harbor, review Harbor documentation / skill `reference/harbor-format.md` and `glossary.md`.
+If unfamiliar with Harbor, review Harbor documentation / `.cursor/skills/sentinel-ultra-review/reference/harbor-format.md` and `glossary.md`.
 
 ---
 
@@ -164,7 +164,7 @@ This role distinction replaces the old universal statement that contributors sho
 
 ## Platform evaluations
 
-Order (August 4, 2026): Agent Judge (Quality Check) before Difficulty. If Judge fails, Difficulty does not run (`Blocked at the agentic judge…`). Drive every Agent Judge axis to **≥ 3.5** (blocking axes: `test_coverage`, `test_faithfulness`) before treating Difficulty as in-scope. Difficulty: **4 trials per model**; worse-performing model pass rate **≤ 50%**. Details: skill FAQ + `knowledge/patterns/P-010` / `P-011`.
+Order (August 4, 2026): Agent Judge (Quality Check) before Difficulty. If Judge fails, Difficulty does not run (`Blocked at the agentic judge…`). Drive every Agent Judge axis to **≥ 3.5** (blocking axes: `test_coverage`, `test_faithfulness`) before treating Difficulty as in-scope. Difficulty: **4 trials per model**; worse-performing model pass rate **≤ 50%**. Details: skill FAQ + `knowledge/patterns/P-010_agent_judge_before_difficulty.md` / `knowledge/patterns/P-011_agent_judge_overreach_sync_instruction_tests_target_axis_sco.md`.
 
 In-app platform checks have a five-minute runtime limit — do not claim a run completed if the platform stopped for that limit. Valid as-is tasks are not re-run by platform difficulty evals.
 

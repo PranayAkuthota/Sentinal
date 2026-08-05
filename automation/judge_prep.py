@@ -340,6 +340,19 @@ def link_status(req_toks: Set[str], as_toks: Set[str]) -> str:
     return "none"
 
 
+def _faithfulness_severity(grade: str, status: str) -> Optional[str]:
+    """Severity for unlinked faithfulness rows. Grade gates severity, not eligibility.
+
+    GRADED unlinked → high (can zero reward). UNGRADED unlinked → medium (judge still
+    scores the whole suite / allow_extra shipping). Coverage stays graded-only elsewhere.
+    """
+    if status != "overreach_candidate":
+        return None
+    if grade == "GRADED":
+        return "high"
+    return "medium"
+
+
 def build_bipartite(
     reqs: List[Dict[str, Any]], asserts: List[Dict[str, Any]]
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
@@ -348,6 +361,7 @@ def build_bipartite(
     unresolved_cov = 0
     unresolved_faith = 0
 
+    # Coverage: only GRADED asserts can close a gap (ungraded cannot fail the reward).
     for r in reqs:
         rt = set(r["tokens"])
         linked: List[str] = []
@@ -377,6 +391,7 @@ def build_bipartite(
             }
         )
 
+    # Faithfulness: EVERY assertion (graded + ungraded). Judge reads the whole suite.
     for a in asserts:
         at = set(a["tokens"])
         linked_r: List[str] = []
@@ -387,9 +402,7 @@ def build_bipartite(
                 linked_r.append(r["id"])
             elif st == "UNRESOLVED":
                 unresolved_r.append(r["id"])
-        if a["grade"] != "GRADED":
-            status = "n/a_ungraded" if a["grade"] == "UNGRADED" else "n/a_unresolved_grade"
-        elif linked_r:
+        if linked_r:
             status = "ok"
         elif unresolved_r:
             status = "unresolved"
@@ -403,20 +416,21 @@ def build_bipartite(
                 "unresolved_requirement_ids": unresolved_r,
                 "grade": a["grade"],
                 "status": status,
+                "severity": _faithfulness_severity(a["grade"], status),
                 "fingerprint": a["fingerprint"],
             }
         )
 
     n_req = max(len(reqs), 1)
-    n_graded = max(sum(1 for a in asserts if a["grade"] == "GRADED"), 1)
+    n_assert = max(len(asserts), 1)
     stats = {
         "unresolved_coverage_rows": unresolved_cov,
         "unresolved_faithfulness_rows": unresolved_faith,
         "unresolved_coverage_ratio": unresolved_cov / n_req,
-        "unresolved_faithfulness_ratio": unresolved_faith / n_graded,
+        "unresolved_faithfulness_ratio": unresolved_faith / n_assert,
         "low_confidence": (
             (unresolved_cov / n_req) > UNRESOLVED_WARN_RATIO
-            or (unresolved_faith / n_graded) > UNRESOLVED_WARN_RATIO
+            or (unresolved_faith / n_assert) > UNRESOLVED_WARN_RATIO
         ),
     }
     return coverage, faithfulness, stats
@@ -841,16 +855,17 @@ def render_md(report: Dict[str, Any]) -> str:
         )
     L.append("")
     L.append("### FAITHFULNESS (Assertion → Requirement)")
-    L.append("| A | grade | linked R | status | decision |")
-    L.append("|---|-------|----------|--------|----------|")
+    L.append("| A | grade | severity | linked R | status | decision |")
+    L.append("|---|-------|----------|----------|--------|----------|")
     for row in report["faithfulness"]:
         dec = report["decision_join"].get(f"overreach:{row['assertion_id']}", {})
         st = row["status"]
         if st == "overreach_candidate" and dec.get("status") == "explained":
             st = "overreach (explained)"
         rids = ", ".join(row["requirement_ids"]) or "—"
+        sev = row.get("severity") or "—"
         L.append(
-            f"| {row['assertion_id']} | {row['grade']} | {rids} | {st} | {dec.get('status', '—')} |"
+            f"| {row['assertion_id']} | {row['grade']} | {sev} | {rids} | {st} | {dec.get('status', '—')} |"
         )
     L.append("")
 
@@ -1063,10 +1078,15 @@ def run_judge_prep(
         if row["status"] == "overreach_candidate"
     ]
     if overreach_ids:
+        high = [r["assertion_id"] for r in faithfulness if r["status"] == "overreach_candidate" and r.get("severity") == "high"]
+        med = [r["assertion_id"] for r in faithfulness if r["status"] == "overreach_candidate" and r.get("severity") == "medium"]
         auto_remove["overreach"] = {
             "status": "HIT",
             "static_ids": auto_remove["overreach"].get("static_ids") or [],
-            "notes": f"bipartite graded candidates: {', '.join(overreach_ids)}",
+            "notes": (
+                f"bipartite candidates high={', '.join(high) or '—'}; "
+                f"medium(ungraded)={', '.join(med) or '—'}"
+            ),
         }
 
     packaging = packaging_sweep(task_root)

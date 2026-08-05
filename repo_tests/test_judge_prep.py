@@ -142,6 +142,25 @@ class JudgePrepAllowExtraTests(unittest.TestCase):
         r1 = run_fixture("allow_extra", decisions=decisions)
         self.assertFalse(any(b.startswith("allow_extra:") for b in r1["blockers"]), r1["blockers"])
 
+    def test_ungraded_asserts_participate_in_faithfulness_with_medium_severity(self):
+        """FIX A: judge scores EVERY test file; grade gates severity, not eligibility."""
+        r = run_fixture("allow_extra")
+        ungraded = [f for f in r["faithfulness"] if f["grade"] == "UNGRADED"]
+        self.assertTrue(ungraded, "expected UNGRADED faithfulness rows")
+        self.assertFalse(
+            any(f["status"].startswith("n/a_") for f in r["faithfulness"]),
+            "UNGRADED must not be skipped as n/a_*",
+        )
+        unlinked = [f for f in ungraded if f["status"] == "overreach_candidate"]
+        self.assertTrue(unlinked, ungraded)
+        for f in unlinked:
+            self.assertEqual(f["severity"], "medium", f)
+        for f in r["faithfulness"]:
+            if f["status"] == "overreach_candidate" and f["grade"] == "GRADED":
+                self.assertEqual(f["severity"], "high", f)
+            if f["status"] == "ok":
+                self.assertIsNone(f.get("severity"))
+
 
 class JudgePrepPackagingTests(unittest.TestCase):
     def test_untracked_junk_hard_caps_tracked_annotated_not_suppressed(self):

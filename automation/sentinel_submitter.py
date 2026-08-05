@@ -197,6 +197,11 @@ def empty_workflow_state() -> Dict[str, Any]:
         "static_check_fixable_ids": [],
         "static_check_advisory_ids": [],
         "static_check_not_fixable_ids": [],
+        "judge_prep_completed": False,
+        "judge_prep_passed": False,
+        "judge_prep_blockers": [],
+        "judge_prep_accept_risk": False,
+        "judge_prep_accept_risk_reason": None,
         "instruction_problem_statement_match": False,
         "test_config_checked": False,
         "fail_to_pass_count": None,
@@ -1612,9 +1617,79 @@ def cmd_record_validation(args: argparse.Namespace) -> None:
     print(json.dumps(evidence_entry, indent=2))
 
 
-def run_preflight(task_name: str, session: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+def run_judge_prep_for_task(task_name: str, task_root: Path, state: Dict[str, Any]) -> Dict[str, Any]:
+    """Invoke automation/judge_prep.py against task_root; update workflow state fields."""
+    from judge_prep import run_judge_prep  # local import — keep submitter load light
+
+    paths = session_paths(task_name)
+    sc_json = paths["outputs"] / "static_check_report.json"
+    accept = state.get("judge_prep_accept_risk_reason") if state.get("judge_prep_accept_risk") else None
+    report = run_judge_prep(
+        task_root,
+        paths["outputs"],
+        sc_json,
+        task_name=task_name,
+        accept_risk=accept,
+    )
+    state["judge_prep_completed"] = True
+    state["judge_prep_passed"] = bool(report.get("prep_passed"))
+    state["judge_prep_blockers"] = list(report.get("blockers") or [])
+    return report
+
+
+def apply_judge_prep_preflight_blockers(
+    report: Dict[str, Any],
+    blockers: List[str],
+    warnings: List[str],
+    accept_risk_reason: Optional[str],
+) -> None:
+    """Block on unexplained gaps/overreach/auto-REMOVE/UNDECIDED/invalidated decisions.
+
+    --accept-risk records an override in workflow_state (caller) and demotes these to warnings.
+    """
+    if report.get("hard_stopped"):
+        msg = "judge_prep HARD STOP: " + "; ".join(report.get("hard_stop_reasons") or ["unknown"])
+        if accept_risk_reason:
+            warnings.append(f"{msg} (accept-risk: {accept_risk_reason})")
+        else:
+            blockers.append(msg)
+        return
+
+    interesting = []
+    for b in report.get("blockers") or []:
+        if (
+            b.startswith("coverage:")
+            or b.startswith("overreach:")
+            or b.startswith("allow_extra:")
+            or b.startswith("auto_remove:")
+            or b.startswith("packaging:")
+            or b.startswith("hard_stop:")
+            or b == "decisions:invalidated"
+        ):
+            interesting.append(b)
+    for b in interesting:
+        label = f"judge_prep: {b}"
+        if accept_risk_reason:
+            warnings.append(f"{label} (accept-risk: {accept_risk_reason})")
+        else:
+            blockers.append(label)
+
+
+def run_preflight(
+    task_name: str,
+    session: Dict[str, Any],
+    state: Dict[str, Any],
+    accept_risk: Optional[str] = None,
+) -> Dict[str, Any]:
     blockers: List[str] = []
     warnings: List[str] = []
+    if accept_risk and str(accept_risk).strip():
+        state["judge_prep_accept_risk"] = True
+        state["judge_prep_accept_risk_reason"] = str(accept_risk).strip()
+        state["judge_prep_accept_risk_at"] = utc_now()
+    accept_risk_reason = (
+        state.get("judge_prep_accept_risk_reason") if state.get("judge_prep_accept_risk") else None
+    )
     if not session.get("working_task_root") or not session.get("real_task_root"):
         blockers.append("Task root not selected")
     pub = state.get("public_analysis") or session.get("public_analysis")
@@ -1708,6 +1783,13 @@ def run_preflight(task_name: str, session: Dict[str, Any], state: Dict[str, Any]
                 blockers.append(f"static-check NOT_FIXABLE open: {fid}")
             for fid in sc["advisory_ids"]:
                 warnings.append(f"static-check ADVISORY: {fid}")
+            # S10.5 — judge_prep after static-check (map even if FIXABLE open)
+            jp_report = run_judge_prep_for_task(task_name, working, state)
+            apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
+            if accept_risk_reason:
+                warnings.append(
+                    f"judge_prep accept-risk recorded for reviewer comments: {accept_risk_reason}"
+                )
         elif branch == "Valid-as-is":
             # validate against original root
             root = Path(session["real_task_root"])
@@ -1734,6 +1816,12 @@ def run_preflight(task_name: str, session: Dict[str, Any], state: Dict[str, Any]
                 blockers.append(f"static-check NOT_FIXABLE open: {fid}")
             for fid in sc["advisory_ids"]:
                 warnings.append(f"static-check ADVISORY: {fid}")
+            jp_report = run_judge_prep_for_task(task_name, root, state)
+            apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
+            if accept_risk_reason:
+                warnings.append(
+                    f"judge_prep accept-risk recorded for reviewer comments: {accept_risk_reason}"
+                )
             for key, label in (
                 ("docker_build_status", "Docker"),
                 ("oracle_status", "Oracle"),
@@ -1806,10 +1894,33 @@ def run_preflight(task_name: str, session: Dict[str, Any], state: Dict[str, Any]
     return result
 
 
+def cmd_judge_prep(args: argparse.Namespace) -> None:
+    task_name, session = load_session(args.task_name)
+    state = load_workflow_state(task_name)
+    root = resolve_static_check_root(session, state)
+    # Prefer existing static-check report; do not re-run check_task here (S10.5 assumes it ran).
+    paths = session_paths(task_name)
+    sc_json = paths["outputs"] / "static_check_report.json"
+    if not sc_json.is_file():
+        die("static_check_report.json missing — run static-check before judge-prep")
+    report = run_judge_prep_for_task(task_name, root, state)
+    save_workflow_state(task_name, state)
+    print("JUDGE PREP COMPLETE")
+    print(f"  root: {root}")
+    print(f"  hard_stopped: {report.get('hard_stopped')}")
+    print(f"  prep_passed: {report.get('prep_passed')}")
+    print(f"  blockers: {report.get('blockers')}")
+    print(f"  md: {paths['outputs'] / 'judge_prep.md'}")
+    print(f"  decisions (human-owned): {paths['outputs'] / 'judge_prep_decisions.json'}")
+    if report.get("hard_stopped") or not report.get("prep_passed"):
+        raise SystemExit(1)
+
+
 def cmd_preflight(args: argparse.Namespace) -> None:
     task_name, session = load_session(args.task_name)
     state = load_workflow_state(task_name)
-    result = run_preflight(task_name, session, state)
+    accept = getattr(args, "accept_risk", None)
+    result = run_preflight(task_name, session, state, accept_risk=accept)
     paths = session_paths(task_name)
     paths["preflight_json"].write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     save_workflow_state(task_name, state)
@@ -1818,6 +1929,8 @@ def cmd_preflight(args: argparse.Namespace) -> None:
     print(f"  ready_to_finalize: {result['ready_to_finalize']}")
     print(f"  ready_to_package: {result['ready_to_package']}")
     print(f"  validation_level: {result['validation_level']}")
+    if state.get("judge_prep_accept_risk"):
+        print(f"  judge_prep accept-risk: {state.get('judge_prep_accept_risk_reason')}")
     if result["blockers"]:
         print("  BLOCKERS:")
         for b in result["blockers"]:
@@ -2081,6 +2194,13 @@ def build_parser() -> argparse.ArgumentParser:
     add_task(sc)
     sc.set_defaults(func=cmd_static_check)
 
+    jp = sub.add_parser(
+        "judge-prep",
+        help="S10.5 deterministic Quality Check prep (bipartite map; cites static-check; never overwrites decisions)",
+    )
+    add_task(jp)
+    jp.set_defaults(func=cmd_judge_prep)
+
     sv = sub.add_parser("set-verdicts")
     add_task(sv)
     sv.add_argument("--public-analysis", required=True)
@@ -2117,6 +2237,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     pre = sub.add_parser("preflight")
     add_task(pre)
+    pre.add_argument(
+        "--accept-risk",
+        metavar="REASON",
+        help="Override judge_prep blockers (gaps/overreach/auto-REMOVE/UNDECIDED/invalidated); recorded for reviewer comments",
+    )
     pre.set_defaults(func=cmd_preflight)
 
     pf = sub.add_parser("package-fixable")

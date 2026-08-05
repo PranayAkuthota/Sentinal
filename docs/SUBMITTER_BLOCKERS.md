@@ -33,6 +33,11 @@ Policy details: `.cursor/rules/Review_Guidelines.mdc`. Operational traps: `Senti
 16. Silent skips / fail-open missing-deps patterns in new tests
 16b. Graded asserts (or reward-gating asserts under `allow_extra_failures: false`) not stated/implied in instruction → **overreach** / faithfulness fail (P-011)
 16c. Coverage-only test chase without instruction sync (next Judge often flips to overreach)
+16d. `judge_prep` unexplained coverage gap (`coverage:R*`) — explain in `judge_prep_decisions.json` or add/trim asserts
+16e. `judge_prep` unexplained graded overreach (`overreach:A*`) — explain or fix per P-011 (instruction **or** assertion, not both silently)
+16f. `allow_extra_failures: true` with UNDECIDED ungraded tests — decide `PROMOTE_F2P` or `DELETE` in decisions file
+16g. Skipped S10.5 / missing `judge_prep.json` / auto-REMOVE cite still HIT before package
+16h. `judge_prep` decisions invalidated by subsequent edits (fingerprint mismatch) and not re-decided
 
 ## D. Oracle & solution
 

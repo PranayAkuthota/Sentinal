@@ -16,6 +16,7 @@ S7  Environment & Metadata Gates
 S8  Tri-Field Verdict                   ← expert ONLY
 S9  Branch Execution (Fixable / Valid-as-is / Invalid)
 S10 Deterministic Runtime Validation
+S10.5 Judge rehearsal (judge_prep + two-pass panel sim)  ← before package
 S11 Platform Answers & Package
 S12 Learning Capture                    ← framework improvement
 ```
@@ -45,7 +46,8 @@ flowchart TD
   S8 -->|Invalid| S9I[S9 Evidence package]
   S9F --> S10[S10 Runtime Validation]
   S9I --> S11
-  S10 --> S11[S11 Answers and Package]
+  S10 --> S105[S10.5 Judge rehearsal]
+  S105 --> S11[S11 Answers and Package]
   S11 --> S12[S12 Learning Capture]
 ```
 
@@ -54,6 +56,8 @@ flowchart TD
 | Stage | Expert judgement required? | Automation allowed |
 |-------|----------------------------|--------------------|
 | S1–S2, S7, S10–S11 packaging | Low (verify outputs) | High |
+| S10.5 judge_prep | Low (verify map / decisions) | High (deterministic) |
+| S10.5 rehearsal | High (axis scores) | Prompt module only |
 | S3–S6 | High | Assist only (fetch PR, list files) |
 | S8 | **Always human/agent expert** | Record only |
 | S9 Fixable content | High | Hygiene helpers only |

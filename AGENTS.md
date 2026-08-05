@@ -14,7 +14,7 @@ Follow `CLAUDE.md` for mode routing. Policy authority: official Ultra docs + `.c
 8. Snorkel narrative fields = human paragraphs (workflow §13).
 9. End tasks with `capture_learning.py`; promote via `promote_learning.py` (human).
 10. Long framework health: `python3 automation/sentinel_doctor.py`.
-11. Before Fixable `preflight` / upload: `python3 automation/sentinel_submitter.py static-check --task-name TASK` (runs `.cursor/skills/sentinel-ultra-review/scripts/check_task.py`).
+11. Before Fixable `preflight` / upload: `static-check` then `judge-prep` (S10.5); write `judge_rehearsal.md` via `Prompts/modules/judge_rehearsal.md`. Decisions live in `judge_prep_decisions.json` (never overwritten).
 
 ## Map
 

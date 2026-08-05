@@ -13,6 +13,10 @@ python3 automation/sentinel_submitter.py audit --task-name TASK
 python3 automation/sentinel_submitter.py static-check --task-name TASK
 # → task_outputs/<TASK>/static_check_report.{json,md}
 # FIXABLE/NOT_FIXABLE findings block ready_to_package; ADVISORY warns only
+python3 automation/sentinel_submitter.py judge-prep --task-name TASK
+# → task_outputs/<TASK>/judge_prep.{md,json}
+# Human decisions (never overwritten): task_outputs/<TASK>/judge_prep_decisions.json
+# Then: Prompts/modules/judge_rehearsal.md → judge_rehearsal.md
 python3 automation/sentinel_submitter.py set-verdicts --task-name TASK \
   --public-analysis Fixable|Invalid/Not Fixable|Valid as-is \
   --internal-validity Invalid|Fixable|Valid-as-is \
@@ -23,6 +27,8 @@ python3 automation/sentinel_submitter.py sync-problem-statement --task-name TASK
 python3 automation/sentinel_submitter.py record-validation --task-name TASK \
   --check docker_build|oracle|nop|... --status passed|failed|not_run --evidence PATH [--reward N]
 python3 automation/sentinel_submitter.py preflight --task-name TASK
+# optional override for judge_prep blockers only:
+# python3 automation/sentinel_submitter.py preflight --task-name TASK --accept-risk "reason"
 python3 automation/sentinel_submitter.py package-fixable --task-name TASK
 # → work/task ready_to_submit/<TASK>__corrected.zip  (canonical upload; delete-first refresh)
 # → task_outputs/<TASK>/updated_zip_file/<TASK>__corrected.zip  (mirror)

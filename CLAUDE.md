@@ -22,7 +22,7 @@ This file routes work. It does **not** redefine Ultra policy.
 
 - Architecture: `docs/ARCHITECTURE.md`  
 - Commands: `docs/COMMANDS.md`  
-- Mechanical gate: `python3 automation/sentinel_submitter.py static-check --task-name TASK`  
+- Mechanical gate: `static-check` then `judge-prep` (S10.5)  
 - Ultra EC skill: `.cursor/skills/sentinel-ultra-review/`  
 - Redesign record: `docs/FRAMEWORK_REDESIGN_AUDIT.md`  
 - Blockers: `docs/SUBMITTER_BLOCKERS.md`  
@@ -60,11 +60,13 @@ Triggers: redesign rules/automation/docs. Do not mutate `work/` task ZIPs or `ta
 intake → prepare → audit → (Execution 01–04) → set-verdicts
   → checkpoint_ready --next 05 → Fixable edits / freeze / evidence
   → ensure-packaging-hygiene → sync-problem-statement
-  → static-check → local_oracle_nop → record-validation → preflight → package-*
+  → static-check → local_oracle_nop → record-validation
+  → judge-prep → judge_rehearsal (prompt) → preflight → package-*
   → capture_learning → (optional) promote_learning → status/archive
 ```
 
-`preflight` / `package-fixable` refuse `ready_to_package` while any static-check **FIXABLE** or **NOT_FIXABLE** finding is open. **ADVISORY** findings warn only.
+`preflight` / `package-fixable` refuse `ready_to_package` while any static-check **FIXABLE** or **NOT_FIXABLE** finding is open. **ADVISORY** findings warn only.  
+`judge-prep` blockers (unexplained gaps/overreach, UNDECIDED allow_extra, auto-REMOVE cites, invalidated decisions) also refuse packaging unless `--accept-risk` is recorded.
 
 ## Outputs
 

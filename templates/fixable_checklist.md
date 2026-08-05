@@ -8,7 +8,7 @@ Use after semantic edits; does **not** replace expert coverage/faithfulness revi
 - [ ] `task.toml`: Harbor network blocks present (`env=public`, `agent=allowlist`+`api.portkey.ai`, `verifier=no-network`); compose `network_mode="none"` removed if present
 - [ ] `solution/golden.patch` present (not only `solution.patch`)
 - [ ] `solution/solve.sh` executable; container runs via `bash solve.sh` if needed
-- [ ] `tests/grade.py` present (extract from embedded `test.sh` if required)
+- [ ] `tests/grade.py` present when desired (dialect-optional; extract from embedded `test.sh` if useful — never blocking alone)
 - [ ] `tests/tests.patch`: `git apply --check` passes on clean repo (not patch-only)
 - [ ] No hunk line-count mismatches / empty context lines without leading space
 - [ ] `fail_to_pass` ≥10 meaningful; ≥11 if claiming live “more than 10”

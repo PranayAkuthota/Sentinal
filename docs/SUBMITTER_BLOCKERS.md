@@ -45,7 +45,7 @@ Policy details: `.cursor/rules/Review_Guidelines.mdc`. Operational traps: `Senti
 20. Missing/wrong Harbor network blocks on Fixable corrected `task.toml` (require `[environment]=public`, `[agent]=allowlist`+`allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); or `network_mode="none"` still in `docker_compose.yaml`
 21. Resource/timeout/gpu limits outside Ultra bounds
 22. Dockerfile cannot build offline / tangled unrecoverable deps (then Invalid, not upload)
-23. Missing `grade.py` when grader is embedded only in `test.sh` (extract via hygiene)
+23. `tests/grade.py` absent while `test.sh` embeds a grader — **informational dialect note only** (optional extract via hygiene; never blocks packaging)
 
 ## F. Git hygiene
 

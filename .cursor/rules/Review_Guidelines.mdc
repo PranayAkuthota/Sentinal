@@ -137,10 +137,11 @@ Default current layout:
 │   └── tests/
 │       ├── test.sh
 │       ├── tests.patch
-│       ├── config.json
-│       └── grade.py
+│       └── config.json
 └── runs/
 ```
+
+Official Harbor Framework required layout does **not** include `tests/grade.py`. That file (and `tests/files/`, compose YAMLs) are **dialect-optional** — see `docs/REPO_CONVENTIONS.md`.
 
 ### Component explanations
 
@@ -156,7 +157,7 @@ Default current layout:
 | `tests/test.sh` | Runs the suite and writes reward (e.g. `/logs/verifier/reward.txt`) |
 | `tests/tests.patch` | Contains fail-to-pass test additions applied at verify time |
 | `tests/config.json` | How to run the suite; which test ids are fail-to-pass / pass-to-pass |
-| `tests/grade.py` | Grading script |
+| `tests/grade.py` | **Dialect-optional** — not required by Harbor Framework; informational if present |
 | `runs/` | Top-level agent execution logs, episodes, and outcomes (reference only; not uploaded) |
 
 If a downloaded task contains `solution/solution.patch` instead of `golden.patch`, rename it to `golden.patch`.

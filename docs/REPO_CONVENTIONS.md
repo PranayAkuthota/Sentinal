@@ -2,6 +2,31 @@
 
 Intentional conventions for reviewers and new engineers.
 
+## Harbor required vs dialect-optional paths
+
+Official Harbor Framework task structure (blocking / REQUIRED):
+
+| Path | Role |
+|------|------|
+| `task.toml` | Metadata / resources / timeouts / network blocks |
+| `instruction.md` | Agent-facing problem statement |
+| `environment/Dockerfile` | Image build |
+| `environment/repo/` | Pinned codebase |
+| `environment/problem_statement.md` | Exact copy of `instruction.md` |
+| `solution/solve.sh` | Oracle driver |
+| `solution/golden.patch` | Canonical solution patch |
+| `tests/test.sh` | Verifier entry; writes reward |
+| `tests/tests.patch` | Fail-to-pass test additions |
+| `tests/config.json` | Suite config / f2p / p2p ids |
+
+Dialect-optional (informational only — never a packaging blocker by itself):
+
+| Path | Notes |
+|------|------|
+| `tests/grade.py` | Some packages embed the grader only in `test.sh`; absence alone is not a defect. Mention in `dialect_notes` when `test.sh` embeds a grader and the sibling file is missing. |
+| `tests/files/` | Legacy optional test assets |
+| `docker_compose.yaml` / `docker-compose.yaml` (task root or under `environment/`) | If present, must not set `network_mode = "none"` |
+
 ## Official Ultra policy wins
 
 If anything here conflicts with `.cursor/rules/Review_Guidelines.mdc` or official Ultra docs (`document 1/2/3.txt`), follow policy.

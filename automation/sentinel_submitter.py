@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKSPACE_ROOT = SCRIPT_DIR.parent
-SCHEMA_VERSION = 3  # workflow_state.json
+SCHEMA_VERSION = 4  # workflow_state.json (v4: dialect_notes; grade.py not required)
 AUDIT_SCHEMA_VERSION = 2  # audit_report.json (v2: network_blocks_ok / network_blocks_issues)
 
 # Shared deterministic helpers (Phase 2 lib extract)
@@ -83,7 +83,16 @@ REQUIRED_CURRENT = [
     "tests/test.sh",
     "tests/tests.patch",
     "tests/config.json",
+]
+
+# Present on some Harbor dialects / packages; never blocking by themselves.
+DIALECT_OPTIONAL = [
     "tests/grade.py",
+    "tests/files",
+    "docker_compose.yaml",
+    "docker-compose.yaml",
+    "environment/docker_compose.yaml",
+    "environment/docker-compose.yaml",
 ]
 
 FORBIDDEN_ARTIFACT_GLOBS = [
@@ -182,6 +191,7 @@ def empty_workflow_state() -> Dict[str, Any]:
         "audit_completed": False,
         "required_files_checked": False,
         "missing_required_files": [],
+        "dialect_notes": [],
         "instruction_problem_statement_match": False,
         "test_config_checked": False,
         "fail_to_pass_count": None,
@@ -946,6 +956,7 @@ def normalize_audit_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
 def required_files_report(task_root: Path) -> Dict[str, Any]:
     missing = []
     legacy = []
+    dialect_notes: List[str] = []
     for rel in REQUIRED_CURRENT:
         p = task_root / rel
         if not p.exists():
@@ -953,11 +964,31 @@ def required_files_report(task_root: Path) -> Dict[str, Any]:
             if rel == "solution/golden.patch" and (task_root / "solution/solution.patch").exists():
                 legacy.append("solution/solution.patch present instead of golden.patch")
                 continue
+            if rel == "tests/tests.patch" and (task_root / "tests/test.patch").exists():
+                legacy.append("tests/test.patch present instead of tests.patch")
+                continue
             missing.append(rel)
     for rel in ("solution/solution.patch", "solution/init_state.patch", "tests/files"):
         if (task_root / rel).exists():
             legacy.append(rel)
-    return {"missing": missing, "legacy": legacy, "ok": len(missing) == 0}
+    # Dialect optional: informational only — never blocking
+    grade = task_root / "tests" / "grade.py"
+    test_sh = task_root / "tests" / "test.sh"
+    if not grade.exists() or grade.stat().st_size == 0:
+        if test_sh.exists():
+            ts = test_sh.read_text(encoding="utf-8", errors="replace")
+            if "GRADE_PY_EOF" in ts or "/tmp/grade.py" in ts:
+                dialect_notes.append(
+                    "tests/grade.py absent while test.sh embeds a grader "
+                    "(dialect optional — extract via ensure-packaging-hygiene if desired; not blocking)"
+                )
+    return {
+        "missing": missing,
+        "legacy": legacy,
+        "ok": len(missing) == 0,
+        "dialect_notes": dialect_notes,
+    }
+
 
 
 # ----------------------------- commands ---------------------------------
@@ -1253,6 +1284,7 @@ def cmd_audit(args: argparse.Namespace) -> None:
     state["audit_completed"] = True
     state["required_files_checked"] = True
     state["missing_required_files"] = req["missing"]
+    state["dialect_notes"] = req.get("dialect_notes") or []
     state["instruction_problem_statement_match"] = sync_ok
     state["test_config_checked"] = True
     state["fail_to_pass_count"] = cfg.get("fail_to_pass_count")

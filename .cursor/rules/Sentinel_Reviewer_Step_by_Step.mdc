@@ -69,8 +69,8 @@ Note the package layout and submission type before judging content. Do **not** a
 - `tests/test.sh`
 - `tests/tests.patch`
 - `tests/config.json`
-- `tests/grade.py`
-- `tests/files/` when present
+- `tests/grade.py` when present (**dialect-optional** — never required)
+- `tests/files/` when present (**dialect-optional**)
 - All relevant run summaries
 - All failing trial logs when reasonably available
 - At least one passing trial log when available

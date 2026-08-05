@@ -87,11 +87,11 @@ solution/golden.patch               # current canonical name
 tests/test.sh
 tests/tests.patch
 tests/config.json
-tests/grade.py
 runs/                               # optional evidence; never upload
+# Dialect-optional (never blocking): tests/grade.py, tests/files/, docker_compose.yaml
 ```
 
-Legacy needing review/normalization: `solution/solution.patch`, `solution/init_state.patch`, `tests/files/`. Missing `init_state.patch` alone is not a defect.
+Legacy needing review/normalization: `solution/solution.patch`, `solution/init_state.patch`, `tests/files/`. Missing `init_state.patch` alone is not a defect. Missing `tests/grade.py` alone is not a defect.
 
 ---
 

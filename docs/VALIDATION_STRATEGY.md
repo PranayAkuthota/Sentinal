@@ -97,3 +97,7 @@ Reports over the ledger:
 - Verdict agreement (predicted vs actual OK/DISCUSS/REMOVE)
 
 Calibrate prompts and map rules from these rates only — never from historical backtests.
+
+**Retrospective joins** (prediction `source: "retrospective backtest"`) are reported in a
+separate `judge_stats.py` section. Precision is suppressed there: the live judge cites
+selectively, so an unmentioned flag is not a false positive. Use recall on cited artifacts only.

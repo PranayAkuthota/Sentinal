@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "task_name": "eb599683-21e8-49a0-badd-207636178abc_submission",
+  "predicted_at": "2026-08-05T18:33:49Z",
+  "prep_fingerprint": "f01e3c79625c6e4573a7a39d0a0c7ab8de9a49b270c064e39cf146a3c0ad4bc2",
+  "predicted_verdict": "REMOVE",
+  "predicted_axes": {
+    "realism": null,
+    "clarity": null,
+    "self_containedness": null,
+    "prescriptiveness": null,
+    "test_coverage": null,
+    "test_faithfulness": 2.0,
+    "spec_faithfulness": null,
+    "no_gaming": null,
+    "robustness": null,
+    "packaging": 1.0
+  },
+  "axes_source": "retrospective_rehearsal",
+  "confirmed_overreach": [
+    "A6",
+    "A14",
+    "A28",
+    "A41"
+  ],
+  "confirmed_overreach_detail": [
+    {
+      "id": "A6",
+      "artifacts": [
+        "CellMap",
+        "cell_map",
+        "out_shape"
+      ],
+      "assertion_text": "assert cell_map.out_shape == (len(lines_y) - 1, len(lines_x) - 1)"
+    },
+    {
+      "id": "A14",
+      "artifacts": [
+        "tolerance",
+        "nearest.max"
+      ],
+      "assertion_text": "assert nearest.max() <= tolerance"
+    },
+    {
+      "id": "A28",
+      "artifacts": [
+        "len(decoded)",
+        "frame count"
+      ],
+      "assertion_text": "assert len(decoded) == 4"
+    },
+    {
+      "id": "A41",
+      "artifacts": [
+        "tolerance",
+        "np.abs"
+      ],
+      "assertion_text": "assert np.abs(...).max() <= 8"
+    }
+  ],
+  "confirmed_gaps": [
+    "R19",
+    "R16"
+  ],
+  "confirmed_gap_detail": [
+    {
+      "id": "R19",
+      "artifacts": [
+        "ValueError",
+        "Unsupported output format"
+      ],
+      "text": "Unsupported output format raises ValueError matching Unsupported output format"
+    },
+    {
+      "id": "R16",
+      "artifacts": [
+        "dependencies",
+        "third-party"
+      ],
+      "text": "must not add third-party dependencies"
+    }
+  ],
+  "packaging_hard_cap": true,
+  "packaging_artifacts": [
+    ".python-version",
+    "python-version",
+    "base_commit_sha"
+  ],
+  "operational_bar_3_5": "REFUSE_PACKAGE",
+  "source": "retrospective backtest",
+  "notes": "Retrospective from /tmp/jp_backtest2/out_case2_fresh. A6 CellMap is weak_link (FIX) and CONFIRMED overreach. Packaging hard-cap on .python-version."
+}

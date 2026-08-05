@@ -41,7 +41,7 @@
     {
       "file": null,
       "line_range": null,
-      "quoted_text": ".python-version can hard-cap packaging — remove from shipped tree and realign base_commit_sha",
+      "quoted_text": ".python-version can hard-cap packaging \u2014 remove from shipped tree and realign base_commit_sha",
       "axis": "packaging"
     }
   ],
@@ -65,7 +65,7 @@
     }
   ],
   "next_round_result": null,
-  "prediction_ref": null,
+  "prediction_ref": "knowledge/judge_feedback/predictions/eb599683-21e8-49a0-badd-207636178abc_submission.json",
   "source": "backfilled from task_outputs",
-  "notes": "Evidence: knowledge/proposals/20260804_150446__eb599683-21e8-49a0-badd-207636178abc_submission__proposal.md Agent notes (Judge remove(overreach): CellMap / path-suffix / ValueError / .python-version packaging). Axis numeric scores and difficulty_run were not written down → null. must_haves_failed not stated for this bounce → null."
+  "notes": "Evidence: knowledge/proposals/20260804_150446__eb599683-21e8-49a0-badd-207636178abc_submission__proposal.md Agent notes (Judge remove(overreach): CellMap / path-suffix / ValueError / .python-version packaging). Axis numeric scores and difficulty_run were not written down \u2192 null. must_haves_failed not stated for this bounce \u2192 null."
 }

@@ -20,7 +20,11 @@
     "per_judge": null
   },
   "citations": [],
-  "must_haves_failed": ["Q2", "Q9", "Q10"],
+  "must_haves_failed": [
+    "Q2",
+    "Q9",
+    "Q10"
+  ],
   "difficulty_run": false,
   "fixes_applied": [
     {
@@ -35,12 +39,12 @@
     },
     {
       "file": "solution/golden.patch",
-      "change": "Fixed golden.patch alias(FUNC) → alias(stringify(TARGET))",
+      "change": "Fixed golden.patch alias(FUNC) \u2192 alias(stringify(TARGET))",
       "axis_targeted": null
     }
   ],
   "next_round_result": null,
-  "prediction_ref": null,
+  "prediction_ref": "knowledge/judge_feedback/predictions/d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission.json",
   "source": "backfilled from task_outputs",
   "notes": "Evidence: findings_and_changes excerpt preserved in knowledge/proposals/20260805_080146__d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission__proposal.md (Judge: discuss (weak_check); Difficulty not run; Must-haves failed: Q2, Q9, Q10; Axes to lift: prescriptiveness (2.5), test_coverage (3.0)). Current task_outputs findings_and_changes.md was later overwritten by an overreach revision and was not used to invent fields."
 }

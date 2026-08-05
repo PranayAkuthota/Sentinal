@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "task_name": "d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission",
+  "predicted_at": "2026-08-05T18:33:49Z",
+  "prep_fingerprint": "4e18ca473fa9b34529bff5d73a878c4f4fd366216ef08c8aa391d29f799d7b9d",
+  "predicted_verdict": "DISCUSS",
+  "predicted_axes": {
+    "realism": null,
+    "clarity": null,
+    "self_containedness": null,
+    "prescriptiveness": 2.3,
+    "test_coverage": 3.3,
+    "test_faithfulness": 2.8,
+    "spec_faithfulness": null,
+    "no_gaming": null,
+    "robustness": null,
+    "packaging": null
+  },
+  "axes_source": "retrospective_rehearsal",
+  "confirmed_overreach": [
+    "A22",
+    "A24",
+    "A37"
+  ],
+  "confirmed_overreach_detail": [
+    {
+      "id": "A22",
+      "artifacts": [
+        "count",
+        "ENABLE_GNUABI",
+        "guards",
+        "weak_check"
+      ],
+      "assertion_text": "assert count >= 4"
+    },
+    {
+      "id": "A24",
+      "artifacts": [
+        "count",
+        "ENABLE_GNUABI",
+        "guards",
+        "weak_check"
+      ],
+      "assertion_text": "assert count >= 3"
+    },
+    {
+      "id": "A37",
+      "artifacts": [
+        "printf",
+        "__attribute__",
+        "mkmasked_gnuabi",
+        "weak_alias"
+      ],
+      "assertion_text": "printf EXPORT CONST __attribute__"
+    }
+  ],
+  "confirmed_gaps": [],
+  "confirmed_gap_detail": [],
+  "packaging_hard_cap": false,
+  "packaging_artifacts": [],
+  "operational_bar_3_5": "REFUSE_PACKAGE",
+  "source": "retrospective backtest",
+  "notes": "Retrospective from /tmp/jp_backtest2/out_case1_fresh + P-011 triage (weak_check floors)."
+}

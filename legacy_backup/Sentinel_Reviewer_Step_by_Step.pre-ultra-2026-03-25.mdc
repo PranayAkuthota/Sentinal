@@ -1,0 +1,222 @@
+---
+alwaysApply: true
+description: Project Sentinel — structured workflow for ECs reviewing submissions (document review only; no local Harbor).
+---
+
+# Reviewer Step-by-Step Guide
+
+A structured workflow for reviewing EC submissions on **Project Sentinel**. Use together with `Review_Guidelines.mdc` and `Sentinel_Expert_Contributor_Reference.mdc`.
+
+## What this guide covers
+
+A precise, step-by-step review workflow for Expert Contributors acting as **reviewers**. Follow every step in order — do not skip steps or re-run Harbor locally.
+
+### Review outcomes
+
+- **Accept** — submission is complete, accurate, and well-supported.
+- **Reject** — submission misses key findings, is vague, or is unsupported by the files.
+
+---
+
+## A. Before you begin
+
+One-time setup before touching any task.
+
+### Step 1: Download the task package
+
+Log into the Experts platform. Locate the review assignment and download the task zip.
+
+The zip contains:
+
+- **`task/`** folder — `instruction.md`, `task.toml`, `environment/`, `solution/`, `tests/`
+- **`runs/`** folder — agent execution logs, episodes, and outcomes
+
+**Do not** run Harbor, Docker, the oracle script, or any NOP check locally. The review is a **document and logic review only**.
+
+### Step 2: Read the submission under review
+
+Read the submitter's full assessment **before** opening any task files. Note:
+
+- Their verdict — Valid or Invalid
+- Each issue they listed (Issue 1, Issue 2, …) if Invalid — category, description, fixable flag, how-to-fix
+- Any metadata or timeout observations they flagged
+
+**Important:** The job is to **independently verify** the submitter's findings — not to audit tasks the submitter did not evaluate.
+
+### Step 3: Record your starting position
+
+Before reading any task files, note:
+
+- Does the submission appear thorough on its face?
+- Are issue descriptions specific and numbered?
+- Are any obvious gaps already visible (e.g. no mention of `runs/`, no patch review)?
+
+Finalize Accept / Reject at the end; this note helps stay objective.
+
+---
+
+## B. Task content review
+
+Repeat the submitter's full document and logic review — every step, every submission.
+
+### Step 4: Review `instruction.md`
+
+Read `instruction.md` fully and independently.
+
+- Is the problem statement clear with no ambiguous or contradictory language?
+- Are success criteria stated explicitly and measurably?
+- Is there missing context that would prevent a model from solving the task?
+- Does the instruction appear LLM-generated in a way that introduces vagueness?
+
+**If submission is Valid:** Confirm the submitter's read — is the instruction also clear and sufficient? Note any gaps they missed.
+
+**If submission is Invalid:** For each instruction-related issue the submitter listed: confirm the exact passage that is wrong, vague, or contradictory. Quote file references where possible.
+
+### Step 5: Cross-check the source PR
+
+Open the URL in `task.toml` under `[metadata]` → `source`. Compare against `instruction.md`.
+
+- Does the instruction accurately represent the PR's intent and scope? Watch for over-scoping or under-scoping.
+- Does the `category` field in `task.toml` match the PR type? (e.g. a bug fix labelled as Feature is a metadata error.)
+- Does the source URL resolve to the correct repository and PR?
+
+**Note:** If the source URL is broken or missing, flag as a **Metadata Issue**. Do not guess intent from context alone.
+
+### Step 6: Scan the environment
+
+Read `environment/Dockerfile`. Skim `environment/repo/` only as needed to assess plausibility.
+
+- Does the Dockerfile appear sufficient for the stated language/stack?
+- Are obvious dependencies present (language runtime, test framework)?
+- Do paths in the Dockerfile match the repo structure?
+- Do timeout values in `task.toml` look plausible for the stack and complexity? Use `runs/` — if agents time out consistently, timeouts may need adjustment.
+
+**Note:** Do not build the image. Judge only from what can be read. Flag implausible configurations, not hypothetical ones.
+
+### Step 7: Review solution artifacts
+
+Read `solution/solve.sh`. If present, read `solution/init_state.patch`.
+
+- Does `solve.sh` appear to implement what `instruction.md` describes?
+- If `init_state.patch` is present — does it set up the broken state that `solve.sh` reverses?
+- Are `solve.sh` and `init_state.patch` internally consistent?
+- Does the patch match the PR changes described in the source?
+
+**Missing `init_state.patch` is NOT a defect.** Only flag absence if it creates inconsistency with `solve.sh` or the instruction.
+
+### Step 8: Review tests
+
+Read `tests/test.sh`, `tests/tests.patch` (if present), and any files in `tests/files/`.
+
+- Does `test.sh` invoke the test framework correctly and write reward to `/logs/verifier/reward.txt`?
+- Do tests cover **every** requirement stated in `instruction.md`?
+- Do assertions match expected outcomes (not the inverse)?
+- Does `tests.patch` add coherent, necessary coverage?
+- Are any instruction requirements completely untested?
+
+**Coverage gap rule:** If `instruction.md` says behavior X must hold and no test checks X — that is a **Unit test scope** issue. Mark it even if other tests pass.
+
+### Step 9: Review agent runs
+
+Open `runs/`. Review logs and episode outcomes for available models.
+
+- Do agents consistently time out? If so, is `[agent] timeout_sec` reasonable?
+- Do agents misread the instruction the same way? (signals ambiguity)
+- Do pass/fail outcomes align with what solution and tests suggest?
+- Does the submitter's use of `runs/` match what appears in the logs?
+
+Only cite `runs/` when it directly supports or contradicts a finding. Do not speculate from partial logs.
+
+### Step 10: Verify metadata
+
+Review `task.toml` in full.
+
+- Required fields present: difficulty, category, tags, source, language, time estimates?
+- Does difficulty feel appropriate given instruction and run complexity?
+- Does category match PR type (Fix, Feature, Refactor, Documentation, Build, Performance, Chore)?
+- Are 3–6 tags present and relevant?
+- Do `[verifier]`, `[agent]`, and `[environment]` timeouts look consistent with `runs/` and complexity?
+
+---
+
+## C. Compare and decide
+
+### Step 11: Compare findings to the submission
+
+Reconcile Steps 4–10 with what the submitter wrote.
+
+- **Submission Valid:** Did the review also find the task sound? Flag gaps the submitter missed even if the final call stays Valid.
+- **Submission Invalid:** For each Issue N — does it hold? Is the category accurate? Is the description verifiable? Were additional issues missed?
+- **Disagreement:** A different Valid/Invalid label than the submitter is allowed — record reasoning with file-level evidence.
+
+**Reject criteria (any one is sufficient):**
+
+- A key finding was missed entirely
+- An issue description is too vague to verify (no file reference, no specific passage)
+- Issue categories are systematically wrong
+- Submitter verdict is contradicted by the files
+- Numbered issues are absent on an Invalid submission
+
+### Step 12: Select Valid or Invalid (task assessment)
+
+Record **independent** task assessment (separate from Accept/Reject).
+
+- **Valid — no changes:** Instruction, metadata, solution/tests, and runs coherent; no substantive issues.
+- **Invalid — minor changes:** Fixable without full redesign (small instruction gap, metadata tweak, targeted test addition).
+- **Invalid — major changes:** Serious problems — instruction vs PR/solution contradiction, tests don't match; substantial rework.
+
+The label may differ from the submitter's. If so, explain with file-level evidence.
+
+### Step 13: Verdict — Accept or Reject
+
+**ACCEPT** when:
+
+- Findings match inspection
+- Issues (if any) are specific, categorized, and numbered
+- Verdict is consistent with evidence
+- No key findings missed
+
+**REJECT** when:
+
+- A key finding was missed
+- Issue descriptions are vague or unverifiable
+- Verdict is contradicted by task files
+- Invalid submission lacks numbered issues
+- `runs/` evidence is misquoted or ignored
+
+**Quality reminder:** Reviewer feedback quality is assessed; incomplete or insufficient detail may lead to offboarding.
+
+---
+
+## D. Quick reference
+
+### Issue categories
+
+| Category | Examples |
+|----------|----------|
+| Instruction specification | Vague/contradictory problem; success criteria don't match tests |
+| Metadata issues | Wrong/missing difficulty, category, tags, source, timeouts |
+| Environment setup | Dockerfile gaps, obvious missing deps, implausible timeouts |
+| Solution implementation | `solve.sh`/patches vs instruction or PR; `init_state.patch` conflicts with `solve.sh` |
+| Unit test setup | Wrong paths, missing reward write, dependency gaps in `test.sh` |
+| Unit test scope | Required instruction behavior not tested; wrong assertions |
+| Other | Task already satisfied without intended change; agent timeout too low per `runs/` |
+
+### Common reviewer mistakes
+
+- Rejecting solely on missing `init_state.patch` (not a defect unless it breaks consistency elsewhere)
+- Accepting vague issue descriptions (another person must verify from the same files)
+- Ignoring `runs/` (timeouts, misreads, instability often show up there)
+- Running Harbor locally (document review only)
+- Disagreeing without citing specific files
+- Penalizing missing milestones/subtypes (never grounds for rejection)
+
+---
+
+## E. Escalation and adjudication
+
+If a task or submission remains genuinely ambiguous after all steps above, **do not guess** — escalate.
+
+**How:** Post in the Project Sentinel Slack with task ID and the specific ambiguity.
+
+An **adjudicator** has final say on task verdict (Valid/Invalid) and submission verdict (Accept/Reject). Adjudicators also evaluate reviewer feedback quality; consistent under-performance may result in offboarding.

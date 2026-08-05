@@ -1,0 +1,874 @@
+---
+description: Apply when the user provides a Sentinel task ZIP and platform metadata and asks to work as the submitter or produce submitter form answers
+alwaysApply: false
+---
+
+# Sentinel Submitter Platform Workflow
+
+**Last updated:** July 23, 2026 (submitter platform-workflow setup)
+
+Complete submitter platform-answer workflow for Sentinel Ultra. Authoritative policy remains in `.cursor/rules/Review_Guidelines.mdc`. Quick field mapping remains in `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`. This file owns the end-to-end submitter ZIP → audit → correction → paste-ready platform answers path.
+
+Official Ultra docs (`document 1.txt`, `document 2.txt`, `document 3.txt`) and the **live platform form** outrank stored templates when they conflict. Never let legacy Sentinel rules override current Sentinel Ultra rules or the live platform form.
+
+---
+
+## 1. Activation
+
+Activate this workflow when the user provides a Sentinel ZIP and platform information and says any equivalent of:
+
+- I am working as a submitter. Start working.
+- Submitter mode. Start working.
+- Start this task as a submitter.
+- I am the submitter. Begin the task.
+- Review and correct this Sentinel submission.
+
+Do **not** activate from an isolated word such as “Fixable” or “Valid.”
+
+Determine the mode using the user’s role, requested action, platform section, supplied ZIP, and surrounding context.
+
+When Submitter Mode is clear, do **not** ask the user to paste a long workflow prompt.
+
+Before work begins, also read:
+
+1. `.cursor/rules/Review_Guidelines.mdc`
+2. This file (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`)
+3. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`
+
+---
+
+## 2. Normal User Inputs
+
+Accept only:
+
+**A.** One Sentinel task ZIP
+
+**B.** One platform-information block containing any or all of:
+
+- Original Directory Name
+- Category
+- Difficulty
+- Task Tags
+- Languages
+- Metadata
+
+**C.** The instruction to start as submitter (see Activation)
+
+Treat pasted platform information as **context that must be verified**. Do not blindly assume it is correct.
+
+Compare it against:
+
+- `task.toml`
+- repository contents
+- actual programming languages
+- source PR, commit, or issue
+- instruction
+- oracle
+- tests
+- run evidence
+- current Sentinel Ultra requirements
+
+Clearly report mismatches such as:
+
+- Platform difficulty differs from `model_difficulty` / difficulty fields
+- Legacy difficulty differs from current difficulty
+- Platform category differs from `task.toml`
+- Language list differs from repository contents
+- Source URL differs
+- Base commit differs
+- Timeout or resource values differ
+- `network_mode` or `allowed_hosts` are still present
+- Tags are unsupported by the actual task
+
+Do **not** mark a task invalid solely because an observational platform field differs unless current rules make that defect validity-affecting.
+
+---
+
+## 3. Locate and Open the ZIP
+
+When one ZIP is attached or present in the workspace:
+
+1. Identify it automatically.
+2. Confirm it is a readable ZIP.
+3. Inspect the archive structure.
+4. Locate the real task root.
+
+A credible task root normally contains:
+
+- `instruction.md`
+- `task.toml`
+- `environment/`
+- `solution/`
+- `tests/`
+
+It may appear:
+
+- Directly at the archive root
+- Under `task/`
+- Under one redundant wrapper folder
+
+Locate `runs/` when available.
+
+Do **not** require `_harborized` in the directory name.
+
+When multiple possible ZIPs exist and the user has not identified one, list the candidates and ask only which ZIP should be used.
+
+Do **not** use modification time alone to guess.
+
+Do **not** execute files directly from an unverified archive.
+
+---
+
+## 4. Detect the Task Format
+
+Classify the package as:
+
+- **Current**
+- **Legacy**
+- **Hybrid**
+- **Unknown**
+
+Current signals include:
+
+- `solution/golden.patch`
+- `environment/problem_statement.md`
+- `tests/config.json`
+- `tests/grade.py`
+
+Legacy signals include:
+
+- `solution/init_state.patch`
+- `solution/solution.patch`
+- `tests/files/`
+- reverse-patch workflows
+- old platform form artifacts
+
+Current Sentinel Ultra rules are the default.
+
+Legacy artifacts may be read for compatibility.
+
+Do **not** treat a missing optional legacy artifact as an automatic defect.
+
+Flag `solution/solution.patch` for rename to `golden.patch` when current upload rules require it.
+
+---
+
+## 5. Record Real Session Times
+
+At the start of the task, create a workspace-level session file **outside the task package**:
+
+`sentinel_submitter_session.json`
+
+Record:
+
+- task name
+- ZIP name
+- start timestamp
+- initial-review-complete timestamp
+- final-completion timestamp
+- current phase
+- pauses or user-confirmed adjustments when available
+
+Use actual system timestamps when tool access permits.
+
+Calculate draft elapsed minutes for:
+
+1. Initial task review and validity determination
+2. Entire submission
+
+These are **draft values only**.
+
+Before producing final platform answers:
+
+- Show the calculated values to the user for confirmation.
+- Allow the user to replace them.
+- Never invent time values.
+- Never hide uncertainty caused by idle time or interruptions.
+- If reliable tracking is unavailable, write **User confirmation required** instead of guessing.
+
+---
+
+## 6. Complete Read-Only Audit First
+
+Before modifying any task file, inspect completely:
+
+- `instruction.md`
+- `task.toml`
+- `environment/Dockerfile`
+- `environment/problem_statement.md`
+- relevant files under `environment/repo/`
+- `solution/solve.sh`
+- `solution/golden.patch`
+- `solution/solution.patch`, when present
+- `solution/init_state.patch`, when present
+- `tests/test.sh`
+- `tests/tests.patch`
+- `tests/config.json`
+- `tests/grade.py`
+- `tests/files/`, when present
+- all available runs
+- `result.json` files
+- failing trial logs
+- at least one passing trial log when available
+- Git metadata
+- packaging contents
+- source PR, commit, or issue when accessible
+
+Do **not** modify the task until the independent audit is complete.
+
+Distinguish clearly between:
+
+- Inspected
+- Inferred
+- Executed
+- Confirmed by supplied logs
+
+Do not claim that Docker, tests, oracle, or NOP passed unless they were actually executed or supported by reliable supplied evidence.
+
+---
+
+## 7. Build Required Analysis Maps
+
+### Instruction-to-test map
+
+| Requirement ID | Instruction requirement | Expected observable behavior | Test file | Test ID | Assertion | Coverage status | Notes |
+| -------------- | ----------------------- | ---------------------------- | --------- | ------- | --------- | --------------- | ----- |
+
+### Test-to-instruction map
+
+| Test ID | Assertion or enforced behavior | Instruction source | Reasonably implied? | Faithfulness status | Risk |
+| ------- | ------------------------------ | ------------------ | ------------------- | ------------------- | ---- |
+
+Check:
+
+- Every instruction requirement is tested
+- Every test assertion is specified or reasonably implied
+- Required names and formats are derivable
+- Tests verify observable behavior
+- Tests do not inspect source keywords
+- Tests do not enforce hidden exact strings
+- Tests do not silently skip
+- Tests do not fail open
+- Tests do not pass from empty artifact existence
+- Tests do not let agent output control coverage
+- CLI or entry point is invoked when required
+- Fixtures cannot be edited by the agent
+- Tests are deterministic
+- Tests do not depend on live network
+- Tests do not use hidden golden outputs
+- Tests do not depend on solution-only files
+
+---
+
+## 8. Fail-to-Pass Test Count
+
+Use these exact rules:
+
+- Fewer than 10 fail-to-pass tests is a Fixable test-count defect.
+- Exactly 10 meaningful fail-to-pass tests satisfies the documented guideline.
+- Do **not** describe exactly 10 as “less than 10.”
+- The live platform may require confirmation that there are more than 10.
+- Select **“More than 10 fail-to-pass tests”** only when the actual count is at least **11**.
+- When the live form requires more than 10 and the task has exactly 10, add at least one additional meaningful fail-to-pass test when the task is otherwise Fixable.
+- The preferred practical range is **11–20** meaningful fail-to-pass tests.
+- Never add filler, duplicate, or shallow tests only to increase the count.
+- Identify at least one test that directly reproduces the original failure.
+- Confirm pass-to-pass or regression protection when required.
+
+Exact platform issue wording:
+
+`Less than 10 fail-to-pass tests in the test suite`
+
+Exact corrected-task confirmation wording:
+
+`More than 10 fail-to-pass tests in the test suite`
+
+Never select either statement when it is factually false.
+
+---
+
+## 9. Review the Instruction
+
+Check whether `instruction.md`:
+
+- Describes the problem and expected behavior
+- Has measurable success criteria
+- Is solvable from the instruction and repository
+- Matches files and APIs that actually exist
+- Avoids arbitrary guessing
+- States required public schemas or formats
+- Does not reveal exact hidden tests
+- Does not expose verifier internals
+- Does not list exact implementation files unnecessarily
+- Does not reveal exact internal functions unnecessarily
+- Does not provide the complete root-cause solution
+- Does not expose PR links or commit SHAs to the agent
+- Sounds like real engineering communication
+- Matches the source PR scope
+- Does not reduce or replace the source PR
+
+---
+
+## 10. Review the Oracle
+
+Check whether:
+
+- `solve.sh` creates the correctly solved state
+- `golden.patch` contains the complete required solution
+- Every instruction requirement is implemented
+- No unrelated changes are included
+- No fixture-specific hardcoding exists
+- No hidden test ground truth is read
+- No outputs are fabricated
+- Randomness is controlled
+- Subprocesses use suitable timeouts
+- No live runtime network is required
+- Added functionality remains connected to the original PR
+- Extra non-conflicting oracle functionality alone is not treated as a defect
+- Missing legacy `init_state.patch` alone is not treated as a defect
+
+---
+
+## 11. Review Task Metadata
+
+Check current requirements including:
+
+- CPUs must be 2 or 4
+- `memory_mb` must be 2048–16384
+- `storage_mb` must be 5120–10240
+- `gpus` must be 0
+- `build_timeout_sec` must be at most 1800
+- agent timeout must be at most 3600
+- verifier timeout must be at most 1800
+- source must point to the correct PR, commit, or issue
+- category should match task content
+- difficulty explanation should describe real technical complexity
+
+Under current Sentinel rules:
+
+- Remove `network_mode` when current rules require it.
+- Remove `allowed_hosts` when current rules require it.
+- Report conflicting current and legacy metadata fields.
+- Do not silently choose one value without explanation.
+
+When source PR access is unavailable, mark PR comparison as **unverified** rather than inventing a conclusion.
+
+---
+
+## 12. Review Environment, Git, and Packaging
+
+### Environment
+
+Check:
+
+- Missing Bash
+- Missing tmux
+- Missing asciinema
+- Missing frozen requirements
+- Invalid shebang
+- CRLF
+- Non-executable scripts
+- Concrete image version
+- Resource limitations
+- Offline viability
+- Solution leakage through copied files or Docker layers
+
+### Git hygiene
+
+Check:
+
+- HEAD resolves
+- HEAD matches declared base commit
+- No leaked commits beyond HEAD
+- No remotes
+- No filter drivers
+- Clean working tree
+- No reflog leakage
+- `.git` below 100 MB
+- `tests.patch` applies to the correct base
+
+### Packaging
+
+Check:
+
+- `instruction.md` matches `environment/problem_statement.md`
+- Current patch name is `golden.patch`
+- No outer `task/` wrapper in final upload ZIP
+- No `runs/` in corrected upload
+- No generated Sentinel reports
+- No backups
+- No solution leakage
+- No caches or temporary files
+
+Sweep for at least:
+
+```text
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+node_modules/
+.idea/
+.vscode/
+metadata.json
+ground_truth.*
+*.orig
+*.bak
+*.swp
+*~
+```
+
+Inspect before deleting intentional project files.
+
+---
+
+## 13. Choose the Correct Task Assessment
+
+Choose exactly one internal assessment:
+
+- **Valid as-is**
+- **Fixable**
+- **Not Fixable**
+
+### Valid as-is
+
+- No correction is needed
+- Instruction, tests, and oracle align
+- Source PR scope is preserved
+- No leakage exists
+- Required test coverage exists
+- Environment and packaging are valid
+- Required local validation is completed
+
+### Fixable
+
+- One or more defects exist
+- All defects can be corrected through permitted changes
+- Original PR scope remains preserved
+
+### Not Fixable
+
+- Validity requires reducing or replacing the source PR scope
+- A disallowed environment problem cannot reasonably be fixed
+- A required live service or large external dependency makes the task invalid
+- Git corruption is genuinely unrecoverable
+- Permitted task edits are insufficient
+
+Do **not** choose Not Fixable merely because a correction requires work.
+
+---
+
+## 14. Map the Decision to the Live Form Exactly
+
+| Internal assessment | Main analysis field | Validity required | Duplicate analysis |
+| ------------------- | ------------------- | ----------------- | ------------------ |
+| Valid as-is | Valid as-is | Valid-as-is | Valid-as-is |
+| Fixable | Fixable | Fixable | Fixable |
+| Not Fixable | Invalid/Not Fixable | Invalid | Invalid/Not Fixable |
+
+The first and duplicate analysis questions must always match semantically.
+
+Never output “Not Fixable” for the internal radio field when the available label is “Invalid.”
+
+---
+
+## 15. Handle Valid as-is
+
+When the task is Valid as-is:
+
+- Do not edit task files.
+- Run required local validation when technically available.
+- Confirm offline Docker build.
+- Confirm oracle reward `1.0`.
+- Confirm NOP reward `0.0`.
+- Confirm fail-to-pass behavior.
+- Confirm pass-to-pass behavior.
+- State clearly when any validation could not be executed.
+
+Generate all visible platform answers.
+
+---
+
+## 16. Handle Fixable
+
+When the task is Fixable:
+
+Finish the complete audit before editing.
+
+### Permitted changes may include
+
+- `instruction.md`
+- `environment/problem_statement.md`
+- `tests/tests.patch`
+- `tests/test.sh`
+- `tests/config.json`
+- `tests/grade.py`
+- `solution/solve.sh`
+- `solution/golden.patch`
+- limited Dockerfile corrections
+- task metadata corrections
+- Git metadata cleanup
+- packaging cleanup
+
+### Never
+
+- Directly edit tracked source files in `environment/repo/`
+- Modify pre-existing pass-to-pass or regression tests
+- Reduce or replace PR scope
+- Add unrelated refactors
+- Add hidden requirements
+- Expose the solution
+- Depend on live runtime internet
+
+### After corrections
+
+- Rebuild instruction-to-test mapping
+- Rebuild test-to-instruction mapping
+- Verify instruction and problem statement are identical
+- Verify `tests.patch` applies
+- Verify actual f2p count
+- Verify original-failure regression coverage
+- Verify oracle alignment
+- Run available validation
+- Prepare the corrected flat ZIP only after the task is ready
+
+### Record
+
+- Every file changed
+- What changed
+- Why it changed
+- Whether PR scope was expanded
+- Validation performed
+- Remaining uncertainty
+
+---
+
+## 17. Handle Not Fixable
+
+When the task is Not Fixable:
+
+- Do not rewrite it into a different task.
+- Select the exact applicable category.
+- Provide file-based evidence.
+- Explain why permitted corrections are insufficient.
+- Explain why correction would require prohibited scope change or disallowed environment work.
+
+---
+
+## 18. Produce the Visible Platform Answers
+
+After completing the full audit and all permitted corrections, generate answers in this exact order.
+
+### SECTION 1 — Main analysis
+
+(SEGMENTS) What is your analysis of the Sentinel task you downloaded above?
+
+Answer with exactly one:
+
+- Fixable
+- Invalid/Not Fixable
+- Valid as-is
+
+### SECTION 2 — Internal validity
+
+Validity required
+
+Answer with exactly one:
+
+- Invalid
+- Fixable
+- Valid-as-is
+
+### SECTION 3 — Duplicate analysis
+
+[Duplicate] What is your analysis of the Sentinel task you downloaded above?
+
+Answer with exactly one:
+
+- Fixable
+- Invalid/Not Fixable
+- Valid-as-is
+
+Ensure it matches the first answer semantically.
+
+### SECTION 4 — What makes this task difficult?
+
+Write one natural, technically specific paragraph.
+
+Base it on actual task evidence such as:
+
+- Codebase exploration
+- Config parsing
+- CLI behavior
+- Multiple dependent modules
+- Edge cases
+- Backward compatibility
+- Test setup
+- Error handling
+- Schema migration
+- Implementation dependencies
+- Requirements easy to overlook
+
+Do not use generic filler.
+
+Do not describe difficulty based only on model failure.
+
+Do not create difficulty through vague wording.
+
+### SECTION 5 — Senior engineer estimate
+
+Select exactly one:
+
+- `<10 minutes`
+- `10–20 minutes`
+- `20–40 minutes`
+- `40+ minutes`
+
+Base it on the actual engineering effort required for the final valid task, assuming the engineer is familiar with the codebase.
+
+Do not blindly use `expert_time_estimate_min` from metadata as the answer. Treat it as supporting context only.
+
+### SECTION 6 — Comments for Reviewer
+
+Write a concise, evidence-based paragraph covering what is useful for the reviewer, such as:
+
+- Important corrections made
+- Assumptions
+- Edge cases
+- Files intentionally not changed
+- PR scope decision
+- Validation limitations
+- Metadata mismatches
+- Anything requiring reviewer judgment
+
+Do not repeat the full audit.
+
+Do not write generic filler.
+
+### SECTION 7 — Initial review time
+
+Use actual tracked or user-confirmed minutes only.
+
+### SECTION 8 — Entire submission time
+
+Use actual tracked or user-confirmed minutes only.
+
+If either time is not reliable, place:
+
+`User confirmation required`
+
+and ask the user only for the missing time values after every other answer is complete.
+
+---
+
+## 19. Conditional Platform Answers
+
+The live platform may reveal more questions after the assessment is selected.
+
+Generate a separate conditional section for the applicable path.
+
+### A. VALID AS-IS CONFIRMATIONS
+
+Include answers for:
+
+- Every requirement in the instructions is properly tested
+- All test requirements are specified in the instructions
+- Instructions do not sound LLM-generated
+- Instructions are not overly prescriptive
+- Task does not leak solution information
+- Oracle implements the solution following the instructions
+- Actual fail-to-pass test count
+- Local oracle and NOP validation evidence
+
+### B. FIXABLE FIELDS
+
+Include:
+
+**Components with issues:**
+
+- Instructions
+- Tests
+- Oracle Solution
+- Environment / Dockerfile
+
+Select only the components actually affected.
+
+**Issue checkboxes:**
+
+- Every requirement in the instructions is not properly tested
+- All test requirements are not properly specified in the instructions
+- The instructions appear LLM generated
+- The instructions are overly-prescriptive
+- The task leaks solution information
+- The oracle does not implement the solution following the instructions
+- Less than 10 fail-to-pass tests in the test suite
+
+Select only factually true issues.
+
+**Detailed issue format:**
+
+```text
+1) [Issue category]
+- Exact defect
+- Exact file or test
+- Evidence
+- Fixable: Yes
+- Exact correction
+```
+
+**Files Changed:**
+
+- File path
+- What changed
+- Why
+
+**PR Scope Changes:**
+
+- Explain valid expansion
+- Or write `NA`
+
+**Corrected-task confirmations:**
+
+- Every instruction requirement is now tested
+- All test requirements are now specified
+- Instruction no longer appears LLM-generated
+- Instruction is not overly prescriptive
+- No solution leakage remains
+- Oracle matches the instruction
+- PR scope is preserved or validly expanded
+- More than 10 fail-to-pass tests only when the actual count is at least 11
+
+### C. NOT FIXABLE FIELDS
+
+Include:
+
+**Not Fixable category:**
+
+- PR scope needs to be changed or reduced
+- Environment Issues
+
+**Environment subcategory when applicable:**
+
+- Image or dependency build failure
+- Oracle timeout
+- External-network dependency
+- Genuinely unrecoverable Git corruption
+
+**Detailed explanation:**
+
+- Exact defect
+- Evidence
+- Why permitted changes cannot fix it
+- Why the task cannot remain grounded in the source
+
+---
+
+## 20. Output Files
+
+Create these files **outside the task package**:
+
+| File | Contents |
+|------|----------|
+| `sentinel_submitter_audit.md` | Detailed analysis |
+| `sentinel_changes.md` | All changed files and reasons |
+| `sentinel_platform_answers.txt` | Exact paste-ready platform answers |
+| `sentinel_submitter_session.json` | Session timestamps and phases |
+
+Do **not** place these files under `environment/repo/`.
+
+Do **not** include them in the corrected upload ZIP.
+
+---
+
+## 21. Required Format for `sentinel_platform_answers.txt`
+
+```text
+SENTINEL SUBMITTER PLATFORM ANSWERS
+
+Original Directory Name:
+[Verified value]
+
+Platform Metadata Verification:
+[Matched / Mismatches found]
+
+1. Main Task Analysis
+[Fixable / Invalid-Not Fixable / Valid as-is]
+
+2. Validity Required
+[Invalid / Fixable / Valid-as-is]
+
+3. Duplicate Task Analysis
+[Fixable / Invalid-Not Fixable / Valid-as-is]
+
+4. What Makes This Task Difficult?
+[Paste-ready paragraph]
+
+5. Senior Engineer Estimate
+[One platform option]
+
+6. Comments for Reviewer
+[Paste-ready paragraph]
+
+7. Initial Review Time
+[Minutes or User confirmation required]
+
+8. Entire Submission Time
+[Minutes or User confirmation required]
+
+Conditional Fields
+[Only fields for the selected path]
+
+Validation Evidence
+[Executed checks, supplied logs and unavailable checks]
+
+Metadata Mismatches
+[List or None]
+
+Final Readiness
+[Ready for platform submission / Not ready for platform submission]
+
+Remaining Blockers
+[List or None]
+```
+
+Do not include hidden internal reasoning.
+
+---
+
+## 22. Final User-Facing Response
+
+At the end of each submitter task, respond with:
+
+1. Final assessment
+2. Exact three verdict selections
+3. Difficulty answer
+4. Senior engineer estimate
+5. Reviewer comment
+6. Initial review time status
+7. Total submission time status
+8. Conditional fields generated
+9. Files changed
+10. Validation performed
+11. PR scope status
+12. Metadata mismatches
+13. Output file paths
+14. Ready for submission or Not ready
+15. Remaining blockers
+
+The final answers must be directly paste-ready.
+
+---
+
+## 23. Responsibility Split Reminder
+
+| File | Responsibility |
+|------|----------------|
+| `.cursor/rules/Review_Guidelines.mdc` | Authoritative project policy |
+| **This file** | Complete submitter platform-answer workflow |
+| `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` | Quick field mapping and checklist |
+| `CLAUDE.md` | Mode activation and workflow routing |
+| `AGENTS.md` | Concise entry-point instructions |
+| `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` | Reviewer procedure (unchanged by this workflow) |

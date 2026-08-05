@@ -1,0 +1,12 @@
+{
+  "id": "F-010",
+  "title": "Waited for Difficulty while Agent Judge blocked the screen",
+  "category": "workflow",
+  "symptom": "Platform returns 'Blocked at the agentic judge. Not run: difficulty screen (cheap single-arm rollout).' Operator looks for Difficulty logs or treats missing Difficulty as infra failure.",
+  "root_cause_class": "Misread Aug 4 2026 eval order: Agent Judge runs before Difficulty; Difficulty intentionally skipped until Judge passes.",
+  "recovery": "Fix Quality Check / Agent Judge citations first (blocking: test_coverage + test_faithfulness). Re-upload until Judge passes. Only then interpret Difficulty (4 trials/model, worse model ≤50% pass rate). See P-010.",
+  "reusable": true,
+  "automation_opportunity": "Revision prompts and blockers should classify Judge-blocked vs Difficulty failure before asking for difficulty logs.",
+  "seen_count": 1,
+  "notes": "Official Sentinel Ultra platform update 2026-08-04. Quality expectations unchanged; order + trial count only."
+}

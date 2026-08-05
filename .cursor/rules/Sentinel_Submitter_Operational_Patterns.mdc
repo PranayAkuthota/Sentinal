@@ -1,0 +1,162 @@
+---
+description: Reusable operational patterns and traps for Sentinel Ultra submitter work (learned across tasks; no auto-verdicts)
+alwaysApply: false
+---
+
+# Sentinel Submitter — Operational Patterns
+
+**Last updated:** August 4, 2026 (Agent Judge–first eval order)
+
+If this file conflicts with `Review_Guidelines.mdc`, follow `Review_Guidelines.mdc`.  
+Procedure: `Sentinel_Submitter_Platform_Workflow.mdc`.  
+This file captures **recurring execution traps** — not policy restatements.  
+Promoted library: `knowledge/patterns/INDEX.md`. Pre-submit walk: `docs/SUBMITTER_BLOCKERS.md`.
+
+---
+
+## 1. Session / path hygiene
+
+- Always use **absolute paths** for ZIPs, repos, and scripts.
+- After any disposable work under `/tmp`, `cd` back to the workspace root before relative automation commands.
+- Prefer `python3` (not `python`) on macOS.
+- When multiple `work/<task>/` sessions exist, **always** pass `--task-name <exact>`.
+- Never mutate `extracted_original/`. Never overwrite `original/*.zip`.
+
+---
+
+## 2. Source PR review (every task)
+
+Fetch PR metadata even if `gh` is missing:
+
+```bash
+curl -sL "https://api.github.com/repos/<org>/<repo>/pulls/<n>"
+curl -sL "https://api.github.com/repos/<org>/<repo>/pulls/<n>/files?per_page=100"
+curl -sL "https://github.com/<org>/<repo>/pull/<n>.diff" -o /tmp/pr.diff
+```
+
+Map PR solution files ↔ `golden.patch`. Map PR tests ↔ `tests.patch` / `config.json` f2p.  
+Scope may expand naturally; never reduce/replace.
+
+---
+
+## 3. tests.patch health (high-frequency defect)
+
+**Require `git apply --check` success** for corrected packages.  
+`patch --dry-run` alone is **not** sufficient:
+
+- Completely empty hunk lines (no leading space) → `git apply` “corrupt patch”.
+- Hunk headers whose line counts disagree with the body → corrupt / truncated patches.
+- GNU `patch` often **ignores git renames** and edits old paths in place while `config.json` points at new paths.
+
+Automation now:
+
+- Warns on ungraded `+def test_*` names in `tests.patch` not listed in `fail_to_pass`
+- Blocks Fixable preflight when git-apply fails but patch-only succeeds, or hunk mismatches exist
+
+Regenerate patches from a clean base + final test tree (`git add -A && git diff --cached`).
+
+---
+
+## 4. Grading / coverage traps
+
+- `allow_extra_failures: true` → only `fail_to_pass` / `required_pass` gate reward. Instruction-covered tests sitting only in `tests.patch` can fail while reward stays `1.0`.
+- Exactly **10** f2p meets the guideline minimum; live Valid-as-is “more than 10” needs **≥11**.
+- Prefer promoting meaningful existing patch tests into `fail_to_pass` before inventing filler.
+- When adding assertions, match the **oracle’s real call signatures** (positional vs kwargs) — do not invent API shapes.
+
+---
+
+## 5. Packaging hygiene (Fixable corrected current)
+
+On `working_copy/` after semantic edits:
+
+```bash
+python3 automation/sentinel_submitter.py ensure-packaging-hygiene --task-name <task>
+python3 automation/sentinel_submitter.py sync-problem-statement --task-name <task>
+```
+
+Typical items:
+
+- Ensure Harbor `network_mode` / `allowed_hosts` on `task.toml` (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); strip `network_mode="none"` from `docker_compose.yaml` if present
+- Ensure `solution/golden.patch` (rename from `solution.patch` if needed)
+- Ensure sibling `tests/grade.py` when grader is only embedded inside `test.sh`
+- `chmod +x solution/solve.sh` (Docker bind-mounts may still need `bash solve.sh`)
+
+---
+
+## 6. Local validation
+
+```bash
+python3 automation/local_oracle_nop.py --task-name <task> --mode both
+# then record-validation with evidence paths printed by the helper
+```
+
+- Oracle must be `1.0` before claiming Fixable packaging ready after local validation.
+- NOP must be `0.0` (unsolved must not fully pass graded f2p).
+- Start Docker Desktop / engine first; `docker info` must succeed.
+- Prefer `bash /solution/solve.sh` inside containers (shebang/`+x` issues on macOS mounts).
+
+Label evidence: Executed / Confirmed by supplied logs / Not verified. Never invent rewards.
+
+---
+
+## 7. Instruction rewrite patterns
+
+When Fixable for over-prescription:
+
+- Remove “edit these files / functions” laundry lists.
+- Keep **public contracts** tests enforce (endpoints, schemas, defaults).
+- Keep representative examples required for faithfulness; avoid dumping entire hidden fixtures as a procedure.
+- After edits, byte-sync `environment/problem_statement.md`.
+
+---
+
+## 8. Prompt selection
+
+| Situation | Prompt |
+|-----------|--------|
+| Daily interactive | `Prompts/Execution/` **01→06** |
+| New ZIP + metadata (single-shot) | `Prompts/Submitter_First_Pass.md` |
+| Difficulty / Judge / Logs revision | `Prompts/Submitter_Platform_Revision.md` |
+
+Before Execution **02–06**: `python3 automation/checkpoint_ready.py --task-name TASK --next NN`.
+
+## 8a. Platform revision order (Aug 4 2026 — P-010 / P-011)
+
+Eval order on upload: **Agent Judge (Quality Check) before Difficulty**.
+
+- If blocked with `Blocked at the agentic judge. Not run: difficulty screen…` → fix Judge axes only; Difficulty did not run.
+- Blocking Judge axes: **test_coverage** / **test_faithfulness**.
+- **Revision bar:** every Agent Judge axis **≥ 3.5** before treating Difficulty as in-scope (also fix any “3 with reservations”).
+- Verdict `discuss (overreach)` → faithfulness: every graded/reward-gating assert must be stated or implied in the instruction; remove/ungrade **or** state the public contract (`P-011`). Do not dump file/helper walkthroughs to “satisfy” faithfulness.
+- Coverage chase without instruction sync often flips the next Judge to overreach — move instruction ↔ tests ↔ oracle together.
+- After Judge passes (≥3.5): Difficulty uses **4 trials per model** (not 8); worse model must still be **≤50%** pass rate.
+- Do not invent Difficulty results when Judge blocked the screen.
+
+## 8b. Recurring traps promoted Aug 2026 (≥2 sightings)
+
+- Prefer trimming untested instruction claims over thin f2p filler (`P-006`).
+- Compiler-build verifiers often need higher `verifier.timeout_sec` within 1800 (`P-007`).
+- Hard-fail missing build tools instead of `SkipTest` soft-pass (`P-008`).
+- Mode-only dirty trees → `git reset --hard` + reflog cleanup; not Invalid (`P-009`).
+- Agent Judge fails before Difficulty runs → revise Judge first (`P-010`).
+- `discuss (overreach)` / axis below 3.5 → sync instruction↔tests; target ≥3.5 before Difficulty (`P-011`).
+
+---
+
+## 9. Templates
+
+Copy structure from `templates/` into `task_outputs/<task>/` (do not put templates inside the upload ZIP).
+
+---
+
+## 10. Files Changed + Snorkel voice
+
+When the Fixable form asks for Files Changed (every completed Fixable task):
+
+- Path + what + why for each touched file.
+- Do not repeat the full validation section.
+- Write like a human EC paste: short, concrete, slightly uneven is fine.
+- Avoid LLM telltales (“in order to ensure”, “comprehensive”, “holistic alignment”, stacked emdash sermons, identical bullet cadence across every file).
+
+**All other narrative Snorkel fields** (Difficulty, Comments for Reviewer, Internal reason, numbered issue bodies, unfixable explanation) must also be normal human **paragraphs** — same rule across steps 01–06. Do not leave robotic handoff prose for 06 to “fix” at the end. Canonical: workflow §13.

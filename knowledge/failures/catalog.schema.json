@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SentinelFailureRecord",
+  "type": "object",
+  "required": ["id", "title", "category", "symptom", "root_cause_class", "recovery", "reusable"],
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": [
+        "packaging",
+        "tests_patch",
+        "grading",
+        "instruction",
+        "oracle",
+        "environment",
+        "metadata",
+        "validation",
+        "workflow",
+        "other"
+      ]
+    },
+    "symptom": { "type": "string" },
+    "root_cause_class": { "type": "string" },
+    "recovery": { "type": "string" },
+    "reusable": { "type": "boolean" },
+    "automation_opportunity": { "type": "string" },
+    "seen_count": { "type": "integer", "minimum": 1 },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

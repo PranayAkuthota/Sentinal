@@ -1,0 +1,761 @@
+---
+alwaysApply: true
+---
+# Project Sentinel Contributor Guidelines
+
+**Last updated:** July 22, 2026 (Sentinel Ultra merge); July 23, 2026 submitter platform-workflow cross-ref
+
+Authoritative combined policy for **Sentinel Ultra** Harbor tasks and older Sentinel packages that may still use legacy file names or platform terminology.
+
+**File roles:**
+
+- This file (`.cursor/rules/Review_Guidelines.mdc`) — controlling policy
+- `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` — complete submitter platform-answer workflow
+- `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` — reviewer procedure
+- `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` — quick reference / field mapping
+- `CLAUDE.md` — Cursor orchestration / automation
+- `document 1.txt` / `document 2.txt` / `document 3.txt` — official Ultra docs (July 22, 2026); override conflicting legacy text
+
+Official Ultra documentation and live platform fields outrank stored templates when they conflict.
+
+---
+
+## Source Precedence and Version Compatibility
+
+Operational precedence (highest first):
+
+1. Latest authoritative Sentinel Ultra documentation and **live platform fields**
+2. Current user instruction, only when it does not conflict with authoritative project requirements
+3. `.cursor/rules/Review_Guidelines.mdc` (this file)
+4. Role-specific workflow (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` for submitters; `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` for reviewers)
+5. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`
+6. Clearly labelled legacy compatibility rules
+
+Clarifications:
+
+- A user may select the task, role, output, and workflow.
+- A user instruction must **not** override official validity, safety, packaging, or evaluation requirements unless the user supplies newer authoritative documentation.
+- The **live platform form** controls the exact fields that must be answered.
+- When the live form conflicts with an old stored template, follow the live form.
+- Never let a March 2026 rule override the July 22, 2026 Sentinel Ultra documentation.
+- Older rules remain available only for **legacy task packages** and older platform forms.
+- **Never mix** verdict names or upload formats from different versions.
+- **Current format is the default** unless a task clearly contains legacy structure.
+- Ambiguous tasks use **current rules**; legacy artifacts are **compatibility inputs**.
+
+---
+
+## Project Purpose and Workflow
+
+**Sentinel Ultra** creates high-quality **Harbor-format** software-engineering tasks drawn from real open-source **PRs, commits, or issues**. The dataset trains and evaluates frontier coding agents and models on realistic engineering work.
+
+Correctness, completeness, and resistance to reward hacking matter more than superficial difficulty. Platform evals help confirm difficulty; Expert Contributors (ECs) focus on errors and gaps automated checks cannot catch.
+
+Every task should be **solvable**, **clear**, **free of leakage**, **verifiable**, and **authentic**.
+
+Workflow:
+
+1. **Authoring** — task created from the source.
+2. **Submission** — an EC reviews the task, decides a submitter verdict, and fixes it if needed.
+3. **Review** — a second EC independently verifies the submission.
+4. **Adjudication** — a final pass resolves disagreements.
+5. **Delivery** — accepted tasks are delivered to train and evaluate coding agents.
+
+If unfamiliar with Harbor, review Harbor documentation for terminology and layout. The Harbor Framework tab covers task structure and `task.toml` fields checked on every task.
+
+---
+
+## Contributor Roles
+
+Do **not** combine submitter and reviewer verdict systems.
+
+### Submitter
+
+The submitter:
+
+- Reviews the initial task.
+- Chooses **Valid as-is**, **Fixable**, or **Not Fixable**.
+- Corrects allowed files when the task is Fixable.
+- Runs or verifies the required checks.
+- Repackages and uploads the corrected task.
+- Iterates until the platform checks pass.
+
+Paste-ready platform answers and ZIP/metadata handling: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`. Map internal assessments to live form labels exactly (Not Fixable → **Invalid/Not Fixable** / **Invalid** / **Invalid/Not Fixable**).
+
+### Reviewer
+
+The reviewer:
+
+- Independently checks the submitter’s work.
+- Does **not** merely copy the submitter’s conclusion.
+- Chooses **Accept**, **Needs Revision**, or **Reject**.
+- Uses **Reject** only after maximum revision cycles are exhausted.
+- Checks comments or rebuttal before final submission.
+- Assigns the current **Submission Quality Score**.
+- May run local checks but is **not required** to run Harbor end to end.
+
+### Adjudicator
+
+The adjudicator:
+
+- Resolves disagreements.
+- Reviews unresolved defects.
+- Makes the final decision when required.
+
+---
+
+## Current Harbor Structure
+
+Default current layout:
+
+```text
+<task-id>/
+├── task/
+│   ├── task.toml
+│   ├── instruction.md
+│   ├── environment/
+│   │   ├── Dockerfile
+│   │   ├── repo/
+│   │   └── problem_statement.md
+│   ├── solution/
+│   │   ├── solve.sh
+│   │   └── golden.patch
+│   └── tests/
+│       ├── test.sh
+│       ├── tests.patch
+│       ├── config.json
+│       └── grade.py
+└── runs/
+```
+
+### Component explanations
+
+| Component | Purpose |
+|-----------|---------|
+| `task.toml` | Metadata, timeouts, resources, source, category, difficulty explanation |
+| `instruction.md` | Problem statement and measurable success criteria given to the agent |
+| `environment/Dockerfile` | Container build (base image + setup) |
+| `environment/repo/` | Cloned base repository the agent and verifier run against |
+| `environment/problem_statement.md` | Must be an **exact copy** of `instruction.md` |
+| `solution/solve.sh` | Oracle script that applies or produces the solved state |
+| `solution/golden.patch` | Canonical self-contained solution patch (all solution changes) |
+| `tests/test.sh` | Runs the suite and writes reward (e.g. `/logs/verifier/reward.txt`) |
+| `tests/tests.patch` | Contains fail-to-pass test additions applied at verify time |
+| `tests/config.json` | How to run the suite; which test ids are fail-to-pass / pass-to-pass |
+| `tests/grade.py` | Grading script |
+| `runs/` | Top-level agent execution logs, episodes, and outcomes (reference only; not uploaded) |
+
+If a downloaded task contains `solution/solution.patch` instead of `golden.patch`, rename it to `golden.patch`.
+
+---
+
+## Legacy Artifact Compatibility
+
+| Legacy artifact | Current treatment |
+| --------------- | ----------------- |
+| `solution/init_state.patch` | Read when supplied in a legacy task. Do **not** automatically treat its absence as a defect. For current uploads use `golden.patch`. |
+| `solution/solution.patch` | Rename to `golden.patch` for current Sentinel Ultra upload. |
+| `tests/files/` | Read when present in older tasks but do **not** treat it as the replacement for current `tests.patch`, `config.json`, or `grade.py`. |
+| Missing `problem_statement.md` | Current task packaging issue. It should exactly match `instruction.md`. |
+| Old Valid/Invalid form | Use only when the actual platform still presents that form. |
+| Current Sentinel Ultra form | Use **Valid as-is**, **Fixable**, or **Not Fixable**. |
+
+How reverse `init_state.patch` worked is preserved in the **Legacy Compatibility Appendix** below. Do not reject solely because `init_state.patch` is absent.
+
+---
+
+## Four Core Principles
+
+### 1. Solvability
+
+- A competent engineer must be able to solve the task from the instruction and repository within the task’s limits.
+- Required names, formats, and paths must be stated, derivable, or based on a standard convention.
+- The instruction must not reference files, APIs, or behavior that do not exist in the pinned repo.
+- Arbitrary guessing is not allowed.
+
+### 2. Clarity and No Leakage
+
+- Describe required behavior, not the implementation procedure.
+- Do not tell the agent exact internal functions, exact files to modify, or hidden test names unless they are part of a public contract.
+- Do not expose root-cause analysis that removes the need for code exploration.
+- Do not expose PR links, commit SHAs, verifier internals, exact hidden assertions, or solution artifacts.
+- Required public output schemas must be documented — an undocumented schema is a **solvability** failure, not useful difficulty.
+
+Over-prescription red flags include: “Where to look:” file lists; naming exact hidden tests/fixtures/harness files; explaining how the verifier proves success; naming exact internal functions/branches to edit; copying exact assertion strings from tests unless they are a genuine public/API contract.
+
+### 3. Verifiability
+
+- Instruction requirements and test assertions must map in both directions.
+- Every required behavior must be tested.
+- Every test requirement must be stated or reasonably implied.
+- Tests must check observable behavior rather than implementation text.
+- Tests must not be satisfiable by editing tests, creating empty files, or hardcoding fixture-specific answers.
+- Tests must be deterministic.
+
+### 4. Authenticity
+
+- The task should reflect real engineering work.
+- It must remain grounded in the original source PR, commit, or issue.
+- It should require genuine code exploration and multi-step reasoning.
+- Roughly **100 or more changed lines across multiple files** is a useful rule of thumb but not an automatic verdict.
+- The instruction should sound like real engineering communication (ticket, memo, Slack-like ask, acceptance criteria) — not robotic templated LLM prose.
+
+---
+
+## Submitter Verdicts
+
+Current submitter system (do not use old controlling verdicts for current tasks):
+
+### Valid as-is
+
+Use only when:
+
+- Instruction, tests, oracle, environment, and source PR align.
+- No rewrite is needed.
+- Every requirement is properly tested.
+- No test enforces hidden or arbitrary requirements.
+- The instruction is clear and not overly prescriptive.
+- No solution information is leaked.
+- The oracle satisfies the instruction.
+- Fail-to-pass tests meet the official guideline minimum of at least **10** meaningful tests (exactly 10 is valid for the guideline; when the live form requires “more than 10,” ensure that confirmation is true before selecting it).
+- Required local validation succeeds (oracle reward `1.0`, NOP/unsolved reward `0.0`).
+
+### Fixable
+
+Use when all problems can be corrected within allowed task files.
+
+Examples include:
+
+- Overly prescriptive instruction
+- LLM-like instruction wording
+- Missing instruction details
+- Test coverage gaps
+- Test faithfulness problems
+- Fewer than **10** fail-to-pass tests (the Fixable test-count defect). Do **not** mark Fixable solely for having exactly 10 unless the live platform or an automated check explicitly requires more than 10.
+- Oracle mismatch
+- Solution leakage that can be removed
+- Allowed Dockerfile problems
+- Fixable Git hygiene problems
+- Task difficulty that can be increased by naturally expanding the same PR scope
+
+### Not Fixable
+
+Use only when:
+
+- The task can become valid only by reducing or replacing the original PR scope.
+- The environment has a disallowed or unrecoverable problem.
+- A tangled toolchain or dependency conflict cannot reasonably be repaired.
+- The task requires a large external download or live external service.
+- Git corruption is genuinely unrecoverable (rare — most git issues are Fixable).
+- The source task cannot be preserved while making it valid.
+
+### Legacy mapping note
+
+- Old **“Valid with no changes”** approximately maps to current **“Valid as-is.”**
+- Old **“Invalid with minor changes”** and **“Invalid with major changes”** generally map to **“Fixable”** when correction is allowed.
+- An old **“Invalid”** result maps to **“Not Fixable”** only when it meets current Not Fixable criteria.
+
+---
+
+## Reviewer Outcomes Overview
+
+Reviewer outcomes are separate from submitter verdicts:
+
+| Outcome | When |
+|---------|------|
+| **Accept** | Submission is accurate, complete, and well-supported; corrected task meets requirements. |
+| **Needs Revision** | Task still has authoring errors the submitter can fix. Prefer this while revision cycles remain. |
+| **Reject** | Use **only** after maximum revision cycles are exhausted and more work is still needed. |
+
+Also assign a **Submission Quality Score** (1–5) reflecting accuracy, completeness, reasoning, and specificity of the submission.
+
+Reviewers must read **Comments for Reviewer** / rebuttal before finishing and acknowledge whether those notes changed the decision.
+
+---
+
+## Source PR Scope and Difficulty
+
+- A task must remain recognizably based on the original PR, commit, or issue.
+- Scope may be **expanded** naturally to add real engineering complexity.
+- Scope must **not** be reduced.
+- Scope must **not** be replaced with a different feature.
+- Added difficulty must come from real engineering complexity (debugging, root-cause analysis, substantial feature work, domain/security depth).
+- Do **not** make a task difficult through vagueness.
+- Do **not** attach unrelated requirements.
+- If preserving validity requires changing the task into something else, mark **Not Fixable**.
+- Over-prescriptive instructions should be reduced before expanding scope.
+- When scope is expanded, update instruction, tests, and oracle together so the trio stays consistent.
+
+### Difficulty Handling After Corrections
+
+Tasks normally reach contributors after initial difficulty checks. Correctness, instruction-test alignment, and absence of leakage should be checked before trying to increase difficulty.
+
+If instruction, test, or oracle corrections make the task easier:
+
+1. First remove unnecessary prescriptive hints from the instruction.
+2. Re-run or review the difficulty evaluation.
+3. Expand only the original PR scope when additional difficulty is needed.
+4. Keep added requirements naturally related to the source PR.
+5. Update the instruction, tests, and oracle together.
+6. Never create difficulty through vagueness, arbitrary naming, missing context, or unrelated requirements.
+
+---
+
+## Allowed and Prohibited Changes
+
+### Allowed
+
+- Rewrite `instruction.md`.
+- Copy the same final text to `environment/problem_statement.md`.
+- Add new tests through `tests.patch`.
+- Update `tests/test.sh`, `config.json`, and `grade.py`.
+- Correct `solve.sh` and `golden.patch`.
+- Make only allowed Dockerfile corrections.
+- Correct task metadata.
+- Clean Git metadata.
+- Realign `base_commit_sha` to repository HEAD when the shipped repository is the source of truth.
+- Expand original PR scope when necessary and allowed.
+
+### Prohibited
+
+- Do not directly edit tracked source files in `environment/repo/`.
+- Do not alter existing regression / pass-to-pass test files (keep them byte-identical to base).
+- Do not replace or reduce PR scope.
+- Do not place solution material in agent-readable paths.
+- Do not add unrelated refactors.
+- Do not make tests depend on live internet.
+- Do not hide requirements only inside tests.
+
+---
+
+## Instruction Requirements
+
+- Describe the problem, constraints, and observable outcomes — not step-by-step implementation.
+- State required public schemas, formats, and contracts explicitly.
+- Keep the instruction aligned with the source PR (plus any allowed expansions).
+- Avoid LLM-templated or robotic phrasing.
+- Avoid solution leakage (PR URLs, commit SHAs, spoilers, verifier internals).
+- After any edit, copy the exact text into `environment/problem_statement.md`.
+
+---
+
+## Test Requirements and Quality Check
+
+### Core test rules
+
+**Fail-to-pass count (operational rule):**
+
+- **Official guideline minimum:** at least **10** meaningful fail-to-pass tests.
+- Plain wording: At least 10 meaningful fail-to-pass tests.
+- **Fixable test-count defect:** fewer than **10** fail-to-pass tests.
+- **Exactly 10:** meets the documented guideline. Do **not** classify as Fixable solely for having exactly 10 unless the live platform or an automated platform check explicitly requires more than 10.
+- **Safest live-form submission target:** when the live form requires confirmation of **“more than 10,”** add at least one additional meaningful fail-to-pass test before selecting that confirmation. Never claim “More than 10” when the suite has exactly 10.
+- **Preferred practical range:** **11–20** meaningful fail-to-pass tests.
+- Plain wording: 11–20 meaningful fail-to-pass tests.
+- Never add duplicate, shallow, or filler tests only to increase the count.
+
+Platform checkbox behavior:
+
+- **9 or fewer:** select **“Less than 10 fail-to-pass tests in the test suite.”**
+- **Exactly 10:** do **not** select “Less than 10” (that statement would be false).
+- Live corrected-task confirmation **“More than 10 fail-to-pass tests in the test suite”:** select only when true.
+
+- A fail-to-pass test must fail before the fix and pass after the fix.
+- Pass-to-pass tests protect existing behavior.
+- At least one test must directly reproduce the original failure.
+- Existing pre-existing pass-to-pass test files must remain **byte-identical**.
+- New fail-to-pass tests should be added through `tests.patch`.
+- `tests.patch` must apply cleanly to the declared base commit.
+- Tests must execute actual behavior (invoke APIs, services, CLI, runtime outputs).
+- Tests must not inspect source keywords, patch structure, diff lines, or implementation-specific text.
+- Tests must not rely on solution-only files or hidden golden outputs.
+- Fixtures must be placed where the agent cannot alter them (committed into the verifier image).
+- Test inputs, seeds, and assertions must be deterministic.
+- Time-based, order-dependent, and network-dependent tests are unsafe.
+- Missing dependencies must **fail** rather than silently skip.
+
+### Quality Check directions
+
+#### Test coverage (Instruction → Tests)
+
+Every imperative, every output field, every named edge case, every threshold, and every required error behavior must have a real enforcing assertion.
+
+#### Test faithfulness (Tests → Instruction)
+
+Every asserted name, path, schema, exact string, threshold, behavior, CLI flag, and config key must be stated, reasonably implied, or derivable from an existing standard / existing codebase symbol.
+
+### Six serious quality patterns
+
+1. **Silent skip** — skips, skipif, or ImportError swallowed so substantive tests never run. Missing deps must fail.
+2. **No CLI or entry-point invocation** — instruction asks for a CLI/service/script but tests never invoke it.
+3. **Pre-created artifact passes** — existence checks without content/behavior assertions (e.g. `touch` passes).
+4. **Agent controls coverage** — tests iterate only over agent-produced lists, letting the agent shrink the surface.
+5. **Fail-open behavior** — missing/malformed artifacts return/pass instead of failing.
+6. **Test overreach** — asserts names, formats, thresholds, paths, or conventions the instruction never stated.
+
+### Platform Quality Check axes
+
+The platform Quality Check evaluates:
+
+- Instruction realism
+- Instruction clarity
+- Self-containedness
+- Prescriptiveness
+- Test coverage
+- Test faithfulness
+- Oracle spec faithfulness
+- Oracle no-gaming
+- Oracle robustness and reproducibility
+- Packaging
+
+**Test coverage** and **test faithfulness** are the **blocking** axes. Do not ignore a score of **3 with reservations** — fix it. Keep instruction, tests, and oracle synchronized.
+
+---
+
+## Oracle and Solution Requirements
+
+- `solve.sh` applies or produces the correct solved state.
+- `golden.patch` is the current canonical solution patch name.
+- The oracle must satisfy every instruction requirement.
+- It must not hardcode fixture-specific answers.
+- It must not read hidden test ground truth.
+- It must not fabricate outputs.
+- It must not depend on live network access.
+- Random behavior must use fixed seeds.
+- Subprocesses should use suitable timeouts.
+- Extra oracle functionality is acceptable only when the required behavior is still correctly implemented and tests remain aligned.
+- Changes unrelated to the task must not be added.
+- When scope is expanded, instruction, tests, and oracle must be updated together.
+- Prefer correspondence to the actual upstream fix when available; document divergence only when upstream is unsuitable.
+
+Do **not** reject only because an oracle contains extra non-conflicting functionality beyond the instruction, as long as required behavior is implemented and tests enforce it.
+
+---
+
+## Environment Review
+
+### Fixable examples
+
+- Alpine image missing Bash
+- Missing frozen requirements file
+- Missing tmux
+- Missing asciinema
+- Unpinned `:latest` image that can be changed to a concrete tag
+- Incorrect resource limits
+- Bad shebang
+- CRLF line endings
+- Non-executable scripts
+- Stray pipeline artifacts
+- Metadata that blocks build preparation
+
+### Not Fixable examples
+
+- Tangled dependency or toolchain failure
+- Unrecoverable compiler or package conflict
+- Large external model download
+- Required live external service
+- External network dependency that cannot reasonably be vendored
+- Genuinely unrecoverable Git corruption
+
+Some build issues may be fixable (e.g. adding a missing small package or flag) and must be evaluated individually. The Dockerfile must build **offline** (sandbox is network-restricted).
+
+---
+
+## Task Metadata Limits
+
+Check **all** fields. Actual verdict and fixability follow the current form and current guidelines — do **not** use the old rule that only four metadata fields can ever matter for validity.
+
+| Field / rule | Limit / expectation |
+|--------------|---------------------|
+| `cpus` | 2 or 4 |
+| `memory_mb` | 2048 to 16384 |
+| `storage_mb` | 5120 to 10240 |
+| `gpus` | always 0 |
+| `build_timeout_sec` | maximum 1800 |
+| `agent.timeout_sec` | maximum 3600 |
+| `verifier.timeout_sec` | maximum 1800 |
+| `network_mode` | **Remove** if present |
+| `allowed_hosts` | **Remove** if present |
+| category | Check accuracy |
+| difficulty explanation | Check accuracy |
+| source URL | Check resolves to correct PR/commit/issue |
+
+Also review language, tags, time estimates, and related metadata as observations when present. Packaging judges may cross-check metadata against task content.
+
+---
+
+## Git Repository Hygiene
+
+Run inside `environment/repo` before re-zipping:
+
+```bash
+git rev-parse --verify HEAD
+git rev-parse HEAD
+git rev-list --all --not HEAD
+git remote
+git config --local --get-regexp '^filter\.'
+git status --porcelain
+ls .git/logs 2>/dev/null
+du -sh .git
+git apply --check ../../tests/tests.patch
+```
+
+Expectations:
+
+- HEAD must resolve.
+- HEAD should match `base_commit_sha` (when they disagree, **shipped repo HEAD wins** — realign `task.toml`).
+- No commits may exist after HEAD (`git rev-list --all --not HEAD` empty).
+- No remotes should remain.
+- No filter drivers should remain.
+- Working tree must be clean.
+- Reflog should be removed.
+- `.git` must be below **100 MB**.
+- `tests.patch` must apply.
+- Git cleanup is generally **Fixable**.
+- Tracked repository source files must **not** be edited during cleanup.
+
+---
+
+## Local Validation by Role
+
+This role distinction replaces the old universal statement that contributors should never run local checks.
+
+### Submitter
+
+**For Valid as-is:**
+
+- Local oracle and NOP validation are **required**.
+- Build the environment offline.
+- Verify oracle reward is `1.0`.
+- Verify unsolved or NOP reward is `0.0`.
+- Confirm fail-to-pass tests fail before the fix.
+- Confirm pass-to-pass tests still pass.
+
+**For Fixable:**
+
+- Local validation is **strongly recommended**.
+- Platform evaluations will also run after upload.
+- Do not repeatedly upload an unchanged bundle after a deterministic infrastructure failure.
+
+### Reviewer
+
+- Local Harbor, Docker, oracle, and NOP execution is **optional**.
+- Reviewer may run checks when needed to verify a finding.
+- Reviewer must still inspect instruction, environment, source PR, oracle, tests, metadata, runs, and corrected bundle.
+
+---
+
+## Upload and Packaging
+
+Require:
+
+- Zip only the **contents** of `task/`.
+- Do not include the outer `task/` directory.
+- Do not include `runs/`.
+- The ZIP must unpack directly to:
+  - `instruction.md`
+  - `task.toml`
+  - `environment/`
+  - `solution/`
+  - `tests/`
+- `problem_statement.md` must exactly match `instruction.md`.
+- Rename `solution.patch` to `golden.patch`.
+- Remove (packaging / leakage sweep — inspect before deleting anything that may be an intentional project file):
+  - `__pycache__/`
+  - `*.pyc`
+  - `.DS_Store`
+  - `.pytest_cache/`
+  - `.mypy_cache/`
+  - `.ruff_cache/`
+  - `.venv/`
+  - `node_modules/`
+  - `.idea/`
+  - `.vscode/`
+  - `metadata.json` (incorrect location may cause packaging failures)
+  - `ground_truth.*` (may expose solution information)
+  - `*.orig`
+  - `*.bak`
+  - `*.swp`
+  - `*~`
+- Confirm no solution or expected-output material is visible to the agent.
+
+Intentional project files should not be deleted merely because their names resemble temporary files — inspect before removal. Intentional task dotfiles (e.g. `.gitignore`, `.dockerignore`, `.gitattributes`, `.gitkeep`, warranted `.env`) are fine.
+
+---
+
+## Platform Evaluations
+
+- **Static Checks**
+- **Difficulty Check**
+- **Oracle Check**
+- **Quality Check**
+
+Process:
+
+- Run checks with **Send to Reviewer unchecked** while iterating.
+- Read detailed feedback.
+- Fix the cited defect.
+- Re-upload.
+- Repeat until checks pass.
+- Send to reviewer only when appropriate.
+- Do not ignore a test coverage or faithfulness score of **3 with reservations**.
+- Keep instruction, tests, and oracle synchronized.
+- **In-app platform checks have a five-minute runtime limit.** If full agent evaluation requires longer, iterate with Send to Reviewer unchecked and use local validation or downloaded logs for diagnosis when available. Do **not** claim that a platform run completed if the platform stopped because of its runtime limit.
+
+Valid as-is tasks are not re-run by platform difficulty evals — local oracle/NOP is the submitter’s check for those.
+
+---
+
+## Agent-Run Analysis
+
+Preserve these useful older practices (still current):
+
+- Inspect **all** failing agent trials rather than one convenient trial.
+- Inspect at least one passing trial when available.
+- Use run logs to identify timeout patterns, systematic misunderstandings, and instability.
+- Cite concrete observations when they support a verdict or timeout/metadata tweak.
+
+### Historical note on run counts
+
+Some older packages have several trials per model. Newer batches may contain fewer (for example, batches from April 28 2026 onward often include two runs — one per model). A smaller set for newer batches is expected and is **not** automatically a packaging defect.
+
+---
+
+## Supplemental License and Category Reference
+
+Identify the project license when the platform asks for it. Check `environment/repo/LICENSE` (or similar), README, then upstream via `source` if needed.
+
+### License options commonly listed on older/current platform forms
+
+- GNU General Public License v2.0 (GPL-2.0)
+- GNU General Public License v3.0 (GPL-3.0)
+- GNU Affero General Public License v3.0 (AGPL-3.0)
+- GNU Lesser General Public License v2.1 (LGPL-2.1)
+- GNU Lesser General Public License v3.0 (LGPL-3.0)
+- Mozilla Public License 2.0 (MPL-2.0)
+- Eclipse Public License 1.0 (EPL-1.0)
+- Eclipse Public License 2.0 (EPL-2.0)
+- Common Public License 1.0 (CPL-1.0)
+- Open Software License 3.0 (OSL-3.0)
+- Reciprocal Public License 1.5 (RPL-1.5)
+- Other — when more than one license applies, when there is no license, or when the license is not listed
+
+Common licenses often mapped to **Other** when not listed: MIT, Apache 2.0, BSD 2-Clause, BSD 3-Clause, ISC, Unlicense, CC0.
+
+### Category values (reference)
+
+| Category | Description |
+|----------|-------------|
+| Fix | Fixing known bugs or faults within the codebase |
+| Feature | Introducing new internal or user-oriented features |
+| Refactor | Restructuring for maintainability |
+| Documentation | Docs, comments, README, API docs |
+| Build | Build configuration changes |
+| Performance | Performance improvements |
+| Chore | Housekeeping, dependency bumps, version increments |
+| (Ultra free-form) | Current `task.toml` may also use other category labels (e.g. security); edit if needed for accuracy |
+
+Use category values as reference. Prefer the labels present on the **current** platform form and in the task’s `task.toml`.
+
+---
+
+## Legacy Compatibility Appendix
+
+Use this appendix only for legacy packages or older platform forms. Current Sentinel Ultra tasks default to the sections above.
+
+### A. Older Harbor layout (March 2026 era)
+
+```text
+<task-id>/
+└── task/
+    ├── task.toml
+    ├── instruction.md
+    ├── environment/
+    │   ├── Dockerfile
+    │   └── repo/
+    ├── solution/
+    │   ├── solve.sh
+    │   └── init_state.patch   # optional; not required for validity
+    └── tests/
+        ├── test.sh
+        ├── tests.patch
+        └── files/             # optional
+```
+
+### B. How reverse `init_state.patch` worked
+
+On older packages, `init_state.patch` often defined the broken/task state as a Git-style patch. `solve.sh` typically applied its inverse (`patch -p1 -R < init_state.patch`) to reach the gold/solved state.
+
+Reading the reverse diff:
+
+- Lines added (`+`) in `init_state.patch` = code removed from the solution (broken state)
+- Lines removed (`-`) in `init_state.patch` = code added by the solution (the fix)
+
+**Missing `init_state.patch` alone is not a defect.** Only flag absence when it creates inconsistency with `solve.sh` or the instruction. Current uploads use `golden.patch` (forward solution patch), not reverse `init_state.patch`.
+
+### C. Older submitter controlling verdicts (do not use for Ultra by default)
+
+- **Valid with no changes** — task reads as sound; maps ≈ **Valid as-is**
+- **Invalid with minor changes** — fixable without full redesign; maps ≈ **Fixable**
+- **Invalid with major changes** — serious content problems needing substantial rework; usually **Fixable** if still within allowed edits, else evaluate against current **Not Fixable**
+
+Older platforms sometimes offered only **Valid** / **Invalid** without the minor/major split. Use those labels **only** when the live platform form still presents them.
+
+### D. Older reviewer binary outcomes
+
+Some older reviewer forms offered only **Accept** / **Reject** (without **Needs Revision**). Current reviewer outcomes are **Accept**, **Needs Revision**, and **Reject** (Reject reserved for exhausted revision cycles). Do not treat Accept/Reject as the only reviewer choices unless the platform form for that assignment is still binary.
+
+### E. Older “do NOT run Harbor” guidance
+
+March 2026 operational docs often told ECs that Harbor/Docker/oracle/NOP were outside the EC workflow and that reviewers should not run them. That universal ban is **outdated** for Sentinel Ultra:
+
+- Submitters: local oracle/NOP **required** for Valid as-is; strongly recommended for Fixable.
+- Reviewers: local runs **optional**, not forbidden.
+
+### F. Older “only four metadata fields invalidate” rule
+
+Some legacy Cursor/automation notes claimed only `source` and the three timeouts could make a task Invalid. That rule is **not** the current Ultra controlling policy. Check all metadata fields; verdict and fixability follow the current form and July 22, 2026 guidelines. Timeouts and source remain important, but they are not an exclusive validity filter.
+
+### G. Older submission-form issue categories (still useful labels)
+
+When describing Fixable/Invalid issues, these category names remain useful:
+
+- Instruction specification
+- Metadata issues
+- Environment setup
+- Solution implementation (logic)
+- Unit test setup
+- Unit test scope
+- Other
+
+Number issues (Issue 1, Issue 2, …) with enough detail for another EC to verify. Keep review writing simple, specific, and human. Cite actual file names, tests, functions, logs, and paths.
+
+### H. Older General Observations / write-up standards
+
+Useful legacy expectations retained:
+
+- Submitters should document review steps clearly enough that another EC can replicate the workflow.
+- Reviewers should reject vague, unverifiable, or incomplete analysis (on older Accept/Reject forms) or send Needs Revision on current forms when write-up quality fails.
+- Do not invent numbered Invalid-issue details that the submitter did not provide when acting as a reviewer automation helper — that belongs in `CLAUDE.md` workflow, not as a substitute for platform evidence.
+
+---
+
+## Final Checklist
+
+Before marking Valid as-is, uploading a Fixable rewrite, or accepting a submission:
+
+- [ ] Current vs legacy structure identified; current rules applied by default
+- [ ] Instruction clear, non-prescriptive, no leakage; `problem_statement.md` matches
+- [ ] Source PR scope preserved (expand only; never reduce/replace)
+- [ ] f2p count: official ≥10 meaningful; Fixable if <10; exactly 10 meets guideline; select live “More than 10” only when true; preferred practical 11–20; no filler tests; coverage and faithfulness both directions
+- [ ] Outcome-based, deterministic tests; no silent skips / fail-open / overreach patterns
+- [ ] Oracle/`golden.patch` satisfies instruction without gaming
+- [ ] Environment within fixable rules or correctly marked Not Fixable
+- [ ] Metadata/resources/timeouts within limits; `network_mode` / `allowed_hosts` removed
+- [ ] Git hygiene clean; tracked repo sources untouched
+- [ ] Packaging zip is flat `task/` contents only; no runs/; no junk artifacts
+- [ ] Role-appropriate local validation completed
+- [ ] Platform evals iterated until appropriate; Send to Reviewer only when ready
+- [ ] Submitter and reviewer verdict systems not mixed
+- [ ] Agent runs inspected (all failing trials; at least one pass when available)
+- [ ] Findings cite concrete files, tests, functions, logs, and paths

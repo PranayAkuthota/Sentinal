@@ -1,0 +1,26 @@
+SENTINEL REVIEWER ANSWER
+========================
+
+Submission Quality Score (1-5):
+
+Outcome: Accept | Needs Revision | Reject
+
+Comments for Reviewer / rebuttal acknowledged:
+(yes/no + whether it changed the decision)
+
+Independent findings:
+(paragraphs — concrete files, tests, logs, paths)
+
+Instruction / leakage / over-prescription:
+
+Tests coverage & faithfulness:
+
+Oracle faithfulness / gaming:
+
+Environment / metadata / git:
+
+Packaging / corrected ZIP (if any):
+
+Why this outcome:
+
+Do NOT produce a corrected task ZIP from the reviewer role.

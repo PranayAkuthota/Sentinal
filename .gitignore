@@ -1,0 +1,16 @@
+# Per-task data (large; nested git repos under environment/repo/)
+work/
+task_outputs/
+incoming_tasks/*.zip
+completed_tasks/*.zip
+
+# Local archives / staging (not framework source; may embed nested .git)
+workspace_archive/
+templates/task\ ready_to_submit/
+
+# Python / OS junk
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+*.log

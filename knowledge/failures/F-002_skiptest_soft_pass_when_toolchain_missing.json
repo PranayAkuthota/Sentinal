@@ -1,0 +1,12 @@
+{
+  "id": "F-002",
+  "title": "SkipTest soft-pass when toolchain missing",
+  "category": "grading",
+  "symptom": "unittest.SkipTest when cmake/make missing in Harbor verifier that only counts PASSED",
+  "root_cause_class": "fail_open_skip",
+  "recovery": "Raise hard error; ensure Dockerfile installs the toolchain",
+  "reusable": true,
+  "automation_opportunity": "Warn on SkipTest/skipif in new tests.patch hunks",
+  "seen_count": 2,
+  "notes": ""
+}

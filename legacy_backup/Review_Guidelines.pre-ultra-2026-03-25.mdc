@@ -1,0 +1,189 @@
+---
+alwaysApply: true
+---
+Project Sentinel Contributor Guidelines
+Last updated: March 25, 2026
+
+Welcome to Project Sentinel
+Project Sentinel is Snorkel AI's initiative to build a high-quality dataset of Harbor tasks based on PRs in open-source repositories, for evaluating and improving coding agents and models on real-world software engineering work. Tasks follow the Harbor format and are designed to meet criteria such as difficulty, task type, and language distribution. The guidelines below walk you through the task structure and how to complete your submission. Your feedback helps us measure how well coding agents and models perform on real-world software engineering work.
+
+If you are not familiar with the Harbor framework, review the Harbor documentation for terminology and layout; you do not need to run the harness locally to contribute as Expert Contributor.
+
+Your Role as an Expert Contributor (EC)
+You will be reviewing Harbor tasks generated from open-source PRs and providing feedback via the Snorkel Experts platform. Each task asks an agent to reproduce or implement the changes from a real PR—navigating the codebase, understanding requirements, and producing a solution. You assess whether tasks are valid or invalid and meet quality standards by reviewing logic and content: clarity of the problem, consistency with the source material, and whether tests and solution artifacts plausibly match the instruction.
+
+Task Structure & Components
+Each task follows the Harbor format. The task directory contains a task/ folder with the following structure:
+
+<task-id>/
+└── task/
+    ├── task.toml           # Metadata, verifier/agent timeouts, environment
+    ├── instruction.md      # Problem statement provided to the agent
+    ├── environment/
+    │   ├── Dockerfile      # Container build (base image + setup)
+    │   └── repo/           # Cloned repository (base codebase)
+    ├── solution/
+    │   ├── solve.sh        # Oracle solution script (i.e. applies patch in reverse)
+    │   └── init_state.patch  # Gold patch (solution restores repo to solved state)
+    └── tests/
+        ├── test.sh         # Test execution script (runs tests, writes reward)
+        ├── tests.patch     # Optional patch for test setup or coverage
+        └── files/          # Optional test files (copied into repo at test time)
+Note: solution/init_state.patch is not required for a task to be valid.
+
+Each component serves a specific purpose:
+
+task.toml — Metadata (e.g. difficulty, category, tags, source), plus [verifier], [agent], and [environment] timeout settings
+instruction.md — Problem statement with clear description and measurable success criteria
+environment/Dockerfile — Builds the container image; environment/repo/ holds the cloned repository that the agent and verifier run against
+solution/init_state.patch (optional) — When present, a Git-style patch that defines the "broken" or task state; solve.sh typically applies its inverse to reach the gold state
+solution/solve.sh — Oracle solution script that produces the solved state (often by reversing init_state.patch when that file exists)
+tests/test.sh — Runs the verifier: installs deps, runs tests (e.g. pytest), and writes the reward result (to /logs/verifier/reward.txt)
+tests/tests.patch — Optional patch that adds or modifies tests when new coverage is needed
+tests/files/ — Optional directory of test files copied into the repo before tests run
+The runs/ folder lives alongside task/ at the top level of the task directory. It holds the execution runs produced by the LLMs and agents (i.e. the frontier models and agents mentioned in the guidelines). Each subfolder is typically named by model or agent, and contains the logs, episodes, and outcomes for that run. Use this folder as a reference to understand how models run on the task and to identify any task issues.
+
+What You'll Review:
+Task structure — Does the task package include the expected Harbor components (task.toml, instruction.md, environment, tests, solution)?
+Problem statement — Is instruction.md clear, accurate, and does it state measurable success criteria?
+Consistency with the PR — Does the instruction and intended change align with the linked source PR in task.toml (when you read the PR and the repo snapshot)?
+Patches and solution — Do solution/solve.sh, init_state.patch, and tests.patch appear consistent with the instruction and with each other? You may run the oracle solution script to confirm the solution; but judge from the written artifacts only. A task may omit init_state.patch.
+Tests — By reading tests/test.sh, patches, and test files, do the tests appear to cover what the instruction requires and to expect the right outcomes?
+Metadata — Is task.toml complete with difficulty, category, tags, and timeouts, and do those choices fit the task?
+Agent runs — Use runs/ to see how models behaved (timeouts, misreads); cite them when they support your reasoning.
+Task Metadata
+Each task includes metadata in task.toml that characterizes the task. The file uses a version field and TOML sections for [metadata], [verifier], [agent], and [environment].
+
+[metadata]
+author_name, author_email — Creator of the task.
+language — The programming language of the task (e.g. Python, Java, JavaScript, etc.).
+difficulty — Difficulty tier (e.g. easy, medium, hard).
+expert_time_estimate_min, junior_time_estimate_min — The estimated time in minutes for an expert and junior developer to complete the task respectively.
+category
+Fix — Fixing known bugs or faults within the codebase.
+Feature — Introducing new internal or user-oriented features.
+Refactor — Restructuring the existing codebase with a focus on maintainability.
+Documentation — Updates to documentation or comments (e.g. README edits, typo fixes, API docs improvements).
+Build — Changes to build configurations.
+Performance — Improving performance (e.g. reducing memory consumption).
+Chore — Project-wide housekeeping (e.g. dependency bumps, version increments, miscellaneous cleanup).
+tags — 3-6 descriptive keyword-like tags that capture concepts relevant to the task (e.g., refactoring legacy codebase).
+source — URL to the source PR or repository.
+[verifier]
+timeout_sec — Maximum time in seconds for the verifier run.
+[agent]
+timeout_sec — Maximum time in seconds for the agent to complete the task.
+[environment]
+build_timeout_sec — Maximum time in seconds to build the container environment.
+Harbor Harness (background)
+Tasks follow the Harbor format and are evaluated internally using terminal-based execution: Docker environments, solution/solve.sh as the oracle, tests/test.sh for verification, and a reward written by the verifier (e.g. to /logs/verifier/reward.txt). Harbor is a framework for evaluating agents and models in containers, evolved from Terminal-Bench.
+
+Running Harbor is optional. Oracle runs, NOP checks, image builds, and related technical validation happen outside the EC workflow. Use the Harbor documentation you want optional background on how components fit together.
+
+How tasks are evaluated (for context)
+Terminal-based execution — Tasks run in isolated container environments during internal evaluation
+Oracle solution — The reference solution is provided as solution/solve.sh
+Test execution — tests/test.sh runs the suite and records the reward outcome
+Verification — Pass/fail is determined from the test run and reward file
+EC Task Review Process (SUBMISSION)
+
+Steps to get started:
+
+Log into the Snorkel Experts platform and open the Submission task for the project (search for "Sentinel").
+Download the task zip — The zip contains the task (instruction, environment, solution, tests) and accompanying logs from different agent attempts, which help you see how agents interpreted the task and where they failed (e.g. timeouts).
+Review the task — Follow the detailed steps below to assess logic and content quality.
+Submit your review (SUBMISSION) — Complete the submission form with your feedback. Your submission has three possible outcomes:
+Valid with no changes — The task reads as sound: instruction, metadata, solution/tests, and runs are coherent; no substantive content issues.
+Invalid with minor changes — Fixable logic or wording issues (e.g. a small instruction gap, one test case missing from coverage, metadata tweak) without redoing the whole task design.
+Invalid with major changes — Serious content problems (e.g. instruction contradicts the PR or solution, tests do not match requirements, or the task appears trivially solvable without the intended fix). Substantial rework is needed.
+Detailed review steps
+Use these steps for every task. If terminology or steps are unclear, see the Harbor documentation or reach out to fellow ECs or the Snorkel team on the Slack channel.
+
+Understand the instruction — Read instruction.md fully. Note requirements, expected behavior, and success criteria. Flag vagueness, contradictions, or missing context.
+Cross-check the source PR — Open the PR (or repo context) linked in task.toml and confirm the task reflects the right change and scope.
+Scan the environment — Read environment/Dockerfile and skim environment/repo/ only as needed to judge whether setup and codebase context look plausible for the instruction (you are not building or running the image).
+Review the solution artifacts — Read solution/solve.sh and init_state.patch (if present). Check that they appear to implement the instruction (e.g. if the task says "add optional headers," the patch should not remove them). Reason from the text; do not rely on executing the oracle.
+Review the tests — Read tests/test.sh, tests.patch, and tests/files/ as applicable. Check coverage and assertions against the instruction.
+Review agent runs — Use runs/ for evidence of timeouts, systematic misinterpretation, or instability. Mention concrete observations when they support your verdict or suggested timeout/metadata tweaks.
+Compile your findings (valid vs. invalid, issue categories, instruction or metadata suggestions) and submit via the platform.
+
+General questions (asked for every task)
+The submission form includes these questions for each task:
+
+Is the task valid or invalid?
+Are the instructions sufficient to solve the task?
+Do the instructions appear correct?
+Is every requirement in the instructions properly tested?
+Are all test requirements specified in the instructions?
+Do the instructions appear to be generated by an LLM?
+Do you consider the implementation of the task to be novel or unique?
+General observations
+If the task is Invalid
+Fill out the submission form with the following information:
+
+Issue Category — Select one or more (see examples below).
+Issue Description
+Fixable / Not Fixable
+How to fix — Explain briefly what needs to be done (e.g. how the agent should have implemented the task, how the instructions should be written, what the metadata should be corrected to, etc.).
+Capturing every issue in detail: List each issue in a numbered format (Issue 1, Issue 2, …) with enough detail for the reviewer to verify your findings. For each issue, include the category and a clear explanation. Vague or incomplete descriptions may lead to the submission being rejected.
+
+Common invalid scenarios (examples by category):
+
+Instruction specification — Instructions are vague or wrong (e.g. "add optional headers" but the solution removes them; success criteria do not match what the tests check on read-through).
+Metadata issues — Metadata is missing or incorrect (e.g. difficulty, category, tags, source).
+Environment setup — Dockerfile or repo snapshot appears misconfigured or incomplete on inspection (e.g. missing obvious dependencies, inconsistent paths); timeouts in task.toml look implausibly low given runs/ or task complexity.
+Solution implementation (logic) — solve.sh or patches appear wrong or inconsistent with the instruction or PR; when init_state.patch is present, it conflicts with solve.sh or the stated problem. Missing init_state.patch alone is not a reason to mark the task invalid.
+Unit test setup — From the scripts and files, reward handling or test invocation looks incorrect (e.g. wrong paths, missing reward write, obvious dependency gaps).
+Unit test scope — Tests do not cover a required behavior from the instruction; tests assert on the wrong outcome or only cover a subset of requirements.
+Other — Instruction and tests suggest the task is already satisfied without the intended change; agent timeout in task.toml looks too low for fair evaluation given agent runs (e.g. recommend higher limits).
+Remember: Your goal is a thorough logic and content review. Check for coherent instructions, aligned tests and solution artifacts, sensible metadata, and use of runs/ when relevant. Running the oracle, NOP, or Docker builds is optional. However, if you miss key findings or your submission lacks detail, it may be rejected and you will not be compensated.
+
+Additional Submitter Quality Requirement
+To ensure high quality submissions, submitters must provide detailed notes in the General Observations section that clearly outline the exact review steps they took to determine whether a task is valid or invalid.
+
+Reviewer Clarity Standard for General Observations
+Reviewers must be able to clearly understand and replicate the Expert Contributor's workflow as described in General Observations. If the analysis does not make it clear how the submitter reached their validity conclusion, the reviewer should reject the submission and explain why the description is insufficient.
+
+EC Submission Review Process
+Each submission is reviewed by another Expert Contributor (EC). The reviewer’s job is to independently verify the submitter’s assessment and feedback, and to assess the quality of the submission (whether the analysis is complete, accurate, and supported by evidence when you repeat the same document and logic review—not by re-running Harbor or Docker).
+
+A review has two outcomes: Accept or Reject. Use Reject when the submission misses any key findings, is vague or incomplete, or does not match what is observed
+
+The reviewer will record their own judgment by selecting Valid or Invalid based on their assessment of the task—not only if they agree with the submitter’s label. .
+
+Follow the steps below depending on whether the submission was marked Valid or Invalid.
+
+Reviewers are also evaluated on the feedback provided to the submitter as well as the complete submission. If the feedback does not meet Snorkel standards, the reviewer may be offboarded from the project.
+
+When the submission is
+Valid
+The reviewer should repeat the submitter’s content review and confirm the task reads as sound on inspection.
+
+Repeat the submitter’s workflow — Download the task package and follow the same steps as in Detailed review steps: instruction, PR cross-check, environment skim, solution and test read-through, and runs/ as context. Do not run Harbor, the oracle, or NOP locally.
+Sanity-check coherence — Confirm instruction, solution artifacts, and tests appear aligned with each other and with the source PR; flag any logic gaps the submitter missed.
+Verify task category and metadata — Confirm that the task category in task.toml fits the PR, and that metadata (difficulty, tags, timeouts) is complete and accurate.
+Select Valid or Invalid — Record your independent assessment of the task.
+Accept or Reject — Accept only if your review agrees the task is sound and the submitter’s write-up is adequate. Reject if the submission missed key findings, mischaracterizes the task, or lacks enough detail to verify the assessment.
+✓ Content checklist (for Valid submissions)
+Are the expected Harbor components present (task.toml, instruction.md, environment, tests, solution)?
+Does the runs/ folder exist at the top level (alongside task/) with plausible run artifacts (logs, episodes, outcomes)?
+Does the Dockerfile read as sufficient for the stated stack?
+Does solution/solve.sh and init_state.patch appear consistent with the instruction and PR?
+Do tests appear to match the instruction’s requirements?
+Are patches (tests.patch, init_state.patch) well-formed on inspection?
+Are files present, readable, and sensibly structured?
+When the submission is
+Invalid
+The reviewer should try to confirm the submitter’s results and confirm that the submitter’s notes are correct and adequately describe the situation.
+
+Confirm the reported issues — Follow the same document review as for a valid submission. For each issue the submitter listed, confirm it holds when you read the same files (e.g. instruction vs tests, patch vs PR, missing coverage, inconsistent solution).
+Compare against the submitter’s findings — Check that the submission’s issue list (e.g. Issue 1, Issue 2, …) matches what you see on inspection. Verify that categories (instruction, environment, solution, tests, etc.) and descriptions are accurate.
+Verify task category and metadata (if relevant) — If the submitter’s findings mention task category or metadata, confirm that the category in task.toml and other metadata (difficulty, tags, timeouts) are as described and that any related issues are accurate.
+Review agent logs — Where relevant, review the provided agent logs to see how agents interpreted the task and whether the submitter’s feedback (e.g. “agent times out” or “instruction ambiguous”) is supported by the evidence.
+Select Valid or Invalid — Choose Valid or Invalid based on your own assessment of the task (you may disagree with the submitter).
+Accept or Reject — Accept only if the issues are real, the notes match what you see on inspection, and the write-up is specific enough. Reject if any key findings were missed, the description is vague or wrong, or numbered issues lack sufficient detail.
+Adjudication
+Some tasks may be sent to an adjudicator. The adjudicator has the final say on whether the task is Valid or Invalid, and on whether a submission should be Accepted or Rejected.
+
+Adjudicators also assess the quality of the reviewer's feedback, and reviewers may be offboarded from the project if their feedback does not meet Snorkel standards.
+

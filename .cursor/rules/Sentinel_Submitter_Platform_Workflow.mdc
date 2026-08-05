@@ -1,0 +1,674 @@
+---
+description: Apply when the user provides a Sentinel task ZIP and platform metadata and asks for submitter analysis, correction, validation, packaging, or platform answers
+alwaysApply: false
+---
+
+# Sentinel Submitter Platform Workflow
+
+**Last updated:** July 23, 2026 (branch-aware submitter); August 4, 2026 (Agent Judge–first / ≥3.5 overreach bar)
+
+Complete **branch-aware** submitter workflow for Sentinel Ultra.
+
+**Purpose:**
+
+```text
+ZIP + platform information
+→ preserve original
+→ complete audit
+→ determine Public Main Analysis + Internal Validity
+→ set Duplicate Analysis to match Public Main Analysis
+→ select conditional branch from Duplicate Analysis
+→ Fixable: correct working_copy only, validate, package corrected ZIP
+→ Invalid/Not Fixable: diagnose, prepare evidence package
+→ Valid-as-is: confirm, do not modify, no new ZIP
+→ answer all platform fields in chat
+→ write branch-specific outputs under task_outputs/
+```
+
+This workflow is **not** permanently read-only.
+This workflow does **not** modify every task automatically.
+Task modification is allowed **only** when Duplicate Analysis is `Fixable`, and **only** inside `work/<task>/working_copy/`.
+
+### Platform revision gate (Aug 4 2026)
+
+On re-upload, **Agent Judge runs before Difficulty**. If the platform says `Blocked at the agentic judge…`, Difficulty did not run — revise Judge only.
+
+- Target: every Agent Judge axis **≥ 3.5** (do not ship “3 with reservations” on blocking axes).
+- `discuss (overreach)` → map graded asserts to instruction; remove/ungrade **or** state the public contract (`P-011`). Keep instruction ↔ tests ↔ oracle synced.
+- Patterns: `P-010`, `P-011`. Pre-upload walk: `docs/SUBMITTER_BLOCKERS.md` items 16b/c, 30b–e.
+
+---
+If this file conflicts with `Review_Guidelines.mdc`, follow `Review_Guidelines.mdc`. Legacy compatibility rules never override current Sentinel Ultra policy.
+
+Authoritative policy: `.cursor/rules/Review_Guidelines.mdc` (only `alwaysApply: true`)
+Quick reference: `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`
+Orchestration: `CLAUDE.md`
+File helpers: `automation/sentinel_submitter.py`
+
+Official Ultra docs (`document 1.txt`, `document 2.txt`, `document 3.txt`) and the **live platform form** outrank stored templates.
+
+### Hardened automation gates
+
+```bash
+python automation/sentinel_submitter.py intake --zip <task.zip>
+python automation/sentinel_submitter.py prepare
+python automation/sentinel_submitter.py audit
+python automation/sentinel_submitter.py set-verdicts --public-analysis ... --internal-validity ... --duplicate-analysis ... --reason ...
+# Fixable corrections only in working_copy/
+python automation/sentinel_submitter.py sync-problem-statement   # when needed
+python automation/sentinel_submitter.py record-validation --check docker_build --status passed --evidence <log>
+python automation/sentinel_submitter.py preflight
+python automation/sentinel_submitter.py package-fixable   # or package-invalid
+python automation/sentinel_submitter.py status
+```
+
+- Public/Duplicate mismatch blocks finalization and packaging.
+- Multiple task roots require explicit `select-task` (no silent choice).
+- Fixable packaging requires `ready_to_package` after full preflight; failed preflight creates no ZIP.
+- Valid-as-is never creates a task ZIP; Invalid never creates a corrected-valid ZIP.
+- Structural checks do not prove semantic correctness.
+- In Fixable corrected current packages: ensure Harbor network blocks (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); strip compose `network_mode="none"` if present; normalize `solution.patch` → `golden.patch` in working_copy only.
+- New f2p tests may be added via `tests.patch` in working_copy; never edit existing p2p tests.
+- Recurring traps / prompts / templates: `.cursor/rules/Sentinel_Submitter_Operational_Patterns.mdc`, `Prompts/`, `templates/`.
+- Fixable packaging helpers (no verdicts): `ensure-packaging-hygiene`, `local_oracle_nop.py`.
+- `tests.patch` for corrected packages must pass **`git apply --check`** (patch-only success is insufficient when renames exist).
+
+---
+
+## 1. Mode Activation
+
+Activate Submitter Mode when the user provides a task ZIP and platform information and says any equivalent of:
+
+- I am working as a submitter. Start working.
+- Start the Sentinel submitter workflow.
+- Analyze this task and give me all submitter answers.
+- Process this Sentinel submission.
+- Audit this task and follow the correct platform branch.
+- Submitter mode. Start working.
+- Review and correct this Sentinel submission.
+
+Do **not** activate from an isolated word such as “Fixable” or “Valid.”
+
+When the mode is clear:
+
+1. Load this rule plus `Review_Guidelines.mdc` and `Sentinel_Expert_Contributor_Reference.mdc`.
+2. Run safe intake (`python automation/sentinel_submitter.py intake ...` or equivalent manual steps).
+3. Preserve the original ZIP.
+4. Begin the complete audit of the original task.
+5. Continue through the correct Duplicate-Analysis branch.
+6. Return all final answers in chat and under `task_outputs/`.
+
+Do **not** ask for a long pasted workflow prompt when activation is already clear.
+
+---
+
+## 2. Accepted User Input
+
+### A. One Sentinel task ZIP
+
+### B. Platform information (any or all of)
+
+- Original Directory Name
+- Category
+- Difficulty
+- Task Tags
+- Languages
+- Metadata
+- Source PR URL
+- Base commit
+- Model results
+- Expert and junior time estimates
+
+### C. A start instruction
+
+Treat pasted platform information as **context that must be verified** against `task.toml`, repository content, languages, source PR/commit/issue, base commit, instruction, tests, oracle, run evidence, and current Ultra rules. Report mismatches. Do **not** blindly copy platform information.
+
+---
+
+## 3. Safe Intake and Workspace Layout
+
+Never auto-select a task from `workspace_archive/`, `legacy_backup/`, previous `task_outputs/`, `completed_tasks/`, or old corrected ZIPs.
+
+Preferred intake:
+
+```bash
+python automation/sentinel_submitter.py intake --zip <path>
+```
+
+Each active session:
+
+```text
+work/<task-name>/
+├── original/<original-task-zip>     # immutable preserved ZIP
+├── extracted_original/              # untouched extract — never mutate
+├── working_copy/                    # Fixable edits only
+├── session/
+│   ├── platform_input.txt
+│   ├── session.json
+│   └── validation_logs/
+└── analysis/
+
+task_outputs/<task-name>/
+├── platform_answers.txt
+├── submitter_audit.md
+├── findings_and_changes.md
+├── validation_summary.md
+├── updated_zip_file/                # Fixable mirror only
+└── invalid_evidence/                # Invalid/Not Fixable only
+
+work/task ready_to_submit/
+└── <task-name>__corrected.zip       # Fixable canonical upload ZIP (every package/revision)
+```
+
+Preserve the original ZIP in **all** branches. Never overwrite it.
+
+**Fixable packaging:** always put/refresh the uploadable corrected ZIP at `work/task ready_to_submit/<task-name>__corrected.zip`. Cite that path in platform answers. The `task_outputs/.../updated_zip_file/` copy is a records mirror only.
+
+---
+
+## 4. Complete Initial Audit (Before Any Modification)
+
+Always audit the **original** task (`extracted_original/`) before modifying `working_copy/`.
+
+Inspect when present:
+
+- `instruction.md`, `task.toml`
+- `environment/Dockerfile`, `environment/problem_statement.md`, `environment/repo/`
+- `solution/solve.sh`, `golden.patch`, `solution.patch`, `init_state.patch`
+- `tests/test.sh`, `tests.patch`, `config.json`, `grade.py`, `tests/files/`
+- `runs/`, result files, failing and passing logs
+- Git metadata, packaging contents, source PR/commit/issue
+
+Build:
+
+1. Instruction-to-test coverage map
+2. Test-to-instruction faithfulness map
+3. Fail-to-pass test count
+4. Original-failure regression test identification
+5. Pass-to-pass regression protection assessment
+6. Oracle-to-instruction map
+7. Source PR scope comparison
+8. Environment findings
+9. Git findings
+10. Packaging findings
+11. Metadata mismatch list
+12. Validation plan
+
+Label evidence as: **Inspected** / **Inferred** / **Executed** / **Confirmed by supplied logs** / **Not verified**.
+Never claim execution without evidence.
+
+---
+
+## 5. Core Sentinel Safety Rules
+
+- Never directly edit tracked source files inside `environment/repo/`.
+- Never modify pre-existing pass-to-pass or regression tests.
+- Add task tests only through permitted task testing artifacts (`tests.patch`, `test.sh`, `config.json`, `grade.py`, etc.).
+- Preserve the source PR’s intended scope. Scope may be naturally expanded when necessary; never reduce, replace, or change into a different task.
+- Do not expose hidden test answers.
+- Do not add live runtime network dependencies.
+- Do not fabricate test results, issue evidence, or handling times.
+- Do not silently skip tests or use fail-open logic.
+- Do not rely only on file existence when behavior must be tested.
+- Do not allow agent-controlled artifacts to determine coverage.
+- Invoke the real CLI or entry point when required.
+- Keep verifier dependencies offline.
+- Preserve the original ZIP in all branches.
+- Never run mutation-producing commands against `extracted_original/`.
+
+---
+
+## 6. Fail-to-Pass Count Rule
+
+- Fewer than 10 meaningful fail-to-pass tests → Fixable issue.
+- Exactly 10 meets the documented minimum.
+- Live Valid-as-is confirmation says **more than 10** → means **at least 11**.
+- Do **not** select Valid-as-is confirmation when there are only 10.
+- When otherwise valid but exactly 10 and the live form requires more than 10 → use **Fixable** branch and add at least one meaningful non-duplicate test in `working_copy/`.
+- Never add filler tests merely to increase the count.
+- Identify a test that directly reproduces the original failure.
+
+---
+
+## 7. Three Separate Verdict Fields
+
+### Public Main Analysis
+
+`Fixable` | `Invalid/Not Fixable` | `Valid as-is`
+
+### Internal Validity
+
+`Invalid` | `Fixable` | `Valid-as-is`
+
+### Duplicate Analysis
+
+`Fixable` | `Invalid/Not Fixable` | `Valid-as-is`
+
+**Duplicate Analysis must match Public Main Analysis semantically.**
+
+Internal Validity is a **separate** internal field. Support all **nine** combinations of Internal Validity × Duplicate Analysis. Do not force Internal Validity to match Duplicate merely because Duplicate controls the branch. Do not invent inconsistent combinations without task evidence or platform context. Record the reason for Internal Validity.
+
+Record verdicts in `session/session.json` (automation `set-verdicts` may store them; it does not decide them).
+
+---
+
+## 8. Branch Selection Rule
+
+The downstream form branch depends **only** on Duplicate Analysis:
+
+| Duplicate Analysis | Branch |
+| ------------------ | ------ |
+| Fixable | Fixable branch |
+| Invalid/Not Fixable | Invalid/Not Fixable branch |
+| Valid-as-is | Valid-as-is confirmation branch |
+
+Internal Validity does **not** change which downstream branch appears.
+
+---
+
+## 9. Fixable Branch
+
+Applies when `Duplicate Analysis = Fixable`, including:
+
+- Internal Invalid + Duplicate Fixable
+- Internal Fixable + Duplicate Fixable
+- Internal Valid-as-is + Duplicate Fixable
+
+### Platform: Select where the task had issues
+
+- Instructions
+- Tests
+- Oracle Solution
+- Environment/Dockerfile
+
+Select only supported components.
+
+### Platform: What issues did you find?
+
+- Every requirement in the instructions is not properly tested
+- All test requirements are not properly specified in the instructions
+- The instructions appear LLM generated
+- The instructions are overly-prescriptive
+- The task leaks solution information
+- The oracle does not implement the solution following the instructions.
+- Less than 10 fail-to-pass tests in test suite
+
+Select only factually supported issues.
+
+### Detailed issue format
+
+```text
+1) [Exact issue category]
+- Issue description and exact evidence (short human paragraph — not LLM checklist tone)
+- Relevant file, test, assertion, or code example
+- Is this issue fixable? Yes
+- How the issue should be corrected (plain sentences)
+```
+
+### Files Changed (required on Fixable; every completed Fixable pass)
+
+List **every** file you changed under `working_copy/`. For each file include:
+
+- File path
+- What changed
+- Why you changed it
+
+Do **not** rehash the full validation section here if validation is already covered under Validation Evidence / local oracle-NOP notes.
+
+**Voice (mandatory):** write this like a human EC paste — short, plain, specific. Not LLM report prose.
+
+- One short note per file (path + what + why). Sound like a teammate’s change log, not a rubric dump.
+- Prefer concrete verbs: rewrote, trimmed, added, renamed, chmod, synced, stripped.
+- Name the real reason (over-prescriptive paths, f2p under 10, git-apply break, missing `grade.py`, etc.).
+- Skip stock AI phrasing: “in order to ensure”, “comprehensive alignment”, “holistic”, “robust”, “leveraging”, “facilitates”, stacked emdashes, perfect parallel bullet sermons.
+- Do not invent symmetry (“Updated X / Updated Y / Updated Z to align with best practices”).
+- Valid-as-is or no edits: `None` (or a one-liner that the original package was left untouched).
+- Invalid/Not Fixable: `None` for corrected-task Files Changed; put diagnostics in the unfixable explanation / evidence package instead.
+
+Example tone (adapt to the task; do not copy blindly):
+
+```text
+Files Changed:
+- instruction.md — Cut the “edit these files” list and fixture walkthrough; kept the public error/API contracts the tests actually check. Same text synced to environment/problem_statement.md.
+- tests/tests.patch — Regenerated so git apply works; added the extra f2p cases for the gaps called out above.
+- tests/config.json — Pointed fail_to_pass at those new ids (was stuck at 3).
+- tests/grade.py — Pulled the embedded grader out of test.sh so packaging has a real sibling file.
+- task.toml — Ensured Harbor network_mode / allowed_hosts per environment/agent/verifier blocks.
+```
+
+### Correction workflow
+
+1. Finish original-task audit.
+2. Record all proposed corrections.
+3. Modify **only** `working_copy/`.
+4. Apply only permitted changes.
+5. Keep instruction, tests, and oracle synchronized.
+6. Rebuild coverage and faithfulness maps.
+7. Validate the corrected task.
+8. Create clean corrected ZIP only when ready.
+9. Return its path in chat.
+
+### Permitted correction areas
+
+- `instruction.md`
+- `environment/problem_statement.md`
+- `tests/tests.patch`, `test.sh`, `config.json`, `grade.py`
+- `solution/solve.sh`, `solution/golden.patch`
+- Limited Dockerfile fixes
+- Current task metadata
+- Recoverable Git metadata issues
+- Packaging cleanup
+
+Never modify repository source directly. Never modify existing p2p tests.
+
+### Required ZIP
+
+Canonical upload path (every Fixable package / revision):
+
+```text
+work/task ready_to_submit/<task-name>__corrected.zip
+```
+
+Records mirror (also written by `package-fixable`):
+
+```text
+task_outputs/<task-name>/updated_zip_file/<task-name>__corrected.zip
+```
+
+Flat task contents only. Exclude: `runs/`, outer `task/`, reports, session files, backups, validation logs, IDE files, caches, temps.
+
+If validation is incomplete or failing: `Corrected ZIP: Not ready` — do not provide a misleading submission ZIP.
+
+Use:
+
+```bash
+python automation/sentinel_submitter.py package-fixable
+```
+
+`package-fixable` delete-first refreshes `work/task ready_to_submit/` so Finder Date Added stays honest. Platform answers must cite the ready_to_submit absolute path.
+
+---
+
+## 10. Invalid / Not Fixable Branch
+
+Applies when `Duplicate Analysis = Invalid/Not Fixable`, including all three Internal Validity pairings.
+
+### Issue field
+
+- PR scope needs to be changed or reduced
+- Environment Issues
+
+### Environment sub-issues (when Environment Issues)
+
+- Image/Dependency Build Failures
+- Oracle timeout
+- External-network dependency at build/solve time
+
+### Unfixable standard
+
+Use only when a valid task would require reducing/replacing PR scope, prohibited changes, unusable environment, required offline-impossible dependency, oracle cannot complete reasonably, or the task is fundamentally unsalvageable. Do **not** use merely because the task is difficult.
+
+### Evidence package (always prepare when technically possible)
+
+Even if UI heading says optional, prepare:
+
+```text
+task_outputs/<task-name>/invalid_evidence/<task-name>__unfixable_evidence.zip
+```
+
+Include latest safe fix attempt when one exists, diagnostics, eval/test/build/oracle logs, timeout/network evidence, reproduction instructions, evidence summary. Do not fabricate a fix attempt. When no legal correction can be attempted, include original evidence, diagnostics, exact prohibited change required, and statement that no valid correction was applied.
+
+This is a **manual-review package**, not a corrected valid submission ZIP.
+
+```bash
+python automation/sentinel_submitter.py package-invalid
+```
+
+### Required explanation
+
+Answer `Please explain in more detail why this task is unfixable` with: blocking defect, what was inspected/attempted, what failed, logs/code evidence, why allowed corrections are insufficient, why prohibited scope or unresolved environment limitation applies, and evidence-package path.
+
+---
+
+## 11. Valid-as-is Branch
+
+Applies when `Duplicate Analysis = Valid-as-is`.
+
+### Confirmation fields (every selection needs evidence)
+
+1. Every requirement in the instructions is properly tested.
+2. All test requirements are properly specified in the instructions.
+3. The instructions do not sound like an LLM generated them.
+4. The instructions are not overly-prescriptive.
+5. The task does not leak solution information.
+6. The oracle implements the solution following the instructions.
+7. Contains more than 10 fail-to-pass tests in test suite.
+
+If any required confirmation is false, reconsider Valid-as-is.
+
+- Do **not** modify the task.
+- Do **not** create a corrected ZIP.
+- Do **not** create an invalid evidence ZIP.
+- Preserve the original ZIP unchanged.
+
+---
+
+## 12. Validation Policy
+
+**Valid as-is:** local validation when available — offline Docker build, oracle 1.0, NOP 0.0, f2p, p2p. State clearly when a check was not run.
+
+**Fixable:** validate corrected `working_copy/` — Docker, oracle, NOP, f2p, p2p, packaging. Do not create a ready ZIP when required validation fails.
+
+**Invalid/Not Fixable:** run diagnostics needed to prove the blocker; preserve logs; do not claim success; package evidence.
+
+Use disposable copies or `working_copy/` for mutation-producing commands. Never mutate `extracted_original/`.
+
+Never fabricate validation results.
+
+---
+
+## 13. Common Fields (Every Case)
+
+### Snorkel / platform answer voice (mandatory — every task)
+
+All paste-ready Snorkel submitter fields must read like a human Expert Contributor typed them — not like an LLM report.
+
+**Write narrative fields as normal paragraphs** (how a person writes on a form):
+
+- What makes this task difficult?
+- Comments for Reviewer
+- Internal Validity reason
+- Detailed issue descriptions (prose under each numbered issue)
+- Unfixable explanation
+- Valid-as-is confirmation evidence notes
+- PR-scope note when not `NA`
+- Short validation blurb when prose is needed
+
+**Do:**
+
+- Use plain first-person / neutral EC voice (“I rewrote…”, “Marked Fixable because…”, “Local oracle came back 1.0…”).
+- Keep sentences short and concrete; name real files, tests, PRs, counts.
+- Slight unevenness is fine — humans do not polish every sentence the same way.
+- Prefer one or two tight paragraphs over nested bullet trees for narrative answers.
+
+**Do not:**
+
+- Sound AI-generated: “In order to ensure”, “comprehensive alignment”, “holistic”, “robust solution”, “leveraging”, “facilitates”, “it is important to note”, stacked emdash sermons, identical parallel cadence across every bullet.
+- Dump rubric checklists or stage names into the form (“Per S5 coverage map…”, “Following Ultra guidelines…”).
+- Rehash the full validation log inside Difficulty / Comments / Files Changed when Validation Evidence already covers it.
+- Over-format with emoji, markdown bold spam, or template filler the platform does not need.
+
+**Files Changed** stays a per-file list (path + what + why), but each line must still sound human — see Fixable → Files Changed above. Checkbox labels and exact enum options stay verbatim platform text.
+
+### A. What makes this task difficult?
+
+One natural, technically specific **paragraph** from actual task evidence. No generic filler. Do not describe difficulty only through model failure. Human EC voice.
+
+### B. Senior engineer estimate
+
+Exactly one of: `<10 minutes` | `10-20 minutes` | `20-40 minutes` | `40+ minutes`
+
+Estimate for a senior engineer familiar with the codebase. Do not blindly copy `expert_time_estimate_min`.
+
+### C. Comments for Reviewer
+
+One concise branch-aware **paragraph** (what you marked, what you fixed or why you left it, light validation note). Human EC voice — not a generated summary report.
+
+### D. Initial review time
+
+Intake → initial assessment complete. Actual timestamps only.
+
+### E. Entire submission time
+
+Complete elapsed work through final answers and branch outputs. Do not invent time. If idle/interruptions make it unreliable: `User confirmation required`.
+
+---
+
+## 14. Session Time Tracking
+
+At intake, `work/<task>/session/session.json` records start, audit complete, fix start/complete, validation start/complete, packaging, final response, pauses, user adjustments. Calculate minutes accurately. Never replace with metadata estimates.
+
+---
+
+## 15. Chat Output Requirement
+
+All platform answers must appear **directly in Cursor chat**. Also save the same answers to:
+
+`task_outputs/<task-name>/platform_answers.txt`
+
+Narrative Snorkel fields in that block must follow **§13 Snorkel / platform answer voice** (human paragraphs, not LLM-generated look).
+
+Exact structure:
+
+```text
+SENTINEL SUBMITTER PLATFORM ANSWERS
+
+Task:
+[Task name]
+
+Original Directory Name:
+[Verified value]
+
+Original ZIP:
+[Path]
+
+Original ZIP Preserved:
+Yes
+
+Platform Metadata Verification:
+[Matched or mismatches]
+
+A. PUBLIC MAIN ANALYSIS
+[Fixable / Invalid-Not Fixable / Valid as-is]
+
+B. INTERNAL VALIDITY
+[Invalid / Fixable / Valid-as-is]
+
+C. DUPLICATE ANALYSIS
+[Fixable / Invalid-Not Fixable / Valid-as-is]
+
+D. CONDITIONAL BRANCH
+[Fixable / Invalid-Not Fixable / Valid-as-is]
+
+E. BRANCH-SPECIFIC ANSWERS
+[Exact checkboxes, detailed text, and upload path]
+
+F. WHAT MAKES THIS TASK DIFFICULT?
+[Paste-ready paragraph]
+
+G. SENIOR ENGINEER ESTIMATE
+[Exact option]
+
+H. COMMENTS FOR REVIEWER
+[Paste-ready paragraph]
+
+I. INITIAL REVIEW TIME
+[Actual minutes or User confirmation required]
+
+J. ENTIRE SUBMISSION TIME
+[Actual minutes or User confirmation required]
+
+K. VALIDATION EVIDENCE
+[Executed, supplied logs, and unavailable checks]
+
+L. OUTPUT FILE
+[Corrected ZIP / invalid evidence ZIP / none]
+
+M. FINAL READINESS
+[Ready / Not ready]
+
+N. REMAINING BLOCKERS
+[List or None]
+```
+
+Also create for every task:
+
+- `submitter_audit.md`
+- `findings_and_changes.md`
+- `validation_summary.md`
+
+---
+
+## 16. Branch Chat Formats
+
+### Fixable
+
+1. Public Main Analysis
+2. Internal Validity
+3. Duplicate Analysis
+4. Select where the task had issues
+5. Exact issue checkboxes
+6. Detailed issue answer
+7. Files changed
+8. PR scope changes or `NA`
+9. Validation performed
+10. Corrected ZIP path
+11. Difficulty
+12. Senior engineer estimate
+13. Comments for Reviewer
+14. Initial review time
+15. Entire submission time
+16. Ready or Not ready
+
+### Invalid/Not Fixable
+
+1–3. Three verdict fields
+4. Invalid issue category
+5. Environment sub-issue when applicable
+6. Detailed unfixable explanation
+7. Diagnostics performed
+8. Evidence-package contents
+9. Evidence ZIP path
+10–14. Difficulty, estimate, comments, times
+15. Ready or Not ready
+
+### Valid-as-is
+
+1–3. Three verdict fields
+4. Confirmation checkbox answers
+5. Evidence for each confirmation
+6. Validation performed
+7. Statement that the task was not modified
+8. Statement that no corrected ZIP was created
+9–13. Difficulty, estimate, comments, times
+14. Ready or Not ready
+
+---
+
+## 17. Detect Format and Locate Task Root
+
+Classify Current / Legacy / Hybrid / Unknown. Current default. Legacy artifacts are compatibility inputs. Missing optional legacy artifacts are not automatic defects. Prefer user-named roots; never pick by mtime alone; never auto-pick archived/old outputs.
+
+---
+
+## 18. Responsibility Split
+
+| File | Responsibility |
+|------|----------------|
+| `Review_Guidelines.mdc` | Authoritative policy |
+| **This file** | Branch-aware submitter end-to-end workflow |
+| `Sentinel_Expert_Contributor_Reference.mdc` | Quick field mapping |
+| `CLAUDE.md` | Mode routing |
+| `AGENTS.md` | Concise entry point |
+| `automation/sentinel_submitter.py` | File management only |
+| `Sentinel_Reviewer_Step_by_Step.mdc` | Independent reviewer procedure (unchanged) |

@@ -1,0 +1,230 @@
+---
+alwaysApply: true
+description: Project Sentinel — Harbor task structure, EC submitter workflow, reviewer process, and issue categories (reference).
+---
+
+# PROJECT SENTINEL — Expert Contributor Reference
+
+Structured reference for **submitters** and **reviewers**. Complements `Review_Guidelines.mdc` (including submitter General Observations requirements) and `Sentinel_Reviewer_Step_by_Step.mdc`.
+
+**Last updated:** March 25, 2026 (content aligned with platform expectations).
+
+---
+
+## 1. Overview
+
+Project Sentinel is an initiative to build a high-quality dataset of **Harbor** tasks derived from pull requests in open-source repositories. Tasks evaluate coding agents and models on realistic software engineering work.
+
+Tasks follow the Harbor format and targets such as difficulty, task type, and language distribution. Expert Contributor (EC) feedback helps measure agent and model performance.
+
+If unfamiliar with Harbor, review Harbor documentation for terminology and layout. **Running the harness locally is not required** to contribute as an EC.
+
+---
+
+## 2. Role as an Expert Contributor (EC)
+
+ECs review Harbor tasks generated from open-source PRs and provide feedback via the Experts platform. Each task asks an agent to reproduce or implement PR changes — navigating the codebase, understanding requirements, and producing a solution.
+
+Assess whether tasks are **valid or invalid** and meet quality standards by reviewing **logic and content**:
+
+- Clarity of the problem statement
+- Consistency with source material
+- Whether tests and solution artifacts plausibly match the instruction
+
+---
+
+## 3. Task structure and components
+
+Each task uses the Harbor layout. The task directory contains a `task/` folder:
+
+```text
+<task-id>/
+└── task/
+    ├── task.toml
+    ├── instruction.md
+    ├── environment/
+    │   ├── Dockerfile
+    │   └── repo/
+    ├── solution/
+    │   ├── solve.sh
+    │   └── init_state.patch
+    └── tests/
+        ├── test.sh
+        ├── tests.patch
+        └── files/
+```
+
+**Note:** `solution/init_state.patch` is **not** required for validity.
+
+### 3.1 Component descriptions
+
+| Artifact | Purpose |
+|----------|---------|
+| `task.toml` | Metadata (difficulty, category, tags, source) plus `[verifier]`, `[agent]`, `[environment]` timeouts |
+| `instruction.md` | Problem statement and measurable success criteria for the agent |
+| `environment/Dockerfile` | Image build; `environment/repo/` is the codebase under test |
+| `init_state.patch` (optional) | Git-style patch defining broken/task state; oracle often reverses it |
+| `solution/solve.sh` | Oracle producing solved state (often `patch -R` on `init_state.patch`) |
+| `tests/test.sh` | Verifier: deps, tests, reward to `/logs/verifier/reward.txt` |
+| `tests/tests.patch` | Optional test additions/changes |
+| `tests/files/` | Optional files copied into repo before tests |
+| `runs/` | Top-level, alongside `task/`: agent logs, episodes, outcomes |
+
+---
+
+## 4. Task metadata (`task.toml`)
+
+Sections: `version`, `[metadata]`, `[verifier]`, `[agent]`, `[environment]`.
+
+### 4.1 `[metadata]` fields
+
+- `author_name` / `author_email` — task creator
+- `language` — e.g. Python, Go, JavaScript
+- `difficulty` — easy, medium, hard
+- `expert_time_estimate_min` / `junior_time_estimate_min`
+- `category` — see §4.2
+- `tags` — 3–6 relevant keywords
+- `source` — PR or repo URL
+
+### 4.2 Task categories
+
+| Category | Meaning |
+|----------|---------|
+| Fix | Bugs or faults |
+| Feature | New internal or user-facing behavior |
+| Refactor | Maintainability-focused restructuring |
+| Documentation | Docs, comments, README, API docs |
+| Build | Build configuration |
+| Performance | Speed, memory, etc. |
+| Chore | Housekeeping, deps, versions |
+
+### 4.3 Timeouts
+
+- `[verifier] timeout_sec` — verifier run limit
+- `[agent] timeout_sec` — agent run limit
+- `[environment] build_timeout_sec` — image build limit
+
+---
+
+## 5. EC task review process (submitters)
+
+### 5.1 Getting started
+
+1. Log into Experts platform; open the Submission task (search “Sentinel”).
+2. Download the task zip (task + `runs/`).
+3. Follow §5.3 for each task.
+4. Submit via the platform with one of the outcomes in §5.2.
+
+### 5.2 Submission outcomes
+
+- **Valid — no changes:** Instruction, metadata, solution/tests, and runs coherent; no substantive content issues.
+- **Invalid — minor changes:** Fixable without full redesign (wording, small gap, metadata tweak).
+- **Invalid — major changes:** Serious mismatch (instruction vs PR/solution, tests); substantial rework.
+
+### 5.3 Detailed review steps (every task)
+
+1. **Instruction** — Read `instruction.md`; note requirements, behavior, success criteria; flag vagueness or contradictions.
+2. **Source PR** — Open linked PR; confirm scope and intent match the task.
+3. **Environment** — Read `Dockerfile`; skim `repo/` as needed for plausibility.
+4. **Solution** — Read `solve.sh` and `init_state.patch` if present; check alignment with instruction (text-only reasoning; executing oracle optional).
+5. **Tests** — Read `test.sh`, `tests.patch`, `tests/files/`; check coverage vs instruction.
+6. **Runs** — Use `runs/` for timeouts, misreads, instability; cite when supporting verdict or metadata tweaks.
+7. **Compile findings** — Valid vs invalid, categories, fixes; submit on platform.
+
+**Reminder:** Missing key findings or weak detail can cause submission rejection and non-compensation.
+
+---
+
+## 6. Submission form questions
+
+Typical form items:
+
+- Task valid or invalid?
+- Instructions sufficient? Correct?
+- Every instruction requirement tested? All test requirements in the instruction?
+- Instructions appear LLM-generated?
+- Novel or unique implementation?
+
+**General observations** — Must allow another EC to **replicate the review workflow** (see `Review_Guidelines.mdc`).
+
+### 6.1 If the task is Invalid
+
+For each issue:
+
+- Issue category (§7)
+- Description (specific, verifiable)
+- Fixable / not fixable
+- How to fix
+
+Use **Issue 1, Issue 2, …** with enough detail to verify. Vague lists risk rejection.
+
+---
+
+## 7. Common invalid scenarios
+
+| Category | Examples |
+|----------|----------|
+| Instruction specification | Wrong or vague instructions; success criteria ≠ tests |
+| Metadata issues | Wrong/missing difficulty, category, tags, source |
+| Environment setup | Bad Dockerfile, missing deps, timeouts too low vs `runs/` |
+| Solution implementation | `solve.sh`/patches vs instruction or PR; `init_state.patch` vs `solve.sh` conflict |
+| Unit test setup | Bad paths, no reward file, test deps broken |
+| Unit test scope | Untested required behavior; wrong expected outcomes |
+| Other | Already solved without intended change; unfair agent timeout |
+
+**Note:** **Missing `init_state.patch` alone is not** a reason to mark invalid.
+
+---
+
+## 8. EC submission review process (peer reviewers)
+
+Another EC verifies the submitter by **repeating the same document and logic review** — **not** by re-running Harbor or Docker.
+
+Outcomes: **Accept** or **Reject**.
+
+Record an **independent** Valid/Invalid judgment on the **task**, not only agreement with the submitter.
+
+### 8.1 Valid submission
+
+- Repeat submitter workflow (§5.3); do not run Harbor/oracle/NOP locally.
+- Sanity-check coherence: instruction ↔ solution ↔ tests ↔ PR.
+- Verify category and metadata.
+- Accept only if task sound **and** write-up adequate; reject if gaps, mischaracterization, or insufficient detail.
+
+### 8.2 Content checklist (valid tasks)
+
+- Expected Harbor components present?
+- `runs/` present with plausible artifacts?
+- Dockerfile sufficient for stack?
+- `solve.sh` / `init_state.patch` consistent with instruction and PR?
+- Tests match instruction?
+- Patches well-formed; files readable and structured?
+
+### 8.3 Invalid submission
+
+- Confirm each listed issue against the files.
+- Compare numbering, categories, descriptions to inspection.
+- Check metadata if claimed.
+- Check agent logs if cited.
+- Accept only if issues are real, notes match files, and detail is enough; reject if missed findings, vagueness, or bad numbering.
+
+---
+
+## 9. Adjudication
+
+Some tasks go to an **adjudicator** for final Valid/Invalid and Accept/Reject. Adjudicators judge reviewer feedback quality; reviewers may be offboarded for poor standards.
+
+---
+
+## 10. Harbor harness (background)
+
+Internal evaluation uses: Docker, `solution/solve.sh` as oracle, `tests/test.sh` for verification, reward (e.g. `/logs/verifier/reward.txt`). Harbor evolved from Terminal-Bench.
+
+For ECs, **running Harbor is optional**; oracle/NOP/build validation sit outside the typical EC workflow.
+
+| Stage | Role |
+|-------|------|
+| Terminal execution | Isolated containers |
+| Oracle | `solve.sh` |
+| Tests | `test.sh` → reward |
+| Verification | Pass/fail from test run and reward |

@@ -1,0 +1,194 @@
+---
+description: Project Sentinel Ultra short quick reference — checklists and branch tables only
+alwaysApply: false
+---
+
+# PROJECT SENTINEL — Expert Contributor Reference
+
+**Last updated:** August 4, 2026 (Agent Judge–first eval order; ≥3.5 / overreach P-011)
+
+If this file conflicts with `Review_Guidelines.mdc`, follow `Review_Guidelines.mdc`. Legacy compatibility rules never override current Sentinel Ultra policy.
+
+Short scannable reference only. Full procedure: `Sentinel_Submitter_Platform_Workflow.mdc`. Authoritative policy: `Review_Guidelines.mdc`.
+
+---
+
+## 1. Rule hierarchy
+
+1. Official Ultra docs + live platform fields (`document 1/2/3.txt`)
+2. `Review_Guidelines.mdc` (only `alwaysApply: true`)
+3. Role workflow (`Sentinel_Submitter_Platform_Workflow.mdc` or `Sentinel_Reviewer_Step_by_Step.mdc`)
+4. This quick reference
+5. `CLAUDE.md` routing / `AGENTS.md` entry
+6. Labelled legacy compatibility only
+
+---
+
+## 1b. Platform eval order (Aug 4 2026)
+
+1. **Agent Judge (Quality Check)** first — if it fails, Difficulty does **not** run  
+2. Marker: `Blocked at the agentic judge. Not run: difficulty screen…` → revise Judge only  
+3. Revision bar: every Agent Judge axis **≥ 3.5** (fix “3 with reservations”); `discuss (overreach)` → P-011  
+4. After Judge passes: Difficulty = **4 trials/model**; worse model still **≤50%** pass rate  
+5. Patterns: `P-010` (Judge before Difficulty), `P-011` (overreach / ≥3.5)
+
+---
+
+## 2. Three live submitter fields
+
+| Field | Values |
+|-------|--------|
+| Public Main Analysis | `Fixable` / `Invalid/Not Fixable` / `Valid as-is` |
+| Internal Validity | `Invalid` / `Fixable` / `Valid-as-is` |
+| Duplicate Analysis | `Fixable` / `Invalid/Not Fixable` / `Valid-as-is` |
+
+Public must match Duplicate semantically. Internal is separate; record an evidence-based reason. Do not infer Internal from Duplicate. Block final answers if Public ≠ Duplicate.
+
+---
+
+## 3. Nine-case rule
+
+All nine Internal Validity × Duplicate Analysis combinations remain supported. Duplicate Analysis alone selects the conditional branch.
+
+---
+
+## 4. Duplicate-controlled branch table
+
+| Duplicate Analysis | Action |
+| ------------------ | ------ |
+| Fixable | Audit → correct `working_copy/` only → validate → flat corrected ZIP after preflight |
+| Invalid/Not Fixable | Audit → diagnose → evidence ZIP (not a corrected valid ZIP) |
+| Valid-as-is | Audit → seven confirmations → no task changes → no new ZIP |
+
+---
+
+## 5. Reviewer decision table
+
+| Outcome | When |
+|---------|------|
+| Accept | Accurate complete submission |
+| Needs Revision | Correctable defects remain and revision cycles available |
+| Reject | Maximum revisions exhausted and Needs Revision unavailable |
+
+Reviewer Mode is read-only. No task edits. No corrected ZIP. Optional targeted checks in a disposable copy only.
+
+---
+
+## 6. Canonical Harbor structure
+
+```text
+instruction.md
+task.toml
+environment/Dockerfile
+environment/repo/
+environment/problem_statement.md   # exact copy of instruction.md
+solution/solve.sh
+solution/golden.patch               # current canonical name
+tests/test.sh
+tests/tests.patch
+tests/config.json
+tests/grade.py
+runs/                               # optional evidence; never upload
+```
+
+Legacy needing review/normalization: `solution/solution.patch`, `solution/init_state.patch`, `tests/files/`. Missing `init_state.patch` alone is not a defect.
+
+---
+
+## 7. Instruction checklist
+
+- [ ] Clear problem + measurable success criteria
+- [ ] Solvable from instruction + repo
+- [ ] No hidden tests / verifier internals / solution leak
+- [ ] Not LLM-sounding / not overly prescriptive
+- [ ] Matches PR scope (expand only when naturally anchored)
+- [ ] Byte-identical to `environment/problem_statement.md`
+
+---
+
+## 8. Test checklist
+
+- [ ] Every instruction requirement tested
+- [ ] Every assertion specified or reasonably implied
+- [ ] ≥10 meaningful f2p (exactly 10 meets minimum; “more than 10” needs ≥11)
+- [ ] Original-failure regression present
+- [ ] No p2p mutation; new f2p via `tests.patch`
+- [ ] No filler / silent skip / fail-open / existence-only / agent-controlled coverage
+- [ ] Count ≠ semantic proof — expert review still required
+
+---
+
+## 9. Oracle checklist
+
+- [ ] `solve.sh` + `golden.patch` implement instruction
+- [ ] No unrelated changes / fixture hardcoding / hidden goldens
+- [ ] Offline; timeouts set; randomness controlled
+
+---
+
+## 10. Environment and Git checklist
+
+- [ ] CPUs 2|4; memory 2048–16384; storage 5120–10240; gpus 0
+- [ ] Timeouts: build ≤1800; agent ≤7200; verifier ≤1800
+- [ ] Corrected current Fixable: Harbor network blocks required (`env=public`, `agent=allowlist`+`api.portkey.ai`, `verifier=no-network`); strip compose `network_mode="none"`; keep Dockerfile offline
+- [ ] Concrete non-`latest` base image
+- [ ] HEAD resolves; matches `base_commit_sha`; no remotes; clean tree; no reflog leak; `.git` <100MB
+- [ ] `tests.patch` applies to intended base
+
+---
+
+## 11. Validation-by-role table
+
+| Role | Requirement |
+|------|-------------|
+| Valid-as-is submitter | Local offline Docker + Oracle 1.0 + NOP 0.0 required when technically available; Git + packaging required |
+| Fixable submitter | Local strongly recommended; platform eval required before final submit; failed local check blocks ready claim; not-run must be stated |
+| Reviewer | Local optional; targeted disposable checks OK; read-only |
+
+Never claim pass without execution or reliable supplied logs.
+
+---
+
+## 12. Packaging checklist
+
+- [ ] Original ZIP preserved
+- [ ] Flat contents (no outer `task/`, no `runs/`)
+- [ ] No reports/session/backups/caches/editor junk
+- [ ] Fixable only after `ready_to_package` + preflight
+- [ ] Fixable upload ZIP at `work/task ready_to_submit/<task>__corrected.zip` (cite this path)
+- [ ] Valid-as-is: no new ZIP
+- [ ] Invalid: evidence ZIP only, labelled manual-review
+
+---
+
+## 13. Common platform fields
+
+Always: difficulty paragraph · senior estimate (`<10` / `10-20` / `20-40` / `40+`) · reviewer comments · initial review time · entire submission time. Never invent times; else `User confirmation required`.
+
+**Snorkel voice:** narrative answers = human paragraphs (not LLM/audit tone). Difficulty, Comments, Internal reason, issue write-ups included.
+
+**Files Changed (Fixable):** every edited path with what + why; human EC voice; skip validation rehash. Valid-as-is / no edits: `None`.
+
+---
+
+## 14. Legacy compatibility summary
+
+Use current Ultra as default. Read legacy artifacts for context. Do not treat missing optional legacy files as defects. Never mix old Valid/Invalid or Accept/Reject-only systems with Ultra forms unless explicitly requested.
+
+---
+
+## 15. Recurring Fixable traps (see Operational Patterns for detail)
+
+- `tests.patch`: require `git apply --check` (patch-only ≠ rename-safe)
+- `allow_extra_failures`: ungraded patch tests can fail while reward=1.0
+- Exactly 10 f2p ≠ live “more than 10” (≥11)
+- Corrected current: ensure Harbor network blocks (+ compose cleanup); ensure `grade.py` + `golden.patch`
+- Always `--task-name` + absolute paths when multiple sessions
+
+## 16. Master rules
+
+Policy: `.cursor/rules/Review_Guidelines.mdc`  
+Submitter procedure: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`  
+Operational patterns: `.cursor/rules/Sentinel_Submitter_Operational_Patterns.mdc`  
+Reviewer procedure: `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc`  
+Routing: `CLAUDE.md` · Entry: `AGENTS.md` · Automation: `automation/sentinel_submitter.py` · Local validate: `automation/local_oracle_nop.py`

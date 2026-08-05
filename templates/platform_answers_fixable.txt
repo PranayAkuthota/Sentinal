@@ -1,0 +1,73 @@
+SENTINEL SUBMITTER PLATFORM ANSWERS
+
+Task:
+[task_name]
+
+Original Directory Name:
+[verified]
+
+Original ZIP:
+[absolute path]
+
+Original ZIP Preserved:
+Yes
+
+Platform Metadata Verification:
+[Matched / list mismatches]
+
+A. PUBLIC MAIN ANALYSIS
+[Fixable / Invalid/Not Fixable / Valid as-is]
+
+B. INTERNAL VALIDITY
+[Invalid / Fixable / Valid-as-is]
+
+Internal Validity reason:
+[one human paragraph with evidence; do not copy Duplicate blindly]
+
+C. DUPLICATE ANALYSIS
+[must match Public semantically]
+
+D. CONDITIONAL BRANCH
+[same as Duplicate]
+
+E. BRANCH-SPECIFIC ANSWERS
+[Fixable: where issues + checkboxes + numbered detailed issues + Files Changed + PR scope NA/describe]
+[Invalid: category + explanation + evidence ZIP]
+[Valid-as-is: seven confirmations with evidence; no new ZIP]
+
+Files Changed (Fixable — human EC voice; not LLM report style):
+[For each file: path | what changed | why. Skip rehashing validation if already in K.]
+[Valid-as-is / no edits / Invalid corrected-task list: None]
+
+Corrected ZIP / Evidence ZIP / none:
+[path]
+
+F. WHAT MAKES THIS TASK DIFFICULT?
+[one natural human paragraph from task evidence — not LLM/audit tone]
+
+G. SENIOR ENGINEER ESTIMATE
+[<10 minutes | 10-20 minutes | 20-40 minutes | 40+ minutes]
+
+H. COMMENTS FOR REVIEWER
+[one human paragraph: verdict, what you fixed or left alone, light validation note]
+
+I. INITIAL REVIEW TIME
+[minutes or User confirmation required]
+
+J. ENTIRE SUBMISSION TIME
+[minutes or User confirmation required]
+
+K. VALIDATION EVIDENCE
+[short human note: Executed / logs / not verified — never invent]
+
+VOICE REMINDER (all narrative Snorkel fields):
+Write like an EC filling the form in normal paragraphs. Do not sound AI-generated.
+
+L. OUTPUT FILE
+[path or none]
+
+M. FINAL READINESS
+[Ready / Not ready]
+
+N. REMAINING BLOCKERS
+[None or list]

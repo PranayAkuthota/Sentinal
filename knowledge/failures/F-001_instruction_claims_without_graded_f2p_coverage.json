@@ -1,0 +1,12 @@
+{
+  "id": "F-001",
+  "title": "Instruction claims without graded f2p coverage",
+  "category": "instruction",
+  "symptom": "Instruction asserts behaviors with no fail_to_pass coverage",
+  "root_cause_class": "coverage_gap_prose",
+  "recovery": "Rewrite instruction to tested contracts, or add meaningful f2p within PR scope",
+  "reusable": true,
+  "automation_opportunity": "Heuristic: flag instruction phrases with zero graded test name overlap",
+  "seen_count": 2,
+  "notes": ""
+}

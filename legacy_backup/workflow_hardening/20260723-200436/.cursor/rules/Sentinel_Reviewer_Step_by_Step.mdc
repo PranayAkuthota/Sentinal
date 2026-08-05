@@ -1,0 +1,592 @@
+---
+description: Apply when acting as a Sentinel reviewer or deciding Accept, Needs Revision, Reject, rebuttal acknowledgement or Submission Quality Score
+alwaysApply: false
+---
+
+# Reviewer Step-by-Step Guide
+
+**Last updated:** July 22, 2026 (Sentinel Ultra)
+
+Authoritative **procedure** for Expert Contributors acting as **reviewers**.
+
+| Document | Role |
+|----------|------|
+| `.cursor/rules/Review_Guidelines.mdc` | Policy |
+| `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` | Submitter platform workflow (not used in Reviewer Mode) |
+| `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` | Quick checklists |
+| **This file** | Reviewer procedure |
+| `CLAUDE.md` | Orchestration / output files |
+
+Follow stages in order. Local Harbor/Docker/oracle/NOP execution is **optional** (run when useful to verify a finding) — not prohibited and not required end to end.
+
+**Internal vs platform output:** Write detailed findings to `sentinel_reviewer_audit.md`. Write only live-form fields to `review_answer.txt`. Never put either file inside `environment/repo/` or the task ZIP.
+
+---
+
+## Current Workflow and Legacy Compatibility
+
+- Current Sentinel Ultra reviewer outcomes are **Accept**, **Needs Revision**, and **Reject**.
+- **Needs Revision** is used whenever correctable errors remain and revision is available.
+- **Reject** is reserved for **maximum-revision** cases.
+- Old **Accept/Reject-only** workflow is **legacy**.
+- Old **Valid/Invalid** task terminology may still be read when evaluating an older submitter response but must be **translated** into current terms (Valid as-is / Fixable / Not Fixable).
+- The reviewer must follow the **actual current platform fields** if they differ from historical templates.
+- Never mix old and current form outputs in one answer unless the user explicitly requests both.
+
+---
+
+## Stage 1: Identify the package and reviewer context
+
+1. Locate the task contents (instruction, environment, solution, tests, `task.toml`).
+2. Locate `runs/` (usually alongside the downloaded package; not part of the upload zip).
+3. Locate the submitter’s **uploaded corrected bundle** (for Fixable paths).
+4. Locate submitter analysis, files changed, comments for reviewer, and rebuttal.
+5. Determine submission path:
+   - **Valid as-is** submission
+   - **Fixable and corrected** submission
+   - **Not Fixable** submission
+6. Determine whether the task uses **current** or **legacy** artifacts (`golden.patch` vs `init_state.patch` / `solution.patch`; `problem_statement.md`; `config.json`; `grade.py`; `tests/files/`).
+7. Do **not** rely on a fixed `*_harborized` directory name — discover the actual package layout.
+
+Note the package layout and submission type before judging content. Do **not** adopt the submitter’s conclusion yet.
+
+---
+
+## Stage 2: Perform an independent review first
+
+**Before relying on submitter conclusions**, independently inspect:
+
+- `instruction.md`
+- `task.toml`
+- `environment/Dockerfile`
+- `environment/problem_statement.md`
+- Relevant repository files under `environment/repo/`
+- `solution/solve.sh`
+- `solution/golden.patch` (current)
+- Legacy `init_state.patch` or `solution.patch` when supplied (compatibility input)
+- `tests/test.sh`
+- `tests/tests.patch`
+- `tests/config.json`
+- `tests/grade.py`
+- `tests/files/` when present
+- All relevant run summaries
+- All failing trial logs when reasonably available
+- At least one passing trial log when available
+- Source PR, commit, or issue
+- License when the current platform asks for it
+
+Check **current artifacts first**. Use legacy artifacts only as **compatibility inputs**. Record independent findings (gaps, alignments, risks) before opening the submitter comparison stage.
+
+---
+
+## Stage 3: Review the instruction
+
+Check:
+
+- Realistic engineering wording
+- Clear behavior
+- Measurable success criteria
+- Self-contained requirements
+- No contradictions
+- No unsupported repository claims
+- No implementation walkthrough
+- No exact hidden-test references
+- No PR or solution leakage
+- Required public schemas documented (schema is not leakage)
+- Scope matches the source PR
+- Added complexity is a natural extension (not a replacement or reduction)
+
+Also confirm `environment/problem_statement.md` is an **exact copy** of the final `instruction.md` when present (required for current packages).
+
+---
+
+## Stage 4: Review tests in both directions
+
+Build an internal coverage/faithfulness table:
+
+| Instruction requirement | Test ID or assertion | Covered? | Faithful? | Notes |
+| ----------------------- | -------------------- | -------- | --------- | ----- |
+
+Check:
+
+- Fail-to-pass count: official minimum **≥10** meaningful; **Fixable if <10**; exactly **10** meets the guideline (not automatically Fixable); when the live form requires **“more than 10,”** require that confirmation to be true; preferred practical range **11–20**; no filler tests
+- Plain wording: At least 10 meaningful fail-to-pass tests. Preferred practical range: 11–20 meaningful fail-to-pass tests.
+- Checkbox wording: **“Less than 10 fail-to-pass tests in the test suite”** only when count ≤9; never claim **“More than 10 fail-to-pass tests in the test suite”** for exactly 10
+- Regression test for the original failure
+- Pass-to-pass coverage intact
+- `tests.patch` contents and clean apply to base
+- Existing / pre-existing p2p tests **not modified** (byte-identical)
+- Observable behavior (not source-text matching)
+- Determinism (no flaky time/order/network dependence)
+- No silent skips
+- No fail-open behavior
+- No existence-only checks
+- No agent-controlled coverage
+- No hidden arbitrary names
+- Real CLI or service invocation when the instruction requires it
+- Correct strictness of assertions
+- Correct reward writing and exit behavior in `test.sh`
+- Correct test IDs, commands, and parser in `config.json`
+- Sensible `grade.py` when present
+- No solution-side dependencies / hidden golden outputs
+
+**Blocking Quality Check axes:** test coverage and test faithfulness. A “3 with reservations” on either is a remaining defect — prefer Needs Revision while cycles remain.
+
+---
+
+## Stage 5: Review oracle
+
+Check:
+
+- `solve.sh` works conceptually with the current patch structure (`golden.patch`)
+- `golden.patch` contains the complete required solution
+- Every instruction requirement is implemented
+- No unrelated / drive-by changes
+- No hardcoded test answers
+- No hidden golden-file reading
+- No network reliance
+- Deterministic behavior (fixed seeds; timeouts on subprocesses)
+- Any expansion remains connected to the original PR
+- Extra functionality alone is **not** a defect if it does not conflict with the instruction or tests
+- Missing legacy `init_state.patch` alone is **not** a defect
+- If only `solution.patch` appears, expect rename to `golden.patch` for current uploads
+
+---
+
+## Stage 6: Review environment and metadata
+
+Check:
+
+- Correct paths vs repo layout
+- Required tools present (language runtime, test framework, tmux/asciinema when Harbor needs them)
+- Offline viability (no build-time network dependence)
+- Concrete image version (not unpinned `:latest` when that is fixable)
+- Resource limits within published ranges
+- Timeouts within limits; raise agent timeout if runs show unfair timeout pressure
+- `gpus` = 0
+- No `network_mode`
+- No `allowed_hosts`
+- Source URL correctness
+- Category and difficulty explanation accuracy
+- Potential leakage in Docker layers or copied files
+- Allowed versus disallowed environment problems (Fixable vs Not Fixable)
+
+Review **all** metadata fields that are present. Do **not** use the old rule that only source and timeout fields matter for validity.
+
+---
+
+## Stage 7: Review Git and package hygiene
+
+Inspect available evidence; run commands when useful (optional):
+
+- HEAD resolves
+- Base commit matches HEAD (HEAD wins if they disagree)
+- No leaked commits after HEAD
+- No remotes
+- No filter drivers
+- Clean working tree
+- No reflog
+- `.git` below 100 MB
+- `tests.patch` applies
+- No tracked source modifications by the submitter
+- No solution leakage into agent-readable paths
+- Correct flat ZIP structure
+- No `runs/` in upload
+- No outer `task/` wrapper
+- No cache, IDE, temporary, backup, or leakage artifacts (`__pycache__/`, `*.pyc`, `.DS_Store`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.venv/`, `node_modules/`, `.idea/`, `.vscode/`, `metadata.json`, `ground_truth.*`, `*.orig`, `*.bak`, `*.swp`, `*~`) — inspect before treating a name as disposable
+- `problem_statement.md` equals `instruction.md`
+- Correct `golden.patch` name
+
+Git problems are usually **Fixable**, not automatically Not Fixable.
+
+Also note: in-app platform checks have a **five-minute** runtime limit; do not treat a runtime-limit stop as a completed successful platform run.
+
+---
+
+## Stage 8: Review agent runs
+
+Retain useful run analysis:
+
+- Read every failing trial where practical
+- Identify repeated failure patterns
+- Distinguish **task defects** from normal agent mistakes
+- Check timeouts
+- Check systematic misinterpretation
+- Check reward results
+- Confirm at least one passing trial when available
+- Do **not** assume a task is valid because models failed
+- Do **not** assume a task is invalid because one model failed
+- Cite `runs/` only when it supports or contradicts a concrete finding
+
+**Historical note:** Older packages may contain several trials per model; newer batches may contain fewer (for example, batches from April 28 2026 onward often include two runs — one per model). A smaller newer set is expected and is not automatically a packaging defect.
+
+---
+
+## Stage 9: Compare against submitter work
+
+Only after Stages 2–8, reconcile with the submitter:
+
+- Confirm each claim against files
+- Confirm issue category
+- Confirm the correction actually fixed the issue (for Fixable uploads)
+- Check whether any issue was missed
+- Check whether a new defect was introduced by the rewrite
+- Verify the file-change list
+- Verify PR expansion explanation (or “NA”)
+- Verify comments for reviewer
+- Verify Not Fixable reasoning when used
+- Verify the uploaded bundle is complete
+- Note whether submitter comments influenced your decision
+
+Independent disagreement with the submitter is allowed when file-level evidence supports it.
+
+---
+
+## Stage 10: Read rebuttal or comments
+
+Before finalizing, open Comments for Reviewer / rebuttal and select the applicable acknowledgement:
+
+- I read the submitter’s rebuttal and it does not change my review outcome.
+- I read the submitter’s rebuttal and revised my review outcome accordingly.
+- No rebuttal comments available.
+
+**Do not omit this step.**
+
+---
+
+## Reviewer Outcomes
+
+### Accept
+
+Use when:
+
+- Submission is accurate
+- Corrected task is complete
+- No meaningful defect remains
+- Instruction, tests, and oracle align
+- Source PR scope is preserved (or valid natural expansion)
+- Bundle is complete
+- Submitter analysis is supported
+
+### Needs Revision
+
+Use when any correctable problem remains, including:
+
+- Instruction styling
+- Instruction prescriptiveness
+- Test and instruction misalignment
+- Test coverage gap
+- Exposed hints or answers
+- Oracle defect
+- PR scope violation that can still be corrected without replacing the source task
+- Test build problem
+- Time-based tests
+- Difficulty problem
+- Metadata problem
+- Runtime internet use
+- Agent timeout
+- Wrong coding language
+- Test dependency location
+- Pinning problem
+- Environment issue
+- PR relevance issue
+- Other correctable issue
+
+Prefer Needs Revision whenever revision cycles remain. **Reject is not a substitute for Needs Revision.**
+
+### Reject
+
+Use only when:
+
+- The maximum number of revision cycles has been reached
+- Needs Revision is no longer available
+- Meaningful defects remain
+
+**Maximum-revision fallback:**
+
+- When the platform blocks Needs Revision and Reject exists, use **Reject**.
+- If Reject is unavailable, follow the platform instruction (often Accept with notes) and document unresolved defects for adjudication.
+
+---
+
+## Current Reviewer Error Categories
+
+Use these labels for Needs Revision tracking (select all that apply):
+
+| Category | When it applies |
+|----------|-----------------|
+| Instruction Styling | Wording is robotic, LLM-templated, unclear, or poorly structured as an engineering ask. |
+| Instruction Prescriptiveness | Instruction walks through implementation, files to edit, or verifier internals instead of required behavior. |
+| Test ↔ Instruction Misalignment | Assertions and instruction contract disagree in either direction. |
+| Test Coverage Issues | Required behaviors lack real enforcing assertions or f2p count/coverage is insufficient. |
+| Exposing Hints/Answers | Solution leakage via PR links, spoilers, hidden-test names, or environment clues. |
+| Oracle Solution Issues | Oracle incomplete, incorrect, gaming, non-deterministic, or poorly aligned with the instruction. |
+| PR Scope Violation | Scope reduced, replaced, or expanded in a way that no longer maps to the source PR. |
+| Test Build Issues | Suite/setup fails to run correctly, patch apply fails, or harness wiring is broken. |
+| Time-Based Tests | Assertions depend on wall-clock time or other flaky timing. |
+| Task Difficulty | Task too easy/hard for the wrong reasons (e.g. vagueness) or difficulty not restored after fixes. See Difficulty Handling After Corrections in policy. |
+| Metadata Issues | Wrong/missing source, category, difficulty explanation, resources, timeouts, or related fields. |
+| Uses Internet | Build, solve, or tests require live network when they must be offline/self-contained. |
+| Agent Timeout | Agent timeout unfair or inconsistent with runs/complexity. |
+| Wrong Coding Language | Declared or expected language does not match the actual task. |
+| Test Dependency Location | Fixtures/deps placed where the agent can tamper or where the verifier cannot reliably use them. |
+| Pinning Issues | Unpinned images/deps or unstable pins that break reproducibility. |
+| Environment | Dockerfile/tooling/repo environment problems within or beyond allowed fixes. |
+| PR Relevancy | Task does not meaningfully correspond to the cited source PR/commit/issue. |
+| Other | Correctable issue that does not fit the labels above — explain in notes. |
+
+---
+
+## Submission Quality Score
+
+Score the **submitter’s work** (accuracy, completeness, reasoning, specificity) — not merely task difficulty.
+
+| Score | Meaning | Normal action |
+| ----- | ------- | ------------- |
+| 1 | Source divergence, spam, extremely low effort, or wrong asset | Needs Revision |
+| 2 | Meaningful gaps, misalignment, or bundle defects | Needs Revision |
+| 3 | Correct and complete with only non-blocking cleanup | Accept |
+| 4 | Thorough and accurate | Accept |
+| 5 | Reference-quality work | Accept |
+
+---
+
+## Conditional Reviewer Platform Templates
+
+Use the **live platform form** as final authority. Put detailed analysis in `sentinel_reviewer_audit.md`; put only form fields in `review_answer.txt`.
+
+### Template D: Accept
+
+```text
+Reviewer Verdict
+Accept
+
+Required confirmations
+- Tests every instruction requirement
+- Test requirements are stated in the instruction
+- Instruction does not appear LLM-generated
+- No solution information is leaked
+- Oracle matches the instruction
+- Instruction is not overly prescriptive
+
+Reviewer Note
+[Concise evidence-based paragraph]
+
+Submitter Rebuttal Acknowledgement
+[One exact platform option]
+
+Submission Quality Score
+[3 / 4 / 5]
+
+Review Time
+[User-provided minutes]
+```
+
+### Template E: Needs Revision
+
+```text
+Reviewer Verdict
+Needs Revision
+
+Error Categories
+- Instruction Styling
+- Instruction Prescriptiveness
+- Test ↔ Instruction Misalignment
+- Test Coverage Issues
+- Exposing Hints/Answers
+- Oracle Solution Issues
+- PR Scope Violation
+- Test Build Issues
+- Time-Based Tests
+- Task Difficulty
+- Metadata Issues
+- Uses Internet
+- Agent Timeout
+- Wrong Coding Language
+- Test Dependency Location
+- Pinning Issues
+- Environment
+- PR Relevancy
+- Other
+
+Required Revisions
+1) [Category]
+   - Exact file or artifact
+   - Exact defect
+   - Why it matters
+   - Required correction
+   - Evidence
+
+Submitter Rebuttal Acknowledgement
+[One exact platform option]
+
+Submission Quality Score
+[Normally 1 or 2]
+
+Review Time
+[User-provided minutes]
+```
+
+### Template F: Reject
+
+```text
+Reviewer Verdict
+Reject
+
+Maximum Revision Status
+[Confirm Needs Revision is unavailable or maximum revisions have been reached]
+
+Remaining Error Categories
+[Current categories]
+
+Remaining Defects
+[Specific actionable evidence]
+
+Reviewer Note
+[Explain why unresolved issues remain after maximum revisions]
+
+Submitter Rebuttal Acknowledgement
+[One exact platform option]
+
+Submission Quality Score
+[1 or 2]
+
+Review Time
+[User-provided minutes]
+```
+
+Reject is restricted to maximum-revision cases. When Needs Revision is still available, do not use Reject for a correctable task.
+
+Internal audit may also record independent task assessment, PR scope, alignment, oracle, and packaging detail — keep that in `sentinel_reviewer_audit.md`, not as a substitute for the live form fields.
+
+---
+
+## Writing Rules
+
+- Plain and natural language
+- Specific evidence
+- No generic “everything looks good”
+- Mention actual files, tests, functions, and logs
+- Explain why the issue matters
+- Explain exactly how to fix it
+- Do not overstate certainty
+- Do not hallucinate command results
+- Distinguish inspected evidence from executed validation
+- Do not call an issue major or minor when the platform does not ask for that classification
+- Avoid unnecessary formatting and robotic wording
+- Keep the final platform note concise even when the internal audit is detailed
+
+---
+
+## Common Reviewer Mistakes
+
+- Reading submitter conclusions before finishing an independent review
+- Using Reject while Needs Revision is still available
+- Mixing submitter verdicts with reviewer outcomes
+- Rejecting solely for missing `init_state.patch`
+- Treating extra non-conflicting oracle code as automatically wrong
+- Ignoring `runs/` when it supports or contradicts a finding
+- Treating local execution as universally prohibited
+- Examining only source/timeouts and ignoring other metadata
+- Hard-coding discovery to a `*_harborized` folder name
+- Emitting legacy Valid/Invalid + Accept/Reject templates on Ultra by default
+- Requiring old Submission Error Categories in every current output
+
+---
+
+## Escalation and Adjudication
+
+If the task or submission remains genuinely ambiguous after all stages, do not guess — escalate via Project Sentinel Slack with task ID and the specific ambiguity.
+
+The **adjudicator** resolves disagreements, reviews unresolved defects, and makes the final decision when required. Reviewer feedback quality is assessed; consistently poor reviews may result in removal.
+
+---
+
+## Legacy Reviewer Form Compatibility
+
+Use the fields below **only when the platform explicitly shows the older form**.
+
+- Do **not** output them by default for Sentinel Ultra.
+- Preserve them because older tasks or historical batches may still require them.
+- Never mix the old and current form in one answer unless the user explicitly requests both.
+
+### Older reviewer outcomes
+
+- **Accept** / **Reject** only (no Needs Revision)
+- Older reject reasons often included: missed key findings, vague unverifiable issues, verdict contradicted by files, Missing numbered issues on Invalid, misquoted `runs/`
+
+### Older task assessment labels (translate when reading old submitter answers)
+
+- Valid with no changes ≈ Valid as-is
+- Invalid with minor/major changes ≈ usually Fixable if correction allowed
+- Valid / Invalid binary — map carefully; do not emit as the current reviewer verdict
+
+### Older Invalid Task Questions (legacy form)
+
+```text
+Questions on Invalid Tasks
+
+What issue(s) did you find with the task/components?
+[list the issue categories]
+
+Describe each issue in detail:
+[numbered issues with category, description, fixable/not, how to fix]
+
+Are these issue(s) resolvable?
+[Yes / No]
+```
+
+### Older issue categories (legacy labels)
+
+Instruction specification · Metadata issues · Environment setup · Solution implementation (logic) · Unit test setup · Unit test scope · Other
+
+### Older Submission Error Categories (legacy write-up quality labels)
+
+Use only on older forms that still show them:
+
+- None of the above
+- Low-Detail / Surface-Level Analysis
+- Technical Misconception
+- Inadequate Evidence / Verification
+- Logical Inconsistency
+- Superficial Evaluation of Tests
+- Unverified AI Output
+- Other
+
+These judge **submission write-up quality**, not the task itself. They are separate from current Needs Revision error categories and from Submission Quality Score.
+
+### Older Accept/Reject template (legacy only)
+
+```text
+Reviewer Feedback
+
+As a reviewer, do you believe the task to be valid or invalid?
+[Valid / Invalid]
+
+Do you accept or reject the submission?
+[Accept / Reject]
+
+Accept/Reject Notes:
+[1 short evidence-based paragraph]
+
+Submission Error Categories
+[checkboxes as shown on the old form]
+```
+
+### Older license comparison fields
+
+When the old form asks: identify license from `environment/repo/` or upstream and compare against the submitter’s selection. Keep this step when the live platform still requests it.
+
+### Older operational defaults now superseded
+
+| Old default | Current treatment |
+|-------------|-------------------|
+| Read submitter first | Independent review first (Stage 2), then compare (Stage 9) |
+| Accept/Reject only | Accept / Needs Revision / Reject |
+| Any correctable defect → Reject | Needs Revision while cycles remain |
+| Valid/Invalid as reviewer verdict | Independent task assessment uses Ultra submitter terms; reviewer verdict is Accept/Needs Revision/Reject |
+| `init_state.patch` as only oracle artifact | Prefer `golden.patch`; legacy patches are compatibility inputs |
+| Fixed `*_harborized` path | Discover actual package layout |
+| Local execution prohibited | Optional for reviewers |
+| Only selected metadata fields matter | Review all present metadata against current limits |
+| Always emit Submission Error Categories | Only when the live legacy form requires them |

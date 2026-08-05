@@ -1,0 +1,622 @@
+---
+description: Project Sentinel Ultra quick reference for task anatomy, verdicts, limits, validation, packaging and legacy compatibility
+alwaysApply: false
+---
+
+# PROJECT SENTINEL — Expert Contributor Reference
+
+**Last updated:** July 22, 2026 (Sentinel Ultra)
+
+Concise quick-reference for submitters, reviewers, legacy package inspection, current Harbor tasks, and Cursor-assisted analysis. Easy to scan — not a full policy reprint.
+
+---
+
+## How to Use This Reference
+
+| File | Role |
+|------|------|
+| `.cursor/rules/Review_Guidelines.mdc` | **Authoritative policy** — controlling rules |
+| **This file** (`.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`) | Quick reference — anatomy, decisions, checklists, matrices |
+| `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` | Reviewer **procedure** (step-by-step workflow) |
+| `CLAUDE.md` | Cursor **orchestration** for assisted reviews |
+| `document 1.txt` / `document 2.txt` / `document 3.txt` | Official Ultra docs (July 22, 2026) |
+
+- Current **Sentinel Ultra** rules and live platform fields override older rules.
+- Legacy mappings here are for **compatibility only** — never mix verdict systems or upload formats across versions.
+- When unsure, follow `.cursor/rules/Review_Guidelines.mdc`.
+- Detailed internal audits vs platform-ready answers: see `CLAUDE.md` (do not put audits in the task ZIP).
+
+---
+
+## Role Matrix
+
+| Activity | Submitter | Reviewer | Adjudicator |
+| -------- | --------- | -------- | ----------- |
+| Review original task | Yes | Independently repeat | As needed |
+| Modify task | Yes when Fixable | No; normally requests revision | No normal authoring |
+| Choose task assessment | Valid as-is, Fixable, Not Fixable | Verify submitter assessment | Resolve disagreement |
+| Final workflow verdict | Submit corrected task | Accept, Needs Revision, Reject | Final decision |
+| Run local oracle/NOP | Required for Valid as-is; recommended for Fixable | Optional | Optional |
+| Check rebuttal/comments | Add useful comments | Required before final review | Review both sides |
+
+Do **not** combine submitter and reviewer verdict systems.
+
+---
+
+## Current vs Legacy Artifacts
+
+**Current format is the default** unless the package or platform clearly uses legacy structure.
+
+| Purpose | Current Sentinel Ultra | Legacy compatibility |
+| ------- | ---------------------- | -------------------- |
+| Oracle patch | `solution/golden.patch` | `init_state.patch` may appear |
+| Problem statement | `environment/problem_statement.md` | May be absent in old packages |
+| Test declaration | `tests/config.json` | Older tasks may rely on shell logic |
+| Grading | `tests/grade.py` | May be absent in old packages |
+| Added f2p tests | `tests/tests.patch` | `tests/files/` may also appear |
+| Submitter verdict | Valid as-is, Fixable, Not Fixable | Valid or Invalid variants |
+| Reviewer verdict | Accept, Needs Revision, Reject | Accept or Reject |
+
+Missing `init_state.patch` alone is **not** a defect. Rename `solution.patch` → `golden.patch` for Ultra uploads.
+
+---
+
+## Task Anatomy
+
+```text
+<task-id>/
+├── task/
+│   ├── task.toml
+│   ├── instruction.md
+│   ├── environment/Dockerfile, repo/, problem_statement.md
+│   ├── solution/solve.sh, golden.patch
+│   └── tests/test.sh, tests.patch, config.json, grade.py
+└── runs/          # reference only — do not upload
+```
+
+| Artifact | Compact purpose |
+|----------|-----------------|
+| `task.toml` | Resources, timeouts, source, category, difficulty explanation |
+| `instruction.md` | Agent-facing problem + measurable success criteria |
+| `environment/Dockerfile` | Offline-buildable container |
+| `environment/repo/` | Base checkout at `base_commit_sha` (HEAD is source of truth) |
+| `environment/problem_statement.md` | **Exact copy** of final `instruction.md` |
+| `solution/solve.sh` | Applies/produces solved state |
+| `solution/golden.patch` | Canonical self-contained solution patch |
+| `tests/test.sh` | Runs suite; writes reward; exit matches reward |
+| `tests/tests.patch` | Injects new fail-to-pass tests onto base |
+| `tests/config.json` | Commands + f2p/p2p test IDs |
+| `tests/grade.py` | Grading logic |
+| `runs/` | Agent logs for timeouts / misreads / instability |
+
+**Expected relationship:** instruction ↔ tests ↔ oracle must align with each other and the source PR. Tests prove the instruction; oracle proves solvability; environment must support both offline.
+
+---
+
+## Submitter Decision Guide
+
+### Valid as-is
+
+Use only when **no correction is needed** and all current checks pass (alignment, f2p count per operational rule below, no leakage, clear/non-prescriptive instruction, local oracle `1.0` / NOP `0.0`).
+
+**Examples:** Instruction, tests, and golden solution already match the PR; coverage/faithfulness solid; packaging clean.
+
+### Fixable
+
+Use when **all defects can be repaired within allowed files**.
+
+**Examples:** Over-prescriptive or LLM-like instruction; coverage gaps; below f2p operational target; rename `solution.patch`; missing `problem_statement.md` sync; allowed Dockerfile/git hygiene fixes; natural PR-scope expansion for difficulty.
+
+### Not Fixable
+
+Use only for **prohibited PR-scope changes** or **genuinely disallowed environment problems**.
+
+**Examples:** Must shrink/replace the PR to make the task valid; tangled toolchain; large model download; required live external service; unrecoverable Git corruption.
+
+**Legacy map:** Valid with no changes ≈ Valid as-is; Invalid minor/major ≈ Fixable when allowed; Invalid → Not Fixable only if current Not Fixable criteria hold.
+
+---
+
+## Reviewer Decision Guide
+
+### Accept
+
+Submission is accurate and complete; corrected task meets requirements.
+
+### Needs Revision
+
+Errors remain **and** revision cycles are still available. Prefer this over Reject whenever the submitter can still fix.
+
+### Reject
+
+Only after **maximum revision cycles are exhausted** and defects remain.
+
+**Reject is not a replacement for Needs Revision.** Also assign Submission Quality Score (1–5). Read rebuttal/comments before finishing.
+
+---
+
+## Conditional Submitter Platform Templates
+
+Defaults for `sentinel_platform_answers.txt`. Live platform form wins. Full analysis goes in `sentinel_submitter_audit.md`. Do not fabricate validation or time values.
+
+### Template A: Valid as-is
+
+```text
+Task Analysis
+Valid as-is
+
+Task Analysis duplicate field
+Valid as-is
+
+Validity confirmations
+- Every instruction requirement is properly tested
+- All test requirements are specified in the instruction
+- Instruction does not appear LLM-generated
+- Instruction is not overly prescriptive
+- Task does not leak solution information
+- Oracle follows the instruction
+- More than 10 fail-to-pass tests are present for safest platform compliance
+
+Local validation
+- Offline Docker build result
+- Oracle result and reward
+- NOP result and reward
+- f2p behavior
+- p2p behavior
+
+What makes this task difficult?
+[Evidence-based explanation]
+
+Comments for Reviewer
+[Relevant context]
+
+Senior engineer solution estimate
+[<10 minutes / 10–20 minutes / 20–40 minutes / 40+ minutes]
+
+Initial review time
+[User-provided minutes]
+
+Total submission time
+[User-provided minutes]
+```
+
+### Template B: Fixable
+
+```text
+Task Analysis
+Fixable
+
+Task Analysis duplicate field
+Fixable
+
+Components with issues
+[Instructions / Tests / Oracle Solution / Environment or Dockerfile]
+
+Issue checkboxes
+- Every requirement was not properly tested
+- Test requirements were not properly specified
+- Instruction appeared LLM-generated
+- Instruction was overly prescriptive
+- Task leaked solution information
+- Oracle did not implement the instruction
+- Fewer than the safest required f2p target
+
+Detailed issues
+1) [Category]
+   - Specific problem
+   - Evidence
+   - Fixable: Yes
+   - Exact correction
+
+Files Changed
+- File path
+- What changed
+- Why
+
+PR Scope Changes
+[Explanation or NA]
+
+Corrected-task confirmations
+- Every instruction requirement is now tested
+- All test requirements are now specified
+- Instruction no longer appears LLM-generated
+- Instruction is not overly prescriptive
+- No solution leakage remains
+- Oracle matches the instruction
+- PR scope was preserved or validly expanded
+- At least 11 meaningful f2p tests are present whenever feasible
+
+Validation
+[Executed commands and verified results]
+
+What makes this task difficult?
+[Evidence-based explanation]
+
+Comments for Reviewer
+[Relevant details]
+
+Initial review time
+[Minutes]
+
+Initial rewrite time
+[Minutes]
+
+Total submission time
+[Minutes]
+```
+
+### Template C: Not Fixable
+
+```text
+Task Analysis
+Not Fixable
+
+Task Analysis duplicate field
+Not Fixable
+
+Not Fixable category
+[PR scope needs to be changed or reduced / Environment Issues]
+
+Environment subcategory when applicable
+- Image or dependency build failure
+- Oracle timeout
+- External-network dependency at build or solve time
+- Genuinely unrecoverable Git corruption
+
+Detailed explanation
+1) [Category]
+   - Exact defect
+   - Evidence
+   - Why allowed corrections are insufficient
+   - Why fixing it would require prohibited scope replacement, reduction or disallowed environment work
+
+What makes this task difficult?
+[When the platform asks]
+
+Comments for Reviewer
+[Relevant context]
+
+Senior engineer solution estimate
+[Platform option]
+
+Initial review time
+[Minutes]
+
+Total submission time
+[Minutes]
+```
+
+---
+
+## Instruction Checklist
+
+- [ ] Describes the problem and expected behavior
+- [ ] Has measurable success criteria
+- [ ] Is self-contained
+- [ ] Does not disclose implementation steps
+- [ ] Does not name hidden tests or verifier internals
+- [ ] Does not expose PR details to the agent
+- [ ] States required public schemas and formats
+- [ ] Matches the source PR (plus any allowed expansion)
+- [ ] Sounds like real engineering communication
+- [ ] Does not require arbitrary guessing
+
+A correct public output schema is **necessary** and is **not** leakage.
+
+---
+
+## Fail-to-Pass Count (Operational)
+
+- Official guideline minimum: **at least 10** fail-to-pass tests.
+- Because the current platform form may say **“more than 10,”** prepare **at least 11** meaningful f2p tests for submission whenever possible.
+- Preferred range: **11–20**.
+- Do **not** create filler tests merely to raise the count.
+
+---
+
+## Test Checklist
+
+- [ ] Guideline ≥10 f2p; safest submission ≥11 meaningful f2p (preferred 11–20)
+- [ ] At least one original-failure regression test
+- [ ] All instruction requirements tested
+- [ ] All test requirements specified or implied
+- [ ] Outcome-based assertions
+- [ ] Deterministic execution
+- [ ] No live network
+- [ ] No time dependence
+- [ ] No silent skip
+- [ ] No fail-open behavior
+- [ ] No source-keyword inspection
+- [ ] No exact undocumented naming
+- [ ] No existence-only output check
+- [ ] No agent-controlled coverage
+- [ ] Existing p2p tests unmodified (byte-identical)
+- [ ] `tests.patch` applies to base commit
+- [ ] Reward path and exit behavior are correct
+
+---
+
+## Quality Check Axes
+
+| Axis | Main question |
+| ---- | ------------- |
+| Realism | Does the instruction sound like real engineering work? |
+| Clarity | Is expected behavior understandable? |
+| Self-containedness | Can an engineer solve it using supplied context? |
+| Prescriptiveness | Does it avoid implementation walkthroughs? |
+| **Test coverage** *(blocking)* | Does every requirement have an assertion? |
+| **Test faithfulness** *(blocking)* | Does every assertion come from the contract? |
+| Oracle spec faithfulness | Does the solution implement every requirement? |
+| Oracle no-gaming | Does it avoid shortcuts and fixture-specific tricks? |
+| Oracle robustness | Is it deterministic and offline? |
+| Packaging | Is the bundle complete and clean? |
+
+Do not ignore a blocking-axis score of **3 with reservations** — fix it.
+
+---
+
+## Six Automatic-Removal Patterns
+
+| Pattern | Simple bad example | Correction |
+| ------- | ------------------ | ---------- |
+| Silent skip | `@pytest.mark.skip` or catch `ImportError` → module = None | Missing dep must **fail** |
+| Missing real CLI / entry-point | Instruction builds a CLI; tests only import internals | Invoke the CLI/service under test |
+| Existence-only artifact check | `assert path.exists()` only | Also assert contents/behavior |
+| Agent-controlled coverage | Loop only over agent JSON keys | Enumerate expected items from instruction/env |
+| Fail-open logic | `if not out.exists(): return` / bare `except: pass` | Missing/malformed artifact must fail |
+| Undocumented overreach | Assert `validateemailaddress` never named in instruction | State the name or assert behavior only |
+
+---
+
+## Metadata Limits
+
+| Field | Requirement |
+| ----- | ----------- |
+| CPUs | 2 or 4 |
+| Memory | 2048–16384 MB |
+| Storage | 5120–10240 MB |
+| GPUs | 0 |
+| Build timeout | ≤1800 seconds |
+| Agent timeout | ≤3600 seconds |
+| Verifier timeout | ≤1800 seconds |
+| `network_mode` | Remove |
+| `allowed_hosts` | Remove |
+| Source | Correct PR, commit, or issue |
+| Category | Match task content |
+| Difficulty explanation | Explain real technical difficulty |
+
+Check all fields; verdict/fixability follow current Ultra guidelines (not the old “only four fields invalidate” rule).
+
+### Supplemental / legacy metadata fields
+
+Still useful to inspect when present; do **not** override current requirements:
+
+| Field | Note |
+|-------|------|
+| `author_name` / `author_email` | Creator |
+| `language` | Match actual code |
+| `difficulty` | easy / medium / hard (when present) |
+| `expert_time_estimate_min` / `junior_time_estimate_min` | Estimates |
+| `tags` | Often 3–6 keywords |
+| Accuracy / pass-rate fields | Cross-check vs `runs/` when present |
+
+---
+
+## Allowed-Edit Matrix
+
+| Component | May edit? | Conditions |
+| --------- | --------- | ---------- |
+| `instruction.md` | Yes | Preserve PR scope |
+| `problem_statement.md` | Yes | Exact copy of final instruction |
+| `tests.patch` | Yes | Add f2p tests only |
+| Existing repo tests | No | Must remain unchanged |
+| `test.sh` | Yes | Correct test and reward execution |
+| `config.json` | Yes | Correct test IDs and commands |
+| `grade.py` | Yes | Correct grading behavior |
+| `solve.sh` | Yes | Correct oracle |
+| `golden.patch` | Yes | Match instruction and source |
+| Dockerfile | Limited | Only allowed environment fixes |
+| Git metadata | Yes | Hygiene only |
+| Tracked repo source | No | Never directly alter starting code |
+
+You may **expand** PR scope for difficulty; never reduce or replace it. Update instruction + tests + oracle together when expanding.
+
+---
+
+## Environment Reference
+
+### Usually Fixable
+
+- Missing Bash on Alpine
+- Missing tmux
+- Missing asciinema
+- Missing frozen requirements
+- Concrete image tag correction (`:latest` → pin)
+- Shebang or executable-bit problem
+- CRLF
+- Resource-limit adjustment
+- Stray build-preparation artifacts
+- Most Git hygiene failures
+
+### Potentially Not Fixable
+
+- Tangled toolchain
+- Unrecoverable dependency conflict
+- Required live service
+- Large external model pull
+- Unrecoverable Git repository
+- Task validity requiring replacement of the source PR scope
+
+Evaluate borderline build issues individually (small missing package/flag may still be Fixable). Dockerfile must build **offline**.
+
+---
+
+## Git Quick Checks
+
+Run inside `environment/repo`:
+
+```bash
+git rev-parse --verify HEAD                   # must succeed
+git rev-parse HEAD                            # == base_commit_sha (HEAD wins if mismatch)
+git rev-list --all --not HEAD                 # MUST be empty
+git remote                                    # MUST be empty
+git config --local --get-regexp '^filter\.'   # MUST be empty
+git status --porcelain                        # MUST be empty
+ls .git/logs 2>/dev/null                      # MUST NOT exist / empty
+du -sh .git                                   # MUST be < 100 MB
+git apply --check ../../tests/tests.patch     # MUST apply cleanly
+```
+
+Blank output is expected for several hygiene commands (`rev-list`, `remote`, `filter`, `status`). Git problems are usually **Fixable**, not automatically Not Fixable. Never edit tracked source during cleanup.
+
+---
+
+## Local Validation Quick Reference
+
+### Valid as-is submitter
+
+- Offline Docker build
+- Oracle reward `1.0`
+- NOP reward `0.0`
+- f2p fail before solution
+- p2p pass before and after solution
+
+### Fixable submitter
+
+- Recommended to run the same checks locally
+- Platform will run them after upload
+- Do not re-upload an unchanged zip after a deterministic infra failure
+
+### Reviewer
+
+- Execution optional
+- Document and logic inspection **mandatory**
+
+---
+
+## Packaging Quick Reference
+
+Zip must unpack directly to:
+
+```text
+instruction.md
+task.toml
+environment/
+solution/
+tests/
+```
+
+- Zip **flat** task contents only
+- Exclude `runs/`
+- Exclude outer `task/` folder
+- Remove caches, IDE files, `node_modules`, temp/swap/backup files
+- Ensure no solution leakage into agent-readable paths
+- Ensure instruction and `problem_statement.md` are identical
+- Use `golden.patch` (rename from `solution.patch` if needed)
+
+---
+
+## Agent Runs (Quick)
+
+- Inspect **all** failing trials, not one convenient trial
+- Confirm at least **one passing** trial when available
+- Use logs for timeouts, systematic misreads, instability
+- **Historical note:** older packages often have several trials per model; newer batches (e.g. from April 28 2026) may have fewer (often two — one per model). Smaller newer sets are expected, not automatically defective
+
+A failing agent does **not** automatically prove the task is valid.
+
+---
+
+## Writing Guidance
+
+- Keep notes simple, specific, and human
+- Cite real file names, tests, functions, logs, and paths
+- Number issues (Issue 1, Issue 2, …) with category + fixability + how to fix
+- Vague write-ups get Needs Revision / Reject on older forms
+
+---
+
+## Oracle Notes (Quick)
+
+- Extra oracle behavior alone is **not** a defect when required behavior is implemented and tests enforce it
+- Unrelated refactors / drive-by edits should be removed
+- No hardcoding, no reading hidden test ground truth, no live network, fixed seeds
+
+A passing oracle does **not** automatically prove tests are complete.
+
+---
+
+## License Identification
+
+When the platform asks:
+
+1. Check `environment/repo/LICENSE` (or `LICENSE.md`, `LICENCE`, `COPYING`)
+2. Check README
+3. Fall back to upstream via `source` URL
+
+### License options (platform list)
+
+- GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.1, LGPL-3.0
+- MPL-2.0, EPL-1.0, EPL-2.0, CPL-1.0, OSL-3.0, RPL-1.5
+- **Other** — multi-license, no license, or not listed
+
+Common licenses often mapped to **Other** when not listed: MIT, Apache 2.0, BSD-2/3, ISC, Unlicense, CC0.
+
+---
+
+## Category Values (Reference)
+
+| Category | Meaning |
+|----------|---------|
+| Fix | Bugs or faults |
+| Feature | New internal or user-facing behavior |
+| Refactor | Maintainability-focused restructuring |
+| Documentation | Docs, comments, README, API docs |
+| Build | Build configuration |
+| Performance | Speed, memory, etc. |
+| Chore | Housekeeping, deps, versions |
+
+Ultra `task.toml` may use other labels (e.g. security) — prefer accuracy against task content and the live form.
+
+---
+
+## Legacy Platform Compatibility
+
+Use the items below **only when the live platform presents those exact fields**. Current Ultra defaults to Valid as-is / Fixable / Not Fixable and Accept / Needs Revision / Reject.
+
+### Older submitter outcomes
+
+- Valid with no changes → ≈ Valid as-is
+- Invalid with minor / major changes → usually Fixable if correction allowed
+- Valid / Invalid binary → use only if that form is still shown
+
+### Older reviewer outcomes
+
+- Accept / Reject only (no Needs Revision) → use only if that form is still shown
+
+### Older issue categories (still useful labels)
+
+Instruction specification · Metadata issues · Environment setup · Solution implementation · Unit test setup · Unit test scope · Other
+
+### Older “do not run Harbor” rule
+
+Outdated as a universal ban. Submitter Valid as-is requires local oracle/NOP; reviewer execution remains optional.
+
+### Older metadata validity filter
+
+The claim that only `source` + three timeouts can invalidate is **not** current Ultra policy. Check all fields; follow current guidelines.
+
+---
+
+## Do Not Confuse
+
+- **Submitter verdict** is not **reviewer verdict**.
+- **Task defect category** is not **submission-quality category**.
+- A **failing agent** does not automatically prove the task is valid.
+- A **passing oracle** does not automatically prove tests are complete.
+- **Difficulty** does not come from vagueness.
+- Legacy **`init_state.patch`** is not the current canonical patch (`golden.patch` is).
+- Reviewer local execution is **optional**; submitter Valid-as-is validation is **required**.
+- **Git problems** are usually Fixable rather than automatically Not Fixable.
+- A correct **public output schema** is necessary and is **not** leakage.
+- **Extra oracle code** is not automatically wrong, but unrelated changes should be removed.

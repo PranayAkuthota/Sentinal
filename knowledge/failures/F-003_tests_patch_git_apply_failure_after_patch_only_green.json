@@ -1,0 +1,12 @@
+{
+  "id": "F-003",
+  "title": "tests.patch git-apply failure after patch-only green",
+  "category": "tests_patch",
+  "symptom": "GNU patch applies but git apply --check fails (renames/hunk headers)",
+  "root_cause_class": "patch_dialect_mismatch",
+  "recovery": "Rebuild tests.patch so git apply --check passes on base commit",
+  "reusable": true,
+  "automation_opportunity": "Preflight blocker on git-apply failure",
+  "seen_count": 3,
+  "notes": ""
+}

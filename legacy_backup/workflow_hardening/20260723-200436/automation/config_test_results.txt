@@ -1,0 +1,65 @@
+PASS: fixable: session created
+PASS: fixable: original preserved path exists
+PASS: fixable: original bytes unchanged vs source
+PASS: fixable: extracted_original exists
+PASS: fixable: working_copy exists
+PASS: fixable: extracted_original not modified
+PASS: fixable: working_copy used for edits
+PASS: fixable: corrected ZIP path generated
+PASS: fixable: flat ZIP has instruction.md at root-ish
+PASS: fixable: no runs/ in corrected ZIP
+PASS: fixable: not solely wrapped as runs
+PASS: fixable: branch answers generated
+PASS: fixable: original still unchanged after package
+PASS: invalid: evidence package generated
+PASS: invalid: no corrected-valid ZIP created
+PASS: invalid: original preserved
+PASS: invalid: evidence contains summary
+PASS: invalid: unfixable explanation template included
+PASS: valid: original preserved
+PASS: valid: no task modification
+PASS: valid: no corrected ZIP
+PASS: valid: no evidence ZIP
+PASS: valid: seven confirmations generated
+PASS: valid: common field WHAT MAKES THIS TASK DIFFICULT
+PASS: valid: common field SENIOR ENGINEER ESTIMATE
+PASS: valid: common field COMMENTS FOR REVIEWER
+PASS: valid: common field INITIAL REVIEW TIME
+PASS: valid: common field ENTIRE SUBMISSION TIME
+PASS: valid: times not invented
+PASS: nine: public matches duplicate for Invalid/Fixable
+PASS: nine: branch==duplicate for Invalid/Fixable
+PASS: nine: internal separately recordable Invalid/Fixable
+PASS: nine: public matches duplicate for Invalid/Invalid/Not Fixable
+PASS: nine: branch==duplicate for Invalid/Invalid/Not Fixable
+PASS: nine: internal separately recordable Invalid/Invalid/Not Fixable
+PASS: nine: public matches duplicate for Invalid/Valid-as-is
+PASS: nine: branch==duplicate for Invalid/Valid-as-is
+PASS: nine: internal separately recordable Invalid/Valid-as-is
+PASS: nine: public matches duplicate for Fixable/Fixable
+PASS: nine: branch==duplicate for Fixable/Fixable
+PASS: nine: internal separately recordable Fixable/Fixable
+PASS: nine: public matches duplicate for Fixable/Invalid/Not Fixable
+PASS: nine: branch==duplicate for Fixable/Invalid/Not Fixable
+PASS: nine: internal separately recordable Fixable/Invalid/Not Fixable
+PASS: nine: public matches duplicate for Fixable/Valid-as-is
+PASS: nine: branch==duplicate for Fixable/Valid-as-is
+PASS: nine: internal separately recordable Fixable/Valid-as-is
+PASS: nine: public matches duplicate for Valid-as-is/Fixable
+PASS: nine: branch==duplicate for Valid-as-is/Fixable
+PASS: nine: internal separately recordable Valid-as-is/Fixable
+PASS: nine: public matches duplicate for Valid-as-is/Invalid/Not Fixable
+PASS: nine: branch==duplicate for Valid-as-is/Invalid/Not Fixable
+PASS: nine: internal separately recordable Valid-as-is/Invalid/Not Fixable
+PASS: nine: public matches duplicate for Valid-as-is/Valid-as-is
+PASS: nine: branch==duplicate for Valid-as-is/Valid-as-is
+PASS: nine: internal separately recordable Valid-as-is/Valid-as-is
+PASS: nine: all 9 combinations routed
+PASS: nine: duplicate controls branch
+PASS: ignore: archive zip not selected
+PASS: ignore: incoming candidate found
+PASS: ignore: real archived task still present
+PASS: ignore: real archived task unmodified
+PASS: mismatch: rejected inconsistent public/duplicate
+
+TOTAL PASS=63 FAIL=0

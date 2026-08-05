@@ -1,0 +1,72 @@
+PASS: complete: audit_completed
+PASS: complete: no verdict assigned by audit
+PASS: incomplete: packaging blocked
+PASS: incomplete: no corrected zip
+PASS: multi-root: intake stops non-zero
+PASS: multi-root: explicit select works
+PASS: sync mismatch: package blocked
+PASS: sync mismatch: no zip
+PASS: sync command: byte equal
+PASS: f2p lt10: count=9
+PASS: f2p lt10: structural error
+PASS: f2p eq10: count=10
+PASS: f2p eq10: structural ok
+PASS: exactly 10: not more-than-10
+PASS: f2p gt10: count=11
+PASS: f2p gt10: structural ok
+PASS: duplicate ids: config not ok
+PASS: parameterized ids: manual review status
+PASS: patch fail: package blocked
+PASS: legacy: solution.patch noted
+PASS: legacy: init_state noted
+PASS: it_git_remote: package blocked
+PASS: it_git_dirty: package blocked
+PASS: it_git_reflog: package blocked
+PASS: forbidden artifacts: package blocked
+PASS: valid without evidence: preflight blocks
+PASS: valid: no corrected zip
+PASS: valid: no evidence zip auto
+PASS: valid with evidence: ready_to_finalize
+PASS: valid: ready_to_package false
+PASS: valid: package-fixable refused
+PASS: fixable success: zip exists
+PASS: fixable flat: instruction.md
+PASS: fixable flat: no runs
+PASS: fixable flat: has environment
+PASS: fixable: original preserved
+PASS: fixable: manifest exists
+PASS: fixable: validation_level notes platform eval if not_run
+PASS: fixable failed validation: blocked
+PASS: fixable failed validation: no partial zip
+PASS: invalid: evidence zip exists
+PASS: invalid: no corrected zip
+PASS: invalid: manual-review label
+PASS: public/duplicate mismatch rejected
+PASS: nine Invalid/Fixable: branch=dup
+PASS: nine Invalid/Fixable: internal separate
+PASS: nine Invalid/Invalid/Not Fixable: branch=dup
+PASS: nine Invalid/Invalid/Not Fixable: internal separate
+PASS: nine Invalid/Valid-as-is: branch=dup
+PASS: nine Invalid/Valid-as-is: internal separate
+PASS: nine Fixable/Fixable: branch=dup
+PASS: nine Fixable/Fixable: internal separate
+PASS: nine Fixable/Invalid/Not Fixable: branch=dup
+PASS: nine Fixable/Invalid/Not Fixable: internal separate
+PASS: nine Fixable/Valid-as-is: branch=dup
+PASS: nine Fixable/Valid-as-is: internal separate
+PASS: nine Valid-as-is/Fixable: branch=dup
+PASS: nine Valid-as-is/Fixable: internal separate
+PASS: nine Valid-as-is/Invalid/Not Fixable: branch=dup
+PASS: nine Valid-as-is/Invalid/Not Fixable: internal separate
+PASS: nine Valid-as-is/Valid-as-is: branch=dup
+PASS: nine Valid-as-is/Valid-as-is: internal separate
+PASS: nine: 9 combos
+PASS: migration success: schema 3
+PASS: migration success: backup exists
+PASS: migration conflict: blocked
+PASS: archive zip ignored
+PASS: incoming found
+PASS: real archive unmodified
+PASS: passed without evidence rejected
+
+TOTAL PASS=70 FAIL=0

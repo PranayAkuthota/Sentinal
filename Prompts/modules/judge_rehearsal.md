@@ -3,7 +3,10 @@
 **Stage:** S10.5  
 **Inputs:** `task_outputs/<TASK>/judge_prep.json` (+ `.md`), `instruction.md`, `tests/tests.patch`,
 `tests/config.json`, `solution/` listing, optional `judge_prep_decisions.json`  
-**Output:** `task_outputs/<TASK>/judge_rehearsal.md`  
+**Outputs:**
+- `task_outputs/<TASK>/judge_rehearsal.md` (human narrative)
+- `task_outputs/<TASK>/judge_rehearsal.json` (machine triage — **required for preflight**)
+
 **Patterns:** P-010 (Judge before Difficulty), P-011 (overreach / ≥3.5), P-006 (no filler f2p)
 
 You are **not** the real two-model platform panel. Label every deliverable as a
@@ -17,21 +20,48 @@ different adversarial framings, then reconcile.
 3. If `map_stats.low_confidence`, treat scores as provisional and require human review notes.
 4. Never invent filler fail-to-pass tests to raise counts (P-006). Prefer trimming untested
    instruction claims or adding real assertions tied to an R#.
+5. Compute `judge_prep_fingerprint` = sha256 hex of the raw `judge_prep.json` bytes. Preflight
+   rejects a stale rehearsal when this fingerprint no longer matches.
+
+## Step 0 — P-011 semantic triage (before scoring)
+
+`judge_prep` emits **lexical candidates only**:
+
+| Prep status | Meaning |
+|-------------|---------|
+| `no_graded_link` | No graded assertion token-linked to this R# |
+| `unlinked_lexically` | Assertion (any grade) has no lexical R# link |
+
+These are **not** confirmed defects. Adjudicate every such row:
+
+### Coverage (`no_graded_link`)
+
+- **NOT_A_GAP** — requirement is tested by graded asserts that merely use different wording, **or** the R# is non-agent hygiene (e.g. “do not modify tests”) that should not be graded.
+- **CONFIRMED_GAP** — a real observable requirement has no graded enforcement.
+- **UNDECIDED** — cannot tell without human input (blocks preflight until resolved).
+
+### Faithfulness (`unlinked_lexically`) — P-011 three-way
+
+For each unlinked assertion (GRADED = high severity; UNGRADED = medium — both still scored):
+
+1. **(a)** Stated or reasonably implied in `instruction.md` → **NOT_OVERREACH** (`bucket: a`)
+2. **(b)** Public/API contract derivable from codebase symbols the instruction already points at → **NOT_OVERREACH** (`bucket: b`)
+3. **(c)** Neither → **CONFIRMED_OVERREACH** (`bucket: c`)
+
+Only **(c)** / **CONFIRMED_*** rows block preflight. Prep alone never blocks on lexical unlink.
 
 ## Pass A — adversarial coverage (“stub solution”)
 
 Assume a stub / minimal implementation that barely touches the instruction surface.
-Ask: **which graded tests still pass?** For each R# with status `gap`, assume the
-requirement is unmet. Score axes with a **coverage-hostile** lens:
-
-- Drive `test_coverage` down when unexplained gaps remain.
-- Do not invent asserts the prep map did not support.
+Ask: **which graded tests still pass?** Weight **CONFIRMED_GAP** rows (not raw `no_graded_link`
+candidates). Score with a **coverage-hostile** lens.
 
 ## Pass B — adversarial faithfulness (“instruction-only engineer”)
 
 Assume a competent engineer who read **only** `instruction.md` (plus public codebase
-contracts named there). Ask: **which graded assertions punish them unfairly?** For each
-`overreach_candidate`, assume faithfulness damage. Score with a **faithfulness-hostile** lens.
+contracts named there). Weight **CONFIRMED_OVERREACH** rows (not raw `unlinked_lexically`
+candidates). Score with a **faithfulness-hostile** lens. Include medium-severity (UNGRADED)
+confirmed overreach — the judge reads every test file.
 
 ## Reconcile (adjudicator simulation)
 
@@ -54,14 +84,16 @@ One-line justification per axis citing `file:line` or `R#`/`A#` from judge_prep.
 ### Platform verdict logic (test axes ONLY)
 
 - **REMOVE** (NEEDS_REVISION): reconciled score on either test axis ≤ 2.0, OR either pass
-  scored an axis ≤ 2 matching an essential auto-REMOVE pattern (cite `auto_remove` HIT).
+  scored an axis ≤ 2 matching an essential auto-REMOVE pattern (cite `auto_remove` HIT with
+  static ids), OR any high-severity CONFIRMED_OVERREACH.
 - **DISCUSS** (NEEDS_REVISION): either pass scored either test axis ≤ 2, OR reconciled
-  score on either test axis ≤ 3.0.
-- **OK:** both test axes > 3.0 with no pass at ≤ 2.
+  score on either test axis ≤ 3.0, OR any CONFIRMED_GAP / CONFIRMED_OVERREACH remains.
+- **OK:** both test axes > 3.0 with no pass at ≤ 2 and zero CONFIRMED_* rows.
 
 ### Operational bar (P-010 / P-011) — stricter than OK
 
-Refuse to package while **any** of the 10 reconciled axes is **below 3.5**.
+Refuse to package while **any** of the 10 reconciled axes is **below 3.5**, or while any
+CONFIRMED_GAP / CONFIRMED_OVERREACH / UNDECIDED triage row remains.
 “3 with reservations” is not shippable.
 
 ## Minimal edits (axes below 4)
@@ -71,7 +103,7 @@ For each axis &lt; 4, give **one** concrete minimal edit:
 - Coverage gap → exact assertion sketch tied to the R# (not a filler suite).
 - Faithfulness / overreach → **either** add an observable requirement to the instruction
   **or** relax/ungrade the A# — never both in one step; never PR spoilers / hidden test names.
-- Packaging hard-cap → delete the listed stray path (or restore tracked-only if misflagged).
+- Packaging hard-cap → delete the listed stray path; if `tracked=true`, also realign `base_commit_sha`.
 
 ## Output template (`judge_rehearsal.md`)
 
@@ -79,6 +111,15 @@ For each axis &lt; 4, give **one** concrete minimal edit:
 # Judge rehearsal — <TASK>
 Model: single-model rehearsal (not the live Opus/GPT panel)
 Generated: <ISO8601>
+judge_prep_fingerprint: <sha256>
+
+## P-011 triage
+### Coverage
+| R | verdict | rationale |
+...
+### Faithfulness
+| A | grade | severity | bucket | verdict | rationale |
+...
 
 ## Pass A (coverage-hostile) scores
 | axis | score | cite |
@@ -95,16 +136,57 @@ Generated: <ISO8601>
 ## Verdict
 platform_logic: REMOVE | DISCUSS | OK
 operational_bar_3_5: PASS | REFUSE_PACKAGE
+confirmed_gaps: N
+confirmed_overreach: N
 notes: ...
 
 ## Minimal edits
 1. ...
 ```
 
+## Machine output (`judge_rehearsal.json`) — required
+
+```json
+{
+  "schema_version": 1,
+  "task_name": "<TASK>",
+  "generated_at": "<ISO8601>",
+  "judge_prep_fingerprint": "<sha256 of judge_prep.json bytes>",
+  "triage": {
+    "coverage": [
+      {
+        "requirement_id": "R1",
+        "prep_status": "no_graded_link",
+        "verdict": "CONFIRMED_GAP|NOT_A_GAP|UNDECIDED",
+        "rationale": "..."
+      }
+    ],
+    "faithfulness": [
+      {
+        "assertion_id": "A1",
+        "prep_status": "unlinked_lexically",
+        "grade": "GRADED|UNGRADED|UNRESOLVED",
+        "severity": "high|medium",
+        "bucket": "a|b|c",
+        "verdict": "CONFIRMED_OVERREACH|NOT_OVERREACH|UNDECIDED",
+        "rationale": "..."
+      }
+    ]
+  },
+  "confirmed_gaps": ["R…"],
+  "confirmed_overreach": ["A…"],
+  "platform_logic": "REMOVE|DISCUSS|OK",
+  "operational_bar_3_5": "PASS|REFUSE_PACKAGE"
+}
+```
+
+Triage **every** prep candidate row. Do not omit medium-severity UNGRADED unlinked asserts.
+
 ## Do not
 
 - Claim the live platform already scored this task
 - Skip Pass B or collapse to one pass
+- Treat `unlinked_lexically` / `no_graded_link` as confirmed without P-011 triage
 - Add filler f2p only to raise counts
 - Overwrite `judge_prep_decisions.json`
 - Dump implementation spoilers into the instruction to “fix” overreach

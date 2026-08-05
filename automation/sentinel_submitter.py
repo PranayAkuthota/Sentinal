@@ -1637,15 +1637,24 @@ def run_judge_prep_for_task(task_name: str, task_root: Path, state: Dict[str, An
     return report
 
 
+# Static-check ids that --accept-risk may demote (documented EC rationale required).
+# V6: PR test migrations that necessarily delete obsolete assertions in pre-existing
+# Jest suites while rewriting them for the new API. Relocating into brand-new files
+# would rewrite the PR's test structure beyond natural scope. Other FIXABLE ids stay hard.
+ACCEPT_RISK_STATIC_FIXABLE_IDS = frozenset({"V6"})
+
+
 def apply_judge_prep_preflight_blockers(
     report: Dict[str, Any],
     blockers: List[str],
     warnings: List[str],
     accept_risk_reason: Optional[str],
 ) -> None:
-    """Block on unexplained gaps/overreach/auto-REMOVE/UNDECIDED/invalidated decisions.
+    """Block on auto-REMOVE / UNDECIDED allow_extra / packaging / hard-stop / invalidated.
 
-    --accept-risk records an override in workflow_state (caller) and demotes these to warnings.
+    Lexical coverage:/overreach: candidates from prep are NOT blockers (FIX B) — rehearsal
+    confirms them. --accept-risk demotes remaining prep blockers to warnings.
+    Also demotes judge_prep static_fixable:V6 when accept-risk is set (see ACCEPT_RISK_STATIC_FIXABLE_IDS).
     """
     if report.get("hard_stopped"):
         msg = "judge_prep HARD STOP: " + "; ".join(report.get("hard_stop_reasons") or ["unknown"])
@@ -1657,14 +1666,19 @@ def apply_judge_prep_preflight_blockers(
 
     interesting = []
     for b in report.get("blockers") or []:
+        if b.startswith("coverage:") or b.startswith("overreach:"):
+            warnings.append(f"judge_prep lexical candidate (rehearsal owns confirmation): {b}")
+            continue
         if (
-            b.startswith("coverage:")
-            or b.startswith("overreach:")
-            or b.startswith("allow_extra:")
+            b.startswith("allow_extra:")
             or b.startswith("auto_remove:")
             or b.startswith("packaging:")
             or b.startswith("hard_stop:")
             or b == "decisions:invalidated"
+            or (
+                b.startswith("static_fixable:")
+                and b.split(":", 1)[-1] in ACCEPT_RISK_STATIC_FIXABLE_IDS
+            )
         ):
             interesting.append(b)
     for b in interesting:
@@ -1673,6 +1687,43 @@ def apply_judge_prep_preflight_blockers(
             warnings.append(f"{label} (accept-risk: {accept_risk_reason})")
         else:
             blockers.append(label)
+
+
+def apply_judge_rehearsal_preflight_blockers(
+    outputs_dir: Path,
+    blockers: List[str],
+    warnings: List[str],
+    accept_risk_reason: Optional[str],
+) -> None:
+    """Require fresh judge_rehearsal.json; block on CONFIRMED_* / UNDECIDED / stale fingerprint."""
+    import judge_prep as jp  # type: ignore
+
+    prep_path = outputs_dir / "judge_prep.json"
+    reh_path = outputs_dir / "judge_rehearsal.json"
+    if not prep_path.is_file():
+        msg = "judge_rehearsal: missing judge_prep.json (run judge-prep first)"
+        if accept_risk_reason:
+            warnings.append(f"{msg} (accept-risk: {accept_risk_reason})")
+        else:
+            blockers.append(msg)
+        return
+    reh = jp.load_judge_rehearsal(reh_path)
+    if reh is None:
+        msg = (
+            "judge_rehearsal: missing or unparseable judge_rehearsal.json "
+            "(run Prompts/modules/judge_rehearsal.md)"
+        )
+        if accept_risk_reason:
+            warnings.append(f"{msg} (accept-risk: {accept_risk_reason})")
+        else:
+            blockers.append(msg)
+        return
+    reh_blockers, _summary = jp.validate_judge_rehearsal(reh, prep_path)
+    for b in reh_blockers:
+        if accept_risk_reason:
+            warnings.append(f"{b} (accept-risk: {accept_risk_reason})")
+        else:
+            blockers.append(b)
 
 
 def run_preflight(
@@ -1778,7 +1829,11 @@ def run_preflight(
             state["static_check_not_fixable_ids"] = sc["not_fixable_ids"]
             state["dialect_notes"] = req.get("dialect_notes") or []
             for fid in sc["fixable_ids"]:
-                blockers.append(f"static-check FIXABLE open: {fid}")
+                msg = f"static-check FIXABLE open: {fid}"
+                if accept_risk_reason and fid in ACCEPT_RISK_STATIC_FIXABLE_IDS:
+                    warnings.append(f"{msg} (accept-risk: {accept_risk_reason})")
+                else:
+                    blockers.append(msg)
             for fid in sc["not_fixable_ids"]:
                 blockers.append(f"static-check NOT_FIXABLE open: {fid}")
             for fid in sc["advisory_ids"]:
@@ -1786,6 +1841,9 @@ def run_preflight(
             # S10.5 — judge_prep after static-check (map even if FIXABLE open)
             jp_report = run_judge_prep_for_task(task_name, working, state)
             apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
+            apply_judge_rehearsal_preflight_blockers(
+                session_paths(task_name)["outputs"], blockers, warnings, accept_risk_reason
+            )
             if accept_risk_reason:
                 warnings.append(
                     f"judge_prep accept-risk recorded for reviewer comments: {accept_risk_reason}"
@@ -1811,13 +1869,20 @@ def run_preflight(
             state["static_check_advisory_ids"] = sc["advisory_ids"]
             state["static_check_not_fixable_ids"] = sc["not_fixable_ids"]
             for fid in sc["fixable_ids"]:
-                blockers.append(f"static-check FIXABLE open: {fid}")
+                msg = f"static-check FIXABLE open: {fid}"
+                if accept_risk_reason and fid in ACCEPT_RISK_STATIC_FIXABLE_IDS:
+                    warnings.append(f"{msg} (accept-risk: {accept_risk_reason})")
+                else:
+                    blockers.append(msg)
             for fid in sc["not_fixable_ids"]:
                 blockers.append(f"static-check NOT_FIXABLE open: {fid}")
             for fid in sc["advisory_ids"]:
                 warnings.append(f"static-check ADVISORY: {fid}")
             jp_report = run_judge_prep_for_task(task_name, root, state)
             apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
+            apply_judge_rehearsal_preflight_blockers(
+                session_paths(task_name)["outputs"], blockers, warnings, accept_risk_reason
+            )
             if accept_risk_reason:
                 warnings.append(
                     f"judge_prep accept-risk recorded for reviewer comments: {accept_risk_reason}"
@@ -2240,7 +2305,10 @@ def build_parser() -> argparse.ArgumentParser:
     pre.add_argument(
         "--accept-risk",
         metavar="REASON",
-        help="Override judge_prep blockers (gaps/overreach/auto-REMOVE/UNDECIDED/invalidated); recorded for reviewer comments",
+        help=(
+            "Override judge_prep blockers (gaps/overreach/auto-REMOVE/UNDECIDED/invalidated) "
+            "and demote static-check V6 (PR test-migration deletes); recorded for reviewer comments"
+        ),
     )
     pre.set_defaults(func=cmd_preflight)
 

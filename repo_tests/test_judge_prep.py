@@ -55,21 +55,26 @@ class JudgePrepCleanTests(unittest.TestCase):
 
 
 class JudgePrepGapOverreachTests(unittest.TestCase):
-    def test_unexplained_gap_and_overreach_block(self):
+    def test_lexical_candidates_do_not_block_prep(self):
+        """FIX B: prep emits candidates; does not block on coverage:/overreach:."""
         r = run_fixture("gap_overreach")
         self.assertFalse(r["hard_stopped"])
-        self.assertFalse(r["prep_passed"])
-        self.assertTrue(any(b.startswith("coverage:") for b in r["blockers"]), r["blockers"])
-        self.assertTrue(any(b.startswith("overreach:") for b in r["blockers"]), r["blockers"])
+        self.assertTrue(r.get("no_graded_link_candidates") or r.get("coverage_gaps_unexplained"))
+        self.assertTrue(r.get("unlinked_lexically_candidates") or r.get("overreach_unexplained"))
+        self.assertFalse(any(b.startswith("coverage:") for b in r["blockers"]), r["blockers"])
+        self.assertFalse(any(b.startswith("overreach:") for b in r["blockers"]), r["blockers"])
+        faith = [f for f in r["faithfulness"] if f["status"] == "unlinked_lexically"]
+        self.assertTrue(faith)
+        cov = [c for c in r["coverage"] if c["status"] == "no_graded_link"]
+        self.assertTrue(cov)
 
-    def test_explained_gap_clears_with_fingerprint(self):
-        # First run to learn R ids / fingerprints
+    def test_explained_decisions_still_join(self):
         r0 = run_fixture("gap_overreach")
-        gap_ids = r0.get("coverage_gaps_unexplained") or []
+        gap_ids = r0.get("coverage_gaps_unexplained") or r0.get("no_graded_link_candidates") or []
         self.assertTrue(gap_ids)
         rid = gap_ids[0]
         req = next(x for x in r0["requirements"] if x["id"] == rid)
-        over = r0.get("overreach_unexplained") or []
+        over = r0.get("overreach_unexplained") or r0.get("unlinked_lexically_candidates") or []
         decisions = {
             "schema_version": 1,
             "decisions": [
@@ -95,11 +100,11 @@ class JudgePrepGapOverreachTests(unittest.TestCase):
             )
         r1 = run_fixture("gap_overreach", decisions=decisions)
         self.assertFalse(any(b == f"coverage:{rid}" for b in r1["blockers"]), r1["blockers"])
-        self.assertFalse(any(b.startswith("overreach:") for b in r1["blockers"]), r1["blockers"])
+        self.assertNotIn(rid, r1.get("coverage_gaps_unexplained") or [])
 
     def test_stale_fingerprint_invalidates(self):
         r0 = run_fixture("gap_overreach")
-        rid = (r0.get("coverage_gaps_unexplained") or ["R1"])[0]
+        rid = (r0.get("coverage_gaps_unexplained") or r0.get("no_graded_link_candidates") or ["R1"])[0]
         decisions = {
             "schema_version": 1,
             "decisions": [
@@ -115,6 +120,79 @@ class JudgePrepGapOverreachTests(unittest.TestCase):
         r1 = run_fixture("gap_overreach", decisions=decisions)
         self.assertTrue(r1["invalidated_decisions"])
         self.assertIn("decisions:invalidated", r1["blockers"])
+
+
+class JudgePrepRehearsalValidateTests(unittest.TestCase):
+    def test_validate_blocks_confirmed_and_stale(self):
+        r = run_fixture("gap_overreach")
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td)
+            prep_path = out / "judge_prep.json"
+            prep_path.write_text(json.dumps(r), encoding="utf-8")
+            fp = jp.file_sha256(prep_path)
+            cand_a = (r.get("unlinked_lexically_candidates") or ["A1"])[0]
+            cand_r = (r.get("no_graded_link_candidates") or ["R1"])[0]
+            reh = {
+                "schema_version": 1,
+                "judge_prep_fingerprint": fp,
+                "triage": {
+                    "coverage": [
+                        {
+                            "requirement_id": cand_r,
+                            "prep_status": "no_graded_link",
+                            "verdict": "CONFIRMED_GAP",
+                            "rationale": "untested",
+                        }
+                    ],
+                    "faithfulness": [
+                        {
+                            "assertion_id": cand_a,
+                            "prep_status": "unlinked_lexically",
+                            "verdict": "NOT_OVERREACH",
+                            "bucket": "a",
+                            "rationale": "implied",
+                        }
+                    ],
+                },
+            }
+            # incomplete triage of all candidates → blockers for missing + confirmed gap
+            blockers, summary = jp.validate_judge_rehearsal(reh, prep_path, prep_report=r)
+            self.assertTrue(any("CONFIRMED_GAP" in b for b in blockers), blockers)
+            self.assertIn(cand_r, summary["confirmed_gaps"])
+
+            # full NOT_A_GAP / NOT_OVERREACH clears confirmation blockers (may still warn missing none)
+            faith_rows = []
+            for aid in r.get("unlinked_lexically_candidates") or []:
+                faith_rows.append(
+                    {
+                        "assertion_id": aid,
+                        "prep_status": "unlinked_lexically",
+                        "verdict": "NOT_OVERREACH",
+                        "bucket": "b",
+                        "rationale": "public API",
+                    }
+                )
+            cov_rows = []
+            for rid in r.get("no_graded_link_candidates") or []:
+                cov_rows.append(
+                    {
+                        "requirement_id": rid,
+                        "prep_status": "no_graded_link",
+                        "verdict": "NOT_A_GAP",
+                        "rationale": "wording only",
+                    }
+                )
+            reh2 = {
+                "schema_version": 1,
+                "judge_prep_fingerprint": fp,
+                "triage": {"coverage": cov_rows, "faithfulness": faith_rows},
+            }
+            blockers2, _ = jp.validate_judge_rehearsal(reh2, prep_path, prep_report=r)
+            self.assertEqual(blockers2, [], blockers2)
+
+            reh_stale = {**reh2, "judge_prep_fingerprint": "0" * 64}
+            blockers3, _ = jp.validate_judge_rehearsal(reh_stale, prep_path, prep_report=r)
+            self.assertTrue(any("fingerprint mismatch" in b for b in blockers3), blockers3)
 
 
 class JudgePrepAllowExtraTests(unittest.TestCase):
@@ -151,12 +229,12 @@ class JudgePrepAllowExtraTests(unittest.TestCase):
             any(f["status"].startswith("n/a_") for f in r["faithfulness"]),
             "UNGRADED must not be skipped as n/a_*",
         )
-        unlinked = [f for f in ungraded if f["status"] == "overreach_candidate"]
+        unlinked = [f for f in ungraded if f["status"] == "unlinked_lexically"]
         self.assertTrue(unlinked, ungraded)
         for f in unlinked:
             self.assertEqual(f["severity"], "medium", f)
         for f in r["faithfulness"]:
-            if f["status"] == "overreach_candidate" and f["grade"] == "GRADED":
+            if f["status"] == "unlinked_lexically" and f["grade"] == "GRADED":
                 self.assertEqual(f["severity"], "high", f)
             if f["status"] == "ok":
                 self.assertIsNone(f.get("severity"))

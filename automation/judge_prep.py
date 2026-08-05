@@ -30,6 +30,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 WORKSPACE_ROOT = SCRIPT_DIR.parent
 JUDGE_PREP_SCHEMA = 1
 DECISIONS_SCHEMA = 1
+JUDGE_REHEARSAL_SCHEMA = 1
 UNRESOLVED_WARN_RATIO = 0.20
 
 STOPWORDS = {
@@ -340,13 +341,18 @@ def link_status(req_toks: Set[str], as_toks: Set[str]) -> str:
     return "none"
 
 
+# Lexical statuses only — semantic overreach/gap confirmation is judge_rehearsal (P-011).
+STATUS_UNLINKED_LEXICALLY = "unlinked_lexically"
+STATUS_NO_GRADED_LINK = "no_graded_link"
+
+
 def _faithfulness_severity(grade: str, status: str) -> Optional[str]:
-    """Severity for unlinked faithfulness rows. Grade gates severity, not eligibility.
+    """Severity for lexically unlinked faithfulness rows. Grade gates severity, not eligibility.
 
     GRADED unlinked → high (can zero reward). UNGRADED unlinked → medium (judge still
     scores the whole suite / allow_extra shipping). Coverage stays graded-only elsewhere.
     """
-    if status != "overreach_candidate":
+    if status != STATUS_UNLINKED_LEXICALLY:
         return None
     if grade == "GRADED":
         return "high"
@@ -380,7 +386,7 @@ def build_bipartite(
             status = "unresolved"
             unresolved_cov += 1
         else:
-            status = "gap"
+            status = STATUS_NO_GRADED_LINK
         coverage.append(
             {
                 "requirement_id": r["id"],
@@ -392,6 +398,7 @@ def build_bipartite(
         )
 
     # Faithfulness: EVERY assertion (graded + ungraded). Judge reads the whole suite.
+    # Lexical unlink ≠ confirmed overreach — rehearsal applies P-011 triage.
     for a in asserts:
         at = set(a["tokens"])
         linked_r: List[str] = []
@@ -408,7 +415,7 @@ def build_bipartite(
             status = "unresolved"
             unresolved_faith += 1
         else:
-            status = "overreach_candidate"
+            status = STATUS_UNLINKED_LEXICALLY
         faithfulness.append(
             {
                 "assertion_id": a["id"],
@@ -847,8 +854,8 @@ def render_md(report: Dict[str, Any]) -> str:
     for row in report["coverage"]:
         dec = report["decision_join"].get(f"coverage:{row['requirement_id']}", {})
         st = row["status"]
-        if st == "gap" and dec.get("status") == "explained":
-            st = "gap (explained)"
+        if st == STATUS_NO_GRADED_LINK and dec.get("status") == "explained":
+            st = "no_graded_link (explained)"
         aids = ", ".join(row["assertion_ids"]) or "—"
         L.append(
             f"| {row['requirement_id']} | {aids} | {st} | {dec.get('status', '—')} |"
@@ -860,13 +867,18 @@ def render_md(report: Dict[str, Any]) -> str:
     for row in report["faithfulness"]:
         dec = report["decision_join"].get(f"overreach:{row['assertion_id']}", {})
         st = row["status"]
-        if st == "overreach_candidate" and dec.get("status") == "explained":
-            st = "overreach (explained)"
+        if st == STATUS_UNLINKED_LEXICALLY and dec.get("status") == "explained":
+            st = "unlinked_lexically (explained)"
         rids = ", ".join(row["requirement_ids"]) or "—"
         sev = row.get("severity") or "—"
         L.append(
             f"| {row['assertion_id']} | {row['grade']} | {sev} | {rids} | {st} | {dec.get('status', '—')} |"
         )
+    L.append("")
+    L.append(
+        "> Lexical statuses (`no_graded_link` / `unlinked_lexically`) are **candidate generators**, "
+        "not confirmed defects. `judge_rehearsal` applies P-011 triage; only CONFIRMED rows block preflight."
+    )
     L.append("")
 
     L.append("## 2. Auto-REMOVE patterns (cite static-check; no re-detect)")
@@ -876,11 +888,11 @@ def render_md(report: Dict[str, Any]) -> str:
         L.append(
             f"| {name} | {row['status']} | {', '.join(row['static_ids']) or '—'} | {row.get('notes','')} |"
         )
-    # bipartite overreach overlay
-    oc = report.get("overreach_unexplained") or []
+    # bipartite lexical candidates (not confirmed overreach)
+    oc = report.get("unlinked_lexically_candidates") or report.get("overreach_unexplained") or []
     if oc:
         L.append("")
-        L.append(f"Bipartite graded overreach candidates (unexplained): {', '.join(oc)}")
+        L.append(f"Lexical unlinked candidates (for rehearsal P-011 triage): {', '.join(oc)}")
     L.append("")
 
     L.append("## 3. Don’t-list flags")
@@ -952,9 +964,12 @@ def render_md(report: Dict[str, Any]) -> str:
     L.append("")
     L.append("## 7. Handoff to judge_rehearsal")
     L.append(
-        "Read `judge_prep.json`. Run **two** adversarial scoring passes (coverage stub vs "
-        "faithfulness instruction-only), reconcile, flag axes differing by ≥2 for human review. "
-        "Apply REMOVE/DISCUSS/OK on test axes; refuse package if any axis < 3.5. No filler f2p."
+        "Run `Prompts/modules/judge_rehearsal.md`: triage every `no_graded_link` and "
+        "`unlinked_lexically` row with P-011 (stated / public API / neither), score Pass A "
+        "(coverage-hostile) and Pass B (faithfulness-hostile), reconcile, flag axes differing "
+        "by ≥2 for human review. Write `judge_rehearsal.md` **and** machine-readable "
+        "`judge_rehearsal.json` (fingerprint = sha256 of `judge_prep.json`). Only "
+        "CONFIRMED_GAP / CONFIRMED_OVERREACH block preflight — not lexical candidates."
     )
     L.append("")
     return "\n".join(L)
@@ -1071,23 +1086,17 @@ def run_judge_prep(
     asserts, grade_meta = extract_assertions(patch_text, cfg)
     coverage, faithfulness, map_stats = build_bipartite(reqs, asserts)
     auto_remove = cite_auto_remove(findings)
-    # bipartite overreach feeds pattern status
-    overreach_ids = [
+    # Lexical unlinked list for rehearsal — do NOT promote to auto_remove HIT (static cites only).
+    unlinked_lexically_candidates = [
         row["assertion_id"]
         for row in faithfulness
-        if row["status"] == "overreach_candidate"
+        if row["status"] == STATUS_UNLINKED_LEXICALLY
     ]
-    if overreach_ids:
-        high = [r["assertion_id"] for r in faithfulness if r["status"] == "overreach_candidate" and r.get("severity") == "high"]
-        med = [r["assertion_id"] for r in faithfulness if r["status"] == "overreach_candidate" and r.get("severity") == "medium"]
-        auto_remove["overreach"] = {
-            "status": "HIT",
-            "static_ids": auto_remove["overreach"].get("static_ids") or [],
-            "notes": (
-                f"bipartite candidates high={', '.join(high) or '—'}; "
-                f"medium(ungraded)={', '.join(med) or '—'}"
-            ),
-        }
+    no_graded_link_candidates = [
+        row["requirement_id"]
+        for row in coverage
+        if row["status"] == STATUS_NO_GRADED_LINK
+    ]
 
     packaging = packaging_sweep(task_root)
     dont = dont_list_scan(patch_text, findings)
@@ -1101,34 +1110,37 @@ def run_judge_prep(
     )
 
     blockers: List[str] = []
-    # auto-REMOVE hits from static cite (except overreach handled via bipartite decisions)
+    # auto-REMOVE hits from static-check cites only (bipartite overreach is rehearsal work)
     for pattern, row in auto_remove.items():
         if pattern == "overreach":
+            # Static-check overreach cite still counts as auto-REMOVE HIT
+            if row["status"] == "HIT" and row.get("static_ids"):
+                blockers.append(f"auto_remove:{pattern}:{','.join(row['static_ids'])}")
             continue
         if row["status"] == "HIT":
             blockers.append(f"auto_remove:{pattern}:{','.join(row['static_ids'])}")
 
+    # Lexical candidates are informational — prep does NOT block on them (FIX B).
+    # Still record unexplained lists for rehearsal handoff / decisions join display.
     unexplained_gaps = []
     for row in coverage:
-        if row["status"] != "gap":
+        if row["status"] != STATUS_NO_GRADED_LINK:
             continue
         ref = f"coverage:{row['requirement_id']}"
         dec = by_ref.get(ref)
         if dec and dec.get("status") == "explained":
             continue
         unexplained_gaps.append(row["requirement_id"])
-        blockers.append(ref)
 
     unexplained_overreach = []
     for row in faithfulness:
-        if row["status"] != "overreach_candidate":
+        if row["status"] != STATUS_UNLINKED_LEXICALLY:
             continue
         ref = f"overreach:{row['assertion_id']}"
         dec = by_ref.get(ref)
         if dec and dec.get("status") == "explained":
             continue
         unexplained_overreach.append(row["assertion_id"])
-        blockers.append(ref)
 
     if ae_enabled:
         for row in ae_rows:
@@ -1173,6 +1185,9 @@ def run_judge_prep(
             "warnings": grade_meta.get("warnings") or [],
         },
         "auto_remove": auto_remove,
+        "unlinked_lexically_candidates": unlinked_lexically_candidates,
+        "no_graded_link_candidates": no_graded_link_candidates,
+        # Back-compat aliases for older readers
         "overreach_unexplained": unexplained_overreach,
         "coverage_gaps_unexplained": unexplained_gaps,
         "dont_list": dont,
@@ -1182,6 +1197,10 @@ def run_judge_prep(
         "invalidated_decisions": invalidated,
         "prep_passed": prep_passed,
         "blockers": blockers,
+        "candidate_note": (
+            "no_graded_link / unlinked_lexically are lexical candidates only; "
+            "judge_rehearsal confirms via P-011 before preflight blocks"
+        ),
     }
 
     write_json(json_path, report)
@@ -1189,6 +1208,110 @@ def run_judge_prep(
     if not decisions_path.is_file():
         write_json(decisions_path, {"schema_version": DECISIONS_SCHEMA, "decisions": []})
     return report
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def validate_judge_rehearsal(
+    rehearsal: Dict[str, Any],
+    judge_prep_path: Path,
+    *,
+    require_all_candidates: bool = True,
+    prep_report: Optional[Dict[str, Any]] = None,
+) -> Tuple[List[str], Dict[str, Any]]:
+    """Return (blockers, summary). Empty blockers ⇒ rehearsal is preflight-ready."""
+    blockers: List[str] = []
+    if not judge_prep_path.is_file():
+        return ["judge_rehearsal: judge_prep.json missing"], {}
+
+    expected_fp = file_sha256(judge_prep_path)
+    got_fp = str(rehearsal.get("judge_prep_fingerprint") or "")
+    if not got_fp:
+        blockers.append("judge_rehearsal: missing judge_prep_fingerprint")
+    elif got_fp != expected_fp:
+        blockers.append(
+            f"judge_rehearsal: fingerprint mismatch (stale vs {judge_prep_path.name})"
+        )
+
+    triage = rehearsal.get("triage") or {}
+    cov_rows = list(triage.get("coverage") or [])
+    faith_rows = list(triage.get("faithfulness") or [])
+
+    if prep_report is None and judge_prep_path.is_file():
+        try:
+            prep_report = load_json(judge_prep_path)
+        except (json.JSONDecodeError, OSError):
+            prep_report = None
+
+    if require_all_candidates and prep_report and not prep_report.get("hard_stopped"):
+        need_cov = {
+            r["requirement_id"]
+            for r in (prep_report.get("coverage") or [])
+            if r.get("status") == STATUS_NO_GRADED_LINK
+        }
+        need_faith = {
+            r["assertion_id"]
+            for r in (prep_report.get("faithfulness") or [])
+            if r.get("status") == STATUS_UNLINKED_LEXICALLY
+        }
+        got_cov = {r.get("requirement_id") for r in cov_rows}
+        got_faith = {r.get("assertion_id") for r in faith_rows}
+        missing_c = sorted(need_cov - got_cov)
+        missing_f = sorted(need_faith - got_faith)
+        if missing_c:
+            blockers.append(f"judge_rehearsal: untagged coverage candidates: {','.join(missing_c)}")
+        if missing_f:
+            blockers.append(
+                f"judge_rehearsal: untagged faithfulness candidates: {','.join(missing_f)}"
+            )
+
+    confirmed_gaps: List[str] = []
+    confirmed_overreach: List[str] = []
+    for row in cov_rows:
+        v = row.get("verdict")
+        rid = row.get("requirement_id")
+        if v == "CONFIRMED_GAP":
+            confirmed_gaps.append(str(rid))
+            blockers.append(f"rehearsal:CONFIRMED_GAP:{rid}")
+        elif v == "UNDECIDED":
+            blockers.append(f"rehearsal:UNDECIDED_GAP:{rid}")
+        elif v not in ("NOT_A_GAP", "CONFIRMED_GAP", "UNDECIDED"):
+            blockers.append(f"rehearsal:bad_coverage_verdict:{rid}:{v}")
+
+    for row in faith_rows:
+        v = row.get("verdict")
+        aid = row.get("assertion_id")
+        if v == "CONFIRMED_OVERREACH":
+            confirmed_overreach.append(str(aid))
+            blockers.append(f"rehearsal:CONFIRMED_OVERREACH:{aid}")
+        elif v == "UNDECIDED":
+            blockers.append(f"rehearsal:UNDECIDED_OVERREACH:{aid}")
+        elif v not in ("NOT_OVERREACH", "CONFIRMED_OVERREACH", "UNDECIDED"):
+            blockers.append(f"rehearsal:bad_faith_verdict:{aid}:{v}")
+
+    summary = {
+        "judge_prep_fingerprint_ok": got_fp == expected_fp and bool(got_fp),
+        "confirmed_gaps": confirmed_gaps,
+        "confirmed_overreach": confirmed_overreach,
+        "n_coverage_triaged": len(cov_rows),
+        "n_faithfulness_triaged": len(faith_rows),
+        "platform_logic": rehearsal.get("platform_logic"),
+        "operational_bar_3_5": rehearsal.get("operational_bar_3_5"),
+    }
+    return blockers, summary
+
+
+def load_judge_rehearsal(path: Path) -> Optional[Dict[str, Any]]:
+    if not path.is_file():
+        return None
+    try:
+        return load_json(path)
+    except (json.JSONDecodeError, OSError):
+        return None
 
 
 def resolve_from_session(task_name: str) -> Tuple[Path, Path, Path, Optional[str]]:

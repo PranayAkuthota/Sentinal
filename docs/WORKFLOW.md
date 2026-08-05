@@ -72,4 +72,6 @@ Do not claim a later stage complete if an earlier stage’s **Validation** faile
 There is currently **no Valid-as-is package** in local history, so discrimination checks for
 `judge_prep` / S10.5 have used post-fix Fixable `working_copy` trees as a weak control.
 **Re-run the backtest control against the first genuinely Valid-as-is task we intake** before
-trusting gap/overreach pile comparisons as evidence of calibrations.
+trusting CONFIRMED gap/overreach pile comparisons as evidence of calibrations.
+Measure discrimination on rehearsal **CONFIRMED_*** counts, not lexical `unlinked_lexically` /
+`no_graded_link` candidate piles (those stay large on behavioural instructions by design).

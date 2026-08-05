@@ -66,7 +66,10 @@ intake → prepare → audit → (Execution 01–04) → set-verdicts
 ```
 
 `preflight` / `package-fixable` refuse `ready_to_package` while any static-check **FIXABLE** or **NOT_FIXABLE** finding is open. **ADVISORY** findings warn only.  
-`judge-prep` blockers (unexplained gaps/overreach, UNDECIDED allow_extra, auto-REMOVE cites, invalidated decisions) also refuse packaging unless `--accept-risk` is recorded.
+`judge-prep` blockers (auto-REMOVE cites, UNDECIDED allow_extra, packaging, invalidated decisions)
+plus rehearsal CONFIRMED_GAP / CONFIRMED_OVERREACH / missing-or-stale `judge_rehearsal.json` also
+refuse packaging unless `--accept-risk` is recorded. Lexical `unlinked_lexically` /
+`no_graded_link` candidates do not block by themselves.
 
 ## Outputs
 

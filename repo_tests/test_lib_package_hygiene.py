@@ -64,6 +64,41 @@ class LibPackageHygieneTests(unittest.TestCase):
                 self.assertIn("instruction.md", names)
                 self.assertFalse(any(n.startswith("runs/") for n in names))
 
+    def test_empty_git_refs_survive_packaging(self):
+        """zip -rX keeps empty .git/refs/heads; Python zipfile must match."""
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            root = base / "taskroot"
+            for name in ("environment/repo/.git/refs/heads", "solution", "tests"):
+                (root / name).mkdir(parents=True)
+            (root / "instruction.md").write_text("i\n", encoding="utf-8")
+            (root / "task.toml").write_text("x=1\n", encoding="utf-8")
+            (root / "environment" / "Dockerfile").write_text("FROM x\n", encoding="utf-8")
+            (root / "environment" / "repo" / ".git" / "HEAD").write_text(
+                "ref: refs/heads/main\n", encoding="utf-8"
+            )
+            (root / "solution" / "solve.sh").write_text("#!/bin/bash\n", encoding="utf-8")
+            (root / "tests" / "test.sh").write_text("#!/bin/bash\n", encoding="utf-8")
+            # empty dirs: refs/ and refs/heads/ (no files inside heads)
+            dest = base / "out.zip"
+            package_flat_task_zip(root, dest)
+            ok, errors = verify_corrected_zip(dest)
+            self.assertTrue(ok, errors)
+            listing = subprocess.check_output(["unzip", "-l", str(dest)], text=True)
+            self.assertIn("refs/", listing)
+            with zipfile.ZipFile(dest) as zf:
+                names = zf.namelist()
+                self.assertTrue(
+                    any("refs/" in n for n in names),
+                    f"refs/ missing from {names}",
+                )
+                self.assertTrue(
+                    any(n.rstrip("/").endswith("refs/heads") or "refs/heads/" in n for n in names),
+                    f"refs/heads missing from {names}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "id": "V10",
+      "severity": "FIXABLE",
+      "summary": "1 test(s) assert only that a path exists"
+    }
+  ],
+  "fixable_ids": [
+    "V10"
+  ],
+  "advisory_ids": [],
+  "not_fixable_ids": [],
+  "ok": false
+}

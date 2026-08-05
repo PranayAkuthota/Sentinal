@@ -1,0 +1,17 @@
+{
+  "findings": [
+    {
+      "id": "PH1",
+      "severity": "FIXABLE",
+      "summary": "tests.patch health failure (hunk mismatch)",
+      "category": "Tests",
+      "where": "tests/tests.patch"
+    }
+  ],
+  "fixable_ids": [
+    "PH1"
+  ],
+  "advisory_ids": [],
+  "not_fixable_ids": [],
+  "ok": false
+}

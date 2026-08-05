@@ -1,0 +1,10 @@
+{
+  "fail_to_pass": [
+    "test_status_ok",
+    "test_schema_keys",
+    "test_reject_missing",
+    "test_count_threshold"
+  ],
+  "pass_to_pass": [],
+  "allow_extra_failures": false
+}

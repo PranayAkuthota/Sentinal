@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "id": "V11",
+      "severity": "ADVISORY",
+      "summary": "Possible agent controls coverage"
+    }
+  ],
+  "fixable_ids": [],
+  "advisory_ids": [
+    "V11"
+  ],
+  "not_fixable_ids": [],
+  "ok": true
+}

@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "id": "V9",
+      "severity": "FIXABLE",
+      "summary": "Source-text assertion (keyword/substring scan of source code)"
+    }
+  ],
+  "fixable_ids": [
+    "V9"
+  ],
+  "advisory_ids": [],
+  "not_fixable_ids": [],
+  "ok": false
+}

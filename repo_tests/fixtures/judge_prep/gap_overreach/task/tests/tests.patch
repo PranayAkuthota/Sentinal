@@ -1,0 +1,11 @@
+diff --git a/tests/test_svc.py b/tests/test_svc.py
+--- a/tests/test_svc.py
++++ b/tests/test_svc.py
+@@ -0,0 +1,12 @@
++def test_internal_helper_name():
++    # overreach: asserts private name never stated
++    assert _secret_widget_factory is not None
++
++def test_json_key_order():
++    raw = '{"a":1,"b":2}'
++    assert raw == '{"a":1,"b":2}'

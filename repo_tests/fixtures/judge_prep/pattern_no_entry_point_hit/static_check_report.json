@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "id": "V14",
+      "severity": "ADVISORY",
+      "summary": "Instruction describes a CLI/service/entry point"
+    }
+  ],
+  "fixable_ids": [],
+  "advisory_ids": [
+    "V14"
+  ],
+  "not_fixable_ids": [],
+  "ok": true
+}

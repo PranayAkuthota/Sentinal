@@ -1,0 +1,19 @@
+diff --git a/tests/test_widget.py b/tests/test_widget.py
+--- a/tests/test_widget.py
++++ b/tests/test_widget.py
+@@ -0,0 +1,20 @@
++def test_status_ok():
++    result = {"status": "ok", "count": 2}
++    assert result["status"] == "ok"
++
++def test_schema_keys():
++    result = {"status": "ok", "count": 2}
++    assert "status" in result and "count" in result
++
++def test_reject_missing():
++    exit_code = 1
++    assert exit_code != 0
++
++def test_count_threshold():
++    count = 2
++    assert count >= 1

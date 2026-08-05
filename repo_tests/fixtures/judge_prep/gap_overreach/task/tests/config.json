@@ -1,0 +1,8 @@
+{
+  "fail_to_pass": [
+    "test_internal_helper_name",
+    "test_json_key_order"
+  ],
+  "pass_to_pass": [],
+  "allow_extra_failures": false
+}

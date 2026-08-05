@@ -1,0 +1,15 @@
+{
+  "findings": [
+    {
+      "id": "V9",
+      "severity": "FIXABLE",
+      "summary": "Silent skip in added test code"
+    }
+  ],
+  "fixable_ids": [
+    "V9"
+  ],
+  "advisory_ids": [],
+  "not_fixable_ids": [],
+  "ok": false
+}

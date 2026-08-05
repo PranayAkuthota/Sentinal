@@ -1,0 +1,16 @@
+{
+  "findings": [
+    {
+      "id": "V0",
+      "severity": "FIXABLE",
+      "summary": "config.json does not parse",
+      "category": "Tests"
+    }
+  ],
+  "fixable_ids": [
+    "V0"
+  ],
+  "advisory_ids": [],
+  "not_fixable_ids": [],
+  "ok": false
+}

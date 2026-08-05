@@ -75,6 +75,19 @@ class JudgePrepLinkStatusTests(unittest.TestCase):
     def test_no_overlap_none(self):
         self.assertEqual(jp.link_status({"alpha"}, {"beta"}), "none")
 
+    def test_linked_spot_check_deterministic(self):
+        faith = [{"assertion_id": f"A{i}", "status": "ok"} for i in range(1, 21)]
+        faith.append({"assertion_id": "A99", "status": "unlinked_lexically"})
+        s1 = jp.sample_linked_spot_check(faith, seed="abc123")
+        s2 = jp.sample_linked_spot_check(faith, seed="abc123")
+        self.assertEqual(s1["assertion_ids"], s2["assertion_ids"])
+        self.assertEqual(s1["sample_size"], max(5, int(__import__("math").ceil(20 * 0.10))))
+        self.assertEqual(s1["population"], 20)
+        self.assertNotIn("A99", s1["assertion_ids"])
+        s3 = jp.sample_linked_spot_check(faith, seed="other")
+        # different seed usually different order/set; at least seed recorded
+        self.assertEqual(s3["seed"], "other")
+
 
 class JudgePrepGapOverreachTests(unittest.TestCase):
     def test_lexical_candidates_do_not_block_prep(self):
@@ -218,9 +231,34 @@ class JudgePrepRehearsalValidateTests(unittest.TestCase):
                 "schema_version": 1,
                 "judge_prep_fingerprint": fp,
                 "triage": {"coverage": cov_rows, "faithfulness": faith_rows},
+                "linked_spot_check": {
+                    "seed": (r.get("linked_spot_check") or {}).get("seed"),
+                    "assertion_ids": (r.get("linked_spot_check") or {}).get("assertion_ids") or [],
+                    "triage": [
+                        {
+                            "assertion_id": aid,
+                            "prep_status": "ok",
+                            "verdict": "NOT_OVERREACH",
+                            "bucket": "a",
+                            "rationale": "sample clear",
+                        }
+                        for aid in ((r.get("linked_spot_check") or {}).get("assertion_ids") or [])
+                    ],
+                },
             }
-            blockers2, _ = jp.validate_judge_rehearsal(reh2, prep_path, prep_report=r)
+            blockers2, summary2 = jp.validate_judge_rehearsal(reh2, prep_path, prep_report=r)
             self.assertEqual(blockers2, [], blockers2)
+
+            # SAMPLE_HIT is a warning signal, not a packaging blocker
+            if (r.get("linked_spot_check") or {}).get("assertion_ids"):
+                aid0 = r["linked_spot_check"]["assertion_ids"][0]
+                reh_hit = json.loads(json.dumps(reh2))
+                reh_hit["linked_spot_check"]["triage"][0]["verdict"] = "SAMPLE_HIT"
+                blockers_hit, summary_hit = jp.validate_judge_rehearsal(
+                    reh_hit, prep_path, prep_report=r
+                )
+                self.assertEqual(blockers_hit, [], blockers_hit)
+                self.assertIn(aid0, summary_hit.get("sample_hits") or [])
 
             reh_stale = {**reh2, "judge_prep_fingerprint": "0" * 64}
             blockers3, _ = jp.validate_judge_rehearsal(reh_stale, prep_path, prep_report=r)

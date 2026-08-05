@@ -53,6 +53,19 @@ For each triage-bound assertion (GRADED = high severity; UNGRADED = medium — b
 
 Only **(c)** / **CONFIRMED_*** rows block preflight. Prep alone never blocks on lexical unlink.
 
+### Linked-row spot check (`status=ok` sample)
+
+Strong-linked rows normally bypass triage (that is how eb599683’s path-suffix miss escaped).
+`judge_prep.json` → `linked_spot_check` samples **max(5, ceil(10% of linked))** assertion ids
+with a recorded **seed** (reproducible). Apply the same P-011 three-way to every sampled id.
+
+- **(a)/(b)** → `NOT_OVERREACH`
+- **(c)** → **`SAMPLE_HIT`** (not `CONFIRMED_OVERREACH`) — signal that the matcher is
+  over-confident; recommend widening triage for this task. Does **not** alone hard-block
+  packaging, but must be recorded in `judge_rehearsal.json`.
+
+Copy `linked_spot_check.seed` and `assertion_ids` into the rehearsal output unchanged.
+
 ## Pass A — adversarial coverage (“stub solution”)
 
 Assume a stub / minimal implementation that barely touches the instruction surface.
@@ -178,13 +191,29 @@ notes: ...
   },
   "confirmed_gaps": ["R…"],
   "confirmed_overreach": ["A…"],
+  "linked_spot_check": {
+    "seed": "<from judge_prep.linked_spot_check.seed>",
+    "assertion_ids": ["A…"],
+    "triage": [
+      {
+        "assertion_id": "A23",
+        "prep_status": "ok",
+        "bucket": "a|b|c",
+        "verdict": "NOT_OVERREACH|SAMPLE_HIT|UNDECIDED",
+        "rationale": "..."
+      }
+    ],
+    "sample_hits": []
+  },
   "platform_logic": "REMOVE|DISCUSS|OK",
   "operational_bar_3_5": "PASS|REFUSE_PACKAGE"
 }
 ```
 
-Triage **every** prep candidate row (`unlinked_lexically` **and** `weak_link`). Do not omit
-medium-severity UNGRADED asserts. A single shared identifier is never a free pass.
+Triage **every** prep candidate row (`unlinked_lexically` **and** `weak_link`) **and** every
+`linked_spot_check.assertion_ids` entry. Do not omit medium-severity UNGRADED asserts.
+A single shared identifier is never a free pass. Record any `SAMPLE_HIT` and recommend
+widening triage when the sample finds overreach in “green” rows.
 
 ## Do not
 

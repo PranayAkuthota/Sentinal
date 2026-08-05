@@ -18,7 +18,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
+import random
 import re
 import subprocess
 import sys
@@ -378,6 +380,48 @@ STATUS_NO_GRADED_LINK = "no_graded_link"
 # Faithfulness rows that must be P-011-triaged (not confident green).
 FAITHFULNESS_TRIAGE_STATUSES = frozenset({STATUS_UNLINKED_LEXICALLY, STATUS_WEAK_LINK})
 COVERAGE_TRIAGE_STATUSES = frozenset({STATUS_NO_GRADED_LINK, STATUS_WEAK_LINK})
+
+
+def sample_linked_spot_check(
+    faithfulness: List[Dict[str, Any]],
+    *,
+    seed: str,
+) -> Dict[str, Any]:
+    """Deterministic spot-check of status=ok (strong-linked) faithfulness rows.
+
+    Sample size = max(5, ceil(10% of linked population)), capped at population.
+    Seed is recorded so a re-run selects the same assertion ids.
+    """
+    linked_ids = sorted(
+        r["assertion_id"] for r in faithfulness if r.get("status") == "ok"
+    )
+    n = len(linked_ids)
+    if n == 0:
+        return {
+            "seed": seed,
+            "population": 0,
+            "sample_size": 0,
+            "sample_rule": "max(5, ceil(0.10 * population))",
+            "assertion_ids": [],
+            "note": "no status=ok linked rows to sample",
+        }
+    k = min(n, max(5, int(math.ceil(n * 0.10))))
+    rng = random.Random(int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16], 16))
+    shuffled = list(linked_ids)
+    rng.shuffle(shuffled)
+    sample_ids = sorted(shuffled[:k])
+    return {
+        "seed": seed,
+        "population": n,
+        "sample_size": k,
+        "sample_rule": "max(5, ceil(0.10 * population))",
+        "assertion_ids": sample_ids,
+        "note": (
+            "Rehearsal applies P-011 to these strong-linked rows. "
+            "CONFIRMED overreach in the sample → SAMPLE_HIT (matcher may be over-confident; "
+            "consider widening triage for this task)."
+        ),
+    }
 
 
 def _faithfulness_severity(grade: str, status: str) -> Optional[str]:
@@ -1003,6 +1047,16 @@ def render_md(report: Dict[str, Any]) -> str:
     L.append("")
     L.append(f"accept_risk (workflow_state): {report.get('accept_risk') or 'unset'}")
     L.append("")
+    spot = report.get("linked_spot_check") or {}
+    if spot:
+        L.append("## 6b. Linked-row spot check (strong `ok` sample)")
+        L.append(
+            f"seed=`{spot.get('seed')}` population={spot.get('population')} "
+            f"sample_size={spot.get('sample_size')} rule=`{spot.get('sample_rule')}`"
+        )
+        L.append(f"assertion_ids: {', '.join(spot.get('assertion_ids') or []) or '—'}")
+        L.append(f"> {spot.get('note') or ''}")
+        L.append("")
     L.append("## 7. Handoff to judge_rehearsal")
     L.append(
         "Run `Prompts/modules/judge_rehearsal.md`: triage every `no_graded_link`, "
@@ -1222,6 +1276,11 @@ def run_judge_prep(
 
     prep_passed = len(blockers) == 0
 
+    spot_seed = hashlib.sha256(
+        f"{task_name or task_root.name}|{len(asserts)}|{len(reqs)}|{len(faithfulness_triage_candidates)}".encode()
+    ).hexdigest()[:16]
+    linked_spot_check = sample_linked_spot_check(faithfulness, seed=spot_seed)
+
     report = {
         **base_report,
         "requirements": reqs,
@@ -1241,6 +1300,7 @@ def run_judge_prep(
         "unlinked_lexically_candidates": unlinked_lexically_candidates,
         "weak_link_candidates": weak_link_candidates,
         "no_graded_link_candidates": no_graded_link_candidates,
+        "linked_spot_check": linked_spot_check,
         # Back-compat aliases for older readers
         "overreach_unexplained": unexplained_overreach,
         "coverage_gaps_unexplained": unexplained_gaps,
@@ -1253,7 +1313,8 @@ def run_judge_prep(
         "blockers": blockers,
         "candidate_note": (
             "no_graded_link / unlinked_lexically / weak_link are lexical candidates only; "
-            "judge_rehearsal confirms via P-011 before preflight blocks"
+            "judge_rehearsal confirms via P-011 before preflight blocks. "
+            "linked_spot_check samples status=ok rows for SAMPLE_HIT detection."
         ),
     }
 
@@ -1347,12 +1408,50 @@ def validate_judge_rehearsal(
         elif v not in ("NOT_OVERREACH", "CONFIRMED_OVERREACH", "UNDECIDED"):
             blockers.append(f"rehearsal:bad_faith_verdict:{aid}:{v}")
 
+    # Linked-row spot check (strong ok sample) — SAMPLE_HIT is a signal, not a packaging block
+    warnings: List[str] = []
+    sample_hits: List[str] = []
+    spot = (prep_report or {}).get("linked_spot_check") or rehearsal.get("linked_spot_check") or {}
+    need_sample = set(spot.get("assertion_ids") or [])
+    sample_rows = list((triage.get("linked_spot_check") or rehearsal.get("linked_spot_check_triage") or []))
+    if isinstance(sample_rows, dict):
+        sample_rows = list(sample_rows.get("triage") or [])
+    got_sample = {r.get("assertion_id") for r in sample_rows if isinstance(r, dict)}
+    if require_all_candidates and need_sample:
+        missing_s = sorted(need_sample - got_sample)
+        if missing_s:
+            blockers.append(
+                f"judge_rehearsal: untagged linked_spot_check sample: {','.join(missing_s)}"
+            )
+        # seed must match prep when both present
+        reh_spot = rehearsal.get("linked_spot_check") or {}
+        if reh_spot.get("seed") and spot.get("seed") and reh_spot.get("seed") != spot.get("seed"):
+            blockers.append("judge_rehearsal: linked_spot_check seed mismatch vs judge_prep")
+    for row in sample_rows:
+        if not isinstance(row, dict):
+            continue
+        v = row.get("verdict")
+        aid = row.get("assertion_id")
+        if v == "SAMPLE_HIT" or (v == "CONFIRMED_OVERREACH" and aid in need_sample):
+            sample_hits.append(str(aid))
+            warnings.append(
+                f"SAMPLE_HIT:{aid} — strong-linked row looks like overreach; "
+                "consider widening triage for this task"
+            )
+        elif v == "UNDECIDED":
+            blockers.append(f"rehearsal:UNDECIDED_SAMPLE:{aid}")
+        elif v not in ("NOT_OVERREACH", "SAMPLE_HIT", "CONFIRMED_OVERREACH", "UNDECIDED", None):
+            blockers.append(f"rehearsal:bad_sample_verdict:{aid}:{v}")
+
     summary = {
         "judge_prep_fingerprint_ok": got_fp == expected_fp and bool(got_fp),
         "confirmed_gaps": confirmed_gaps,
         "confirmed_overreach": confirmed_overreach,
+        "sample_hits": sample_hits,
+        "warnings": warnings,
         "n_coverage_triaged": len(cov_rows),
         "n_faithfulness_triaged": len(faith_rows),
+        "n_sample_triaged": len(sample_rows),
         "platform_logic": rehearsal.get("platform_logic"),
         "operational_bar_3_5": rehearsal.get("operational_bar_3_5"),
     }

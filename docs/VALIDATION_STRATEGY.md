@@ -1,6 +1,6 @@
 # Judge validation strategy
 
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ## Stop measuring discrimination against history
 
@@ -101,3 +101,15 @@ Calibrate prompts and map rules from these rates only — never from historical 
 **Retrospective joins** (prediction `source: "retrospective backtest"`) are reported in a
 separate `judge_stats.py` section. Precision is suppressed there: the live judge cites
 selectively, so an unmentioned flag is not a false positive. Use recall on cited artifacts only.
+
+## Known limitation — strong-linked assertions (eb599683)
+
+Baseline retrospective recall on eb599683: **3/4** citations matched (CellMap, ValueError,
+`.python-version` packaging). The unmatched class was **atypical path suffix vs decode** —
+those asserts were status=`ok` (strong lexical link) and never entered P-011 triage.
+
+Mitigation (not full triage of every linked row): `judge_prep` emits `linked_spot_check` —
+a deterministic sample of `max(5, ceil(10%))` of status=`ok` faithfulness rows, with the
+**seed recorded** for reproducibility. Rehearsal applies P-011 to the sample; confirmed
+overreach → **`SAMPLE_HIT`** (signal to widen triage for that task). See
+`Prompts/modules/judge_rehearsal.md`.

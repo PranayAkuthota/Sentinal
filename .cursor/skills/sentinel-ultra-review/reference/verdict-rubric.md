@@ -173,3 +173,13 @@ Worked example (FAQ): source PR adds CSV export to a reports page.
 Why it matters: the task is anchored to a real PR via `task.toml`. If the task no longer
 resembles the PR, the link is misleading and the dataset loses its grounding in real-world
 engineering work.
+
+---
+
+## Legacy mapping note
+
+- Old **“Valid with no changes”** approximately maps to current **“Valid as-is.”**
+- Old **“Invalid with minor changes”** and **“Invalid with major changes”** generally map to **“Fixable”** when correction is allowed.
+- An old **“Invalid”** result maps to **“Not Fixable”** only when it meets current Not Fixable criteria.
+- Older platforms sometimes offered only **Valid** / **Invalid** without the minor/major split. Use those labels **only** when the live platform form still presents them.
+- Do not mix verdict names across versions.

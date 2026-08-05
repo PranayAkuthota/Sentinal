@@ -1,0 +1,185 @@
+---
+description: Full Sentinel Ultra policy beyond the always-on budget — precedence, roles, branch-aware submitter cross-ref, scope/difficulty after corrections, platform evals, local-validation role split, write-up standards. Load when reviewing or fixing Harbor tasks in depth.
+alwaysApply: false
+---
+
+# Sentinel Ultra — Policy Detail
+
+If this file conflicts with `.cursor/rules/Review_Guidelines.mdc`, follow `Review_Guidelines.mdc`.  
+Harbor mechanics: `.cursor/skills/sentinel-ultra-review/reference/`.  
+Submitter procedure: `Sentinel_Submitter_Platform_Workflow.mdc`.  
+Reviewer procedure: `Sentinel_Reviewer_Step_by_Step.mdc`.
+
+Placement source: `docs/PROMPT7_RULE_BUDGET_PLACEMENT.md` (rows MOVE → Policy_Detail).
+
+---
+
+## Authority and file roles
+
+Authoritative combined policy for **Sentinel Ultra** Harbor tasks and older Sentinel packages that may still use legacy file names or platform terminology.
+
+**File roles:**
+
+- Official Ultra docs + `.cursor/skills/sentinel-ultra-review/reference/` — Harbor format / mechanical policy detail
+- `.cursor/rules/Review_Guidelines.mdc` — sole always-on controlling budget (verdicts, principles, Judge bar, metadata, never-list)
+- This file — expanded policy that does not need every session
+- `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` — complete **branch-aware** submitter platform workflow
+- `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` — reviewer procedure
+- `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` — quick reference / field mapping
+- `CLAUDE.md` — Cursor orchestration / automation
+- `document 1.txt` / `document 2.txt` / `document 3.txt` — official Ultra local mirrors
+
+Official Ultra documentation, live platform fields, and the ultra-review skill `reference/` outrank stored templates when they conflict. Legacy compatibility rules never override current Sentinel Ultra policy.
+
+---
+
+## Source precedence
+
+Operational precedence (highest first):
+
+1. Latest authoritative Sentinel Ultra documentation and **live platform fields**
+2. `.cursor/skills/sentinel-ultra-review/reference/` + `scripts/check_task.py` (Harbor mechanical policy)
+3. Current user instruction, only when it does not conflict with authoritative project requirements
+4. `.cursor/rules/Review_Guidelines.mdc` (always-on budget)
+5. Role-specific workflow (submitter / reviewer `.mdc`)
+6. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`
+7. Clearly labelled legacy compatibility rules
+
+Clarifications:
+
+- A user may select the task, role, output, and workflow.
+- A user instruction must **not** override official validity, safety, packaging, or evaluation requirements unless the user supplies newer authoritative documentation.
+- The **live platform form** controls the exact fields that must be answered.
+- When the live form conflicts with an old stored template, follow the live form.
+- Never let a March 2026 rule override the July 22, 2026 Sentinel Ultra documentation.
+- Older rules remain available only for **legacy task packages** and older platform forms.
+- **Never mix** verdict names or upload formats from different versions.
+- **Current format is the default** unless a task clearly contains legacy structure.
+- Ambiguous tasks use **current rules**; legacy artifacts are **compatibility inputs**.
+
+---
+
+## Branch-aware submitter cross-reference
+
+Does not weaken Ultra policy:
+
+- Branch actions depend on **Duplicate Analysis**.
+- Original ZIP is always preserved.
+- Fixable changes occur only in a separate `working_copy/`.
+- On Fixable corrected current packages: ensure Harbor network blocks (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); remove `network_mode="none"` from `docker_compose.yaml` if present; normalize `solution.patch` → `golden.patch`; new f2p tests go in `tests.patch` (never edit existing p2p tests).
+- Invalid evidence packages are **not** corrected submission ZIPs.
+- Valid-as-is tasks remain unchanged (no new ZIP).
+- Public must match Duplicate; Internal Validity is separate (nine combinations).
+- Packaging requires automation preflight; structural checks ≠ semantic proof.
+- End-to-end submitter steps: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`.
+
+---
+
+## Purpose and workflow stages
+
+**Sentinel Ultra** creates high-quality **Harbor-format** software-engineering tasks drawn from real open-source **PRs, commits, or issues**. The dataset trains and evaluates frontier coding agents and models on realistic engineering work.
+
+Correctness, completeness, and resistance to reward hacking matter more than superficial difficulty. Platform evals help confirm difficulty; Expert Contributors (ECs) focus on errors and gaps automated checks cannot catch.
+
+Workflow:
+
+1. **Authoring** — task created from the source.
+2. **Submission** — an EC reviews the task, decides a submitter verdict, and fixes it if needed.
+3. **Review** — a second EC independently verifies the submission.
+4. **Adjudication** — a final pass resolves disagreements.
+5. **Delivery** — accepted tasks are delivered to train and evaluate coding agents.
+
+If unfamiliar with Harbor, review Harbor documentation / skill `reference/harbor-format.md` and `glossary.md`.
+
+---
+
+## Contributor roles
+
+Do **not** combine submitter and reviewer verdict systems (also in always-on Never list).
+
+### Submitter
+
+- Reviews the initial task.
+- Chooses **Valid as-is**, **Fixable**, or **Not Fixable**.
+- Corrects allowed files when the task is Fixable.
+- Runs or verifies the required checks.
+- Repackages and uploads the corrected task.
+- Iterates until the platform checks pass.
+
+Paste-ready platform answers and ZIP/metadata handling: `Sentinel_Submitter_Platform_Workflow.mdc`. Map internal assessments to live form labels exactly (Not Fixable → **Invalid/Not Fixable** / **Invalid** / **Invalid/Not Fixable**).
+
+### Reviewer
+
+- Independently checks the submitter’s work.
+- Does **not** merely copy the submitter’s conclusion.
+- Chooses **Accept**, **Needs Revision**, or **Reject**.
+- Uses **Reject** only after maximum revision cycles are exhausted.
+- Checks comments or rebuttal before final submission.
+- Assigns the current **Submission Quality Score**.
+- May run local checks but is **not required** to run Harbor end to end.
+
+### Adjudicator
+
+- Resolves disagreements.
+- Reviews unresolved defects.
+- Makes the final decision when required.
+
+### Reviewer outcomes (summary)
+
+| Outcome | When |
+|---------|------|
+| **Accept** | Submission is accurate, complete, and well-supported; corrected task meets requirements. |
+| **Needs Revision** | Task still has authoring errors the submitter can fix. Prefer this while revision cycles remain. |
+| **Reject** | Use **only** after maximum revision cycles are exhausted and more work is still needed. |
+
+Also assign a **Submission Quality Score** (1–5). Read **Comments for Reviewer** / rebuttal before finishing and acknowledge whether those notes changed the decision.
+
+---
+
+## Difficulty handling after corrections
+
+Full PR-scope and edit rules: `reference/core-principles.md` and `reference/verdict-rubric.md`.
+
+If instruction, test, or oracle corrections make the task easier:
+
+1. First remove unnecessary prescriptive hints from the instruction.
+2. Re-run or review the difficulty evaluation.
+3. Expand only the original PR scope when additional difficulty is needed.
+4. Keep added requirements naturally related to the source PR.
+5. Update the instruction, tests, and oracle together.
+6. Never create difficulty through vagueness, arbitrary naming, missing context, or unrelated requirements.
+
+---
+
+## Local validation by role
+
+This role distinction replaces the old universal statement that contributors should never run local checks.
+
+- **Submitter Valid as-is:** local oracle reward `1.0` and NOP/unsolved `0.0` **required** when available.
+- **Submitter Fixable:** strongly recommended.
+- **Reviewer:** optional (may run when needed to verify a finding).
+- Never invent rewards (always-on Never list).
+
+---
+
+## Platform evaluations
+
+Order (August 4, 2026): Agent Judge (Quality Check) before Difficulty. If Judge fails, Difficulty does not run (`Blocked at the agentic judge…`). Drive every Agent Judge axis to **≥ 3.5** (blocking axes: `test_coverage`, `test_faithfulness`) before treating Difficulty as in-scope. Difficulty: **4 trials per model**; worse-performing model pass rate **≤ 50%**. Details: skill FAQ + `knowledge/patterns/P-010` / `P-011`.
+
+In-app platform checks have a five-minute runtime limit — do not claim a run completed if the platform stopped for that limit. Valid as-is tasks are not re-run by platform difficulty evals.
+
+---
+
+## Agent-run analysis
+
+Inspect **all** failing agent trials and at least one passing trial when available. Cite concrete logs for timeouts, systematic misunderstandings, and instability. Smaller newer run counts (e.g. two runs) are expected for some batches and are not packaging defects.
+
+---
+
+## Write-up standards (legacy retained)
+
+Useful legacy expectations retained:
+
+- Submitters should document review steps clearly enough that another EC can replicate the workflow.
+- Reviewers should reject vague, unverifiable, or incomplete analysis (on older Accept/Reject forms) or send Needs Revision on current forms when write-up quality fails.
+- Do not invent numbered Invalid-issue details that the submitter did not provide when acting as a reviewer automation helper — that belongs in `CLAUDE.md` workflow, not as a substitute for platform evidence.

@@ -163,3 +163,51 @@ before submitting, and record the rename in your Files Changed list:
 If a variant is load-bearing for a task that otherwise works end-to-end, keep the working
 wiring but make sure `test.sh` and `config.json` agree with wherever the files actually live —
 and say so in your reviewer comments.
+
+---
+
+## Legacy artifacts (compatibility inputs)
+
+| Legacy artifact | Current treatment |
+| --- | ----- |
+| `solution/init_state.patch` | Read when supplied in a legacy task. Do **not** automatically treat its absence as a defect. For current uploads use `golden.patch`. |
+| `solution/solution.patch` | Rename to `golden.patch` for current Sentinel Ultra upload. |
+| `tests/files/` | Read when present in older tasks but do **not** treat it as the replacement for current `tests.patch`, `config.json`, or `grade.py`. |
+| Missing `problem_statement.md` | Current task packaging issue. It should exactly match `instruction.md`. |
+| Old Valid/Invalid form | Use only when the actual platform still presents that form. |
+| Current Sentinel Ultra form | Use **Valid as-is**, **Fixable**, or **Not Fixable**. |
+
+How reverse `init_state.patch` worked (older packages): lines added (`+`) in the patch = code removed from the solution (broken state); lines removed (`-`) = code added by the solution. Missing `init_state.patch` alone is not a defect. Current uploads use forward `golden.patch`.
+
+---
+
+## Metadata validity — not a four-field filter
+
+Some legacy Cursor/automation notes claimed only `source` and the three timeouts could make a task Invalid. That rule is **not** the current Ultra controlling policy. Check **all** metadata fields; verdict and fixability follow the current form and July 22, 2026 guidelines. Timeouts and source remain important, but they are not an exclusive validity filter.
+
+---
+
+## License options (platform forms)
+
+Identify the project license when the platform asks. Check `environment/repo/LICENSE` (or similar), README, then upstream via `source` if needed.
+
+Common listed options: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.1, LGPL-3.0, MPL-2.0, EPL-1.0, EPL-2.0, CPL-1.0, OSL-3.0, RPL-1.5, **Other** (multi-license, unlicensed, or not listed).
+
+Licenses often mapped to **Other** when not listed: MIT, Apache 2.0, BSD 2-Clause, BSD 3-Clause, ISC, Unlicense, CC0.
+
+---
+
+## Category values (reference)
+
+| Category | Description |
+|----------|-------------|
+| Fix | Fixing known bugs or faults within the codebase |
+| Feature | Introducing new internal or user-oriented features |
+| Refactor | Restructuring for maintainability |
+| Documentation | Docs, comments, README, API docs |
+| Build | Build configuration changes |
+| Performance | Performance improvements |
+| Chore | Housekeeping, dependency bumps, version increments |
+| (Ultra free-form) | Current `task.toml` may also use other category labels (e.g. security); edit if needed for accuracy |
+
+Prefer labels on the **current** platform form and in the task’s `task.toml`.

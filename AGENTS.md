@@ -31,6 +31,9 @@ Follow `CLAUDE.md` for mode routing. Policy authority: official Ultra docs + `.c
 | Execution layer | `docs/EXECUTION_LAYER.md` |
 | Patterns | `knowledge/patterns/INDEX.md` |
 | Reviewer | `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` |
+| Always-on budget (≤120) | `.cursor/rules/Review_Guidelines.mdc` |
+| Expanded Ultra policy | `.cursor/rules/Sentinel_Ultra_Policy_Detail.mdc` |
+| Automation `*.py` invariants | `.cursor/rules/Sentinel_Automation_Invariants.mdc` |
 | Skills | `.cursor/skills/sentinel-*` |
 
 ## Reviewer (short)

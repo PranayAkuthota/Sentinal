@@ -1,465 +1,65 @@
 ---
 alwaysApply: true
 ---
-# Project Sentinel Contributor Guidelines
-
-**Last updated:** July 22, 2026 (Sentinel Ultra merge); July 23, 2026 branch-aware submitter cross-ref; August 4, 2026 Agent Judge–first eval order; August 5, 2026 Harbor network blocks required + agent.timeout_sec max 7200
-
-Authoritative combined policy for **Sentinel Ultra** Harbor tasks and older Sentinel packages that may still use legacy file names or platform terminology.
-
-**File roles:**
-
-- Official Ultra docs + `.cursor/skills/sentinel-ultra-review/reference/` — Harbor format / mechanical policy detail  
-- This file (`.cursor/rules/Review_Guidelines.mdc`) — controlling combined policy + pointers  
-- `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` — branch-aware submitter workflow  
-- `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` — reviewer procedure  
-- `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` — quick reference  
-- `CLAUDE.md` — Cursor orchestration / automation  
-- `document 1.txt` / `document 2.txt` / `document 3.txt` — official Ultra local mirrors  
-
-Official Ultra documentation, live platform fields, and the ultra-review skill `reference/` outrank stored templates when they conflict.
-
-If supporting files conflict with this file, follow this file (`Review_Guidelines.mdc`). Legacy compatibility rules never override current Sentinel Ultra policy. This is the only `.mdc` with `alwaysApply: true`.
-
-**Cursor workspace branch-aware cross-reference (does not weaken Ultra policy):**
-
-- Branch actions depend on **Duplicate Analysis**.
-- Original ZIP is always preserved.
-- Fixable changes occur only in a separate `working_copy/`.
-- On Fixable corrected current packages: ensure Harbor network blocks (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); remove `network_mode="none"` from `docker_compose.yaml` if present; normalize `solution.patch` → `golden.patch`; new f2p tests go in `tests.patch` (never edit existing p2p tests).
-- Invalid evidence packages are **not** corrected submission ZIPs.
-- Valid-as-is tasks remain unchanged (no new ZIP).
-- Public must match Duplicate; Internal Validity is separate (nine combinations).
-- Packaging requires automation preflight; structural checks ≠ semantic proof.
-- End-to-end submitter steps: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`.
-
----
-
-## Source Precedence and Version Compatibility
-
-Operational precedence (highest first):
-
-1. Latest authoritative Sentinel Ultra documentation and **live platform fields**
-2. `.cursor/skills/sentinel-ultra-review/reference/` + `scripts/check_task.py` (Harbor mechanical policy)
-3. Current user instruction, only when it does not conflict with authoritative project requirements
-4. `.cursor/rules/Review_Guidelines.mdc` (this file)
-5. Role-specific workflow (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` for submitters; `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` for reviewers)
-6. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`
-7. Clearly labelled legacy compatibility rules
-
-Clarifications:
-
-- A user may select the task, role, output, and workflow.
-- A user instruction must **not** override official validity, safety, packaging, or evaluation requirements unless the user supplies newer authoritative documentation.
-- The **live platform form** controls the exact fields that must be answered.
-- When the live form conflicts with an old stored template, follow the live form.
-- Never let a March 2026 rule override the July 22, 2026 Sentinel Ultra documentation.
-- Older rules remain available only for **legacy task packages** and older platform forms.
-- **Never mix** verdict names or upload formats from different versions.
-- **Current format is the default** unless a task clearly contains legacy structure.
-- Ambiguous tasks use **current rules**; legacy artifacts are **compatibility inputs**.
-
----
-
-## Project Purpose and Workflow
-
-**Sentinel Ultra** creates high-quality **Harbor-format** software-engineering tasks drawn from real open-source **PRs, commits, or issues**. The dataset trains and evaluates frontier coding agents and models on realistic engineering work.
-
-Correctness, completeness, and resistance to reward hacking matter more than superficial difficulty. Platform evals help confirm difficulty; Expert Contributors (ECs) focus on errors and gaps automated checks cannot catch.
-
-Every task should be **solvable**, **clear**, **free of leakage**, **verifiable**, and **authentic**.
-
-Workflow:
-
-1. **Authoring** — task created from the source.
-2. **Submission** — an EC reviews the task, decides a submitter verdict, and fixes it if needed.
-3. **Review** — a second EC independently verifies the submission.
-4. **Adjudication** — a final pass resolves disagreements.
-5. **Delivery** — accepted tasks are delivered to train and evaluate coding agents.
-
-If unfamiliar with Harbor, review Harbor documentation for terminology and layout. The Harbor Framework tab covers task structure and `task.toml` fields checked on every task.
-
----
-
-## Contributor Roles
-
-Do **not** combine submitter and reviewer verdict systems.
-
-### Submitter
-
-The submitter:
-
-- Reviews the initial task.
-- Chooses **Valid as-is**, **Fixable**, or **Not Fixable**.
-- Corrects allowed files when the task is Fixable.
-- Runs or verifies the required checks.
-- Repackages and uploads the corrected task.
-- Iterates until the platform checks pass.
-
-Paste-ready platform answers and ZIP/metadata handling: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`. Map internal assessments to live form labels exactly (Not Fixable → **Invalid/Not Fixable** / **Invalid** / **Invalid/Not Fixable**).
-
-### Reviewer
-
-The reviewer:
-
-- Independently checks the submitter’s work.
-- Does **not** merely copy the submitter’s conclusion.
-- Chooses **Accept**, **Needs Revision**, or **Reject**.
-- Uses **Reject** only after maximum revision cycles are exhausted.
-- Checks comments or rebuttal before final submission.
-- Assigns the current **Submission Quality Score**.
-- May run local checks but is **not required** to run Harbor end to end.
-
-### Adjudicator
-
-The adjudicator:
-
-- Resolves disagreements.
-- Reviews unresolved defects.
-- Makes the final decision when required.
-
----
-
-## Current Harbor Structure
-
-Canonical layout and `task.toml` limits: `.cursor/skills/sentinel-ultra-review/reference/harbor-format.md`  
-and `docs/REPO_CONVENTIONS.md` (REQUIRED vs dialect-optional). Mechanical gate: `check_task.py` / `static-check`.
-
-Required: `task.toml`, `instruction.md`, `environment/{Dockerfile,repo/,problem_statement.md}`,
-`solution/{solve.sh,golden.patch}`, `tests/{test.sh,tests.patch,config.json}`.  
-Dialect-optional (never blocking alone): `tests/grade.py`, `tests/files/`, compose YAMLs.  
-`problem_statement.md` must be byte-identical to `instruction.md`. Rename `solution.patch` → `golden.patch`.
-
-### Legacy compatibility
-
-Treat `init_state.patch`, `solution.patch`, `tests/files/` as compatibility inputs only.  
-Missing `init_state.patch` alone is not a defect. Full mapping: skill `reference/harbor-format.md` + Legacy Appendix below (short).
-
-## Submitter Verdicts
-
-Current submitter system (do not use old controlling verdicts for current tasks):
-
-### Valid as-is
-
-Use only when:
-
-- Instruction, tests, oracle, environment, and source PR align.
-- No rewrite is needed.
-- Every requirement is properly tested.
-- No test enforces hidden or arbitrary requirements.
-- The instruction is clear and not overly prescriptive.
-- No solution information is leaked.
-- The oracle satisfies the instruction.
-- Fail-to-pass tests meet the official guideline minimum of at least **10** meaningful tests (exactly 10 is valid for the guideline; when the live form requires “more than 10,” ensure that confirmation is true before selecting it).
-- Required local validation succeeds (oracle reward `1.0`, NOP/unsolved reward `0.0`).
-
-### Fixable
-
-Use when all problems can be corrected within allowed task files.
-
-Examples include:
-
-- Overly prescriptive instruction
-- LLM-like instruction wording
-- Missing instruction details
-- Test coverage gaps
-- Test faithfulness problems
-- Fewer than **10** fail-to-pass tests (the Fixable test-count defect). Do **not** mark Fixable solely for having exactly 10 unless the live platform or an automated check explicitly requires more than 10.
-- Oracle mismatch
-- Solution leakage that can be removed
-- Allowed Dockerfile problems
-- Fixable Git hygiene problems
-- Task difficulty that can be increased by naturally expanding the same PR scope
-
-### Not Fixable
-
-Use only when:
-
-- The task can become valid only by reducing or replacing the original PR scope.
-- The environment has a disallowed or unrecoverable problem.
-- A tangled toolchain or dependency conflict cannot reasonably be repaired.
-- The task requires a large external download or live external service.
-- Git corruption is genuinely unrecoverable (rare — most git issues are Fixable).
-- The source task cannot be preserved while making it valid.
-
-### Legacy mapping note
-
-- Old **“Valid with no changes”** approximately maps to current **“Valid as-is.”**
-- Old **“Invalid with minor changes”** and **“Invalid with major changes”** generally map to **“Fixable”** when correction is allowed.
-- An old **“Invalid”** result maps to **“Not Fixable”** only when it meets current Not Fixable criteria.
-
----
-
-## Reviewer Outcomes Overview
-
-Reviewer outcomes are separate from submitter verdicts:
-
-| Outcome | When |
-|---------|------|
-| **Accept** | Submission is accurate, complete, and well-supported; corrected task meets requirements. |
-| **Needs Revision** | Task still has authoring errors the submitter can fix. Prefer this while revision cycles remain. |
-| **Reject** | Use **only** after maximum revision cycles are exhausted and more work is still needed. |
-
-Also assign a **Submission Quality Score** (1–5) reflecting accuracy, completeness, reasoning, and specificity of the submission.
-
-Reviewers must read **Comments for Reviewer** / rebuttal before finishing and acknowledge whether those notes changed the decision.
-
----
-
-## Source PR Scope and Difficulty
-
-- A task must remain recognizably based on the original PR, commit, or issue.
-- Scope may be **expanded** naturally to add real engineering complexity.
-- Scope must **not** be reduced.
-- Scope must **not** be replaced with a different feature.
-- Added difficulty must come from real engineering complexity (debugging, root-cause analysis, substantial feature work, domain/security depth).
-- Do **not** make a task difficult through vagueness.
-- Do **not** attach unrelated requirements.
-- If preserving validity requires changing the task into something else, mark **Not Fixable**.
-- Over-prescriptive instructions should be reduced before expanding scope.
-- When scope is expanded, update instruction, tests, and oracle together so the trio stays consistent.
-
-### Difficulty Handling After Corrections
-
-Tasks normally reach contributors after initial difficulty checks. Correctness, instruction-test alignment, and absence of leakage should be checked before trying to increase difficulty.
-
-If instruction, test, or oracle corrections make the task easier:
-
-1. First remove unnecessary prescriptive hints from the instruction.
-2. Re-run or review the difficulty evaluation.
-3. Expand only the original PR scope when additional difficulty is needed.
-4. Keep added requirements naturally related to the source PR.
-5. Update the instruction, tests, and oracle together.
-6. Never create difficulty through vagueness, arbitrary naming, missing context, or unrelated requirements.
-
----
-
-## Allowed and Prohibited Changes
-
-### Allowed
-
-- Rewrite `instruction.md`.
-- Copy the same final text to `environment/problem_statement.md`.
-- Add new tests through `tests.patch`.
-- Update `tests/test.sh`, `config.json`, and `grade.py`.
-- Correct `solve.sh` and `golden.patch`.
-- Make only allowed Dockerfile corrections.
-- Correct task metadata.
-- Clean Git metadata.
-- Realign `base_commit_sha` to repository HEAD when the shipped repository is the source of truth.
-- Expand original PR scope when necessary and allowed.
-
-### Prohibited
-
-- Do not directly edit tracked source files in `environment/repo/`.
-- Do not alter existing regression / pass-to-pass test files (keep them byte-identical to base).
-- Do not replace or reduce PR scope.
-- Do not place solution material in agent-readable paths.
-- Do not add unrelated refactors.
-- Do not make tests depend on live internet.
-- Do not hide requirements only inside tests.
-
----
-
-## Instruction Requirements
-
-- Describe the problem, constraints, and observable outcomes — not step-by-step implementation.
-- State required public schemas, formats, and contracts explicitly.
-- Keep the instruction aligned with the source PR (plus any allowed expansions).
-- Avoid LLM-templated or robotic phrasing.
-- Avoid solution leakage (PR URLs, commit SHAs, spoilers, verifier internals).
-- After any edit, copy the exact text into `environment/problem_statement.md`.
-
----
-
-## Test Requirements and Quality Check
-
-Authoritative mechanical rules and auto-REMOVE patterns (silent-skip, fail-open, source-scan, wallclock, randomness, network, oracle-dep):  
-`.cursor/skills/sentinel-ultra-review/reference/test-quality.md` and `check_task.py` V* findings.
-
-Operational summary: ≥10 meaningful fail-to-pass; prefer 11–20 when claiming live “more than 10”; f2p via `tests.patch` only; never edit existing p2p files; deterministic outcome-based assertions; coverage + faithfulness both directions. Blocking Agent Judge axes ≥3.5 before Difficulty (P-010/P-011).
-
-## Oracle and Solution Requirements
-
-See `.cursor/skills/sentinel-ultra-review/reference/fix-playbooks.md` (oracle section) and `check_task.py` O* findings.  
-`solve.sh` + `golden.patch` must satisfy the instruction without gaming, hidden goldens, or live network. Extra non-conflicting oracle functionality is OK when required behavior is implemented and tested.
-
-## Environment Review
-
-Fixable vs Not-Fixable environment classes: `.cursor/skills/sentinel-ultra-review/reference/environment-and-git.md`  
-and `check_task.py` D*/G* findings. Dockerfile must build offline. Missing `.git` is FIXABLE (not a soft warning).
-
-## Task Metadata Limits
-
-Full table: `.cursor/skills/sentinel-ultra-review/reference/harbor-format.md`.  
-`cpus` 2|4; `memory_mb` 2048–16384; `storage_mb` 5120–10240; `gpus` 0;  
-`build_timeout_sec` ≤1800; `agent.timeout_sec` ≤**7200**; `verifier.timeout_sec` ≤1800.  
-Harbor network blocks **required**: `[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`.  
-Remove `network_mode="none"` from compose YAML if present.
-
-## Git Repository Hygiene
-
-Checklist and repairs: `.cursor/skills/sentinel-ultra-review/reference/environment-and-git.md` and `scripts/git_hygiene.sh`.  
-HEAD must resolve and match `base_commit_sha` (shipped HEAD wins); no remotes; no filter drivers; clean tree; no reflog; `.git` <100MB; `tests.patch` must `git apply --check`. Never edit tracked repo sources during cleanup.
-
-## Local Validation by Role
-
-Submitter Valid-as-is: local oracle reward `1.0` and NOP `0.0` required when available.  
-Submitter Fixable: strongly recommended. Reviewer: optional. Never invent rewards.
-
-## Upload and Packaging
-
-Zip flat contents of `task/` only (no outer `task/`, no `runs/`). Packaging sweeps and leakage:  
-`.cursor/skills/sentinel-ultra-review/reference/checklists.md` and `check_task.py` P*/L3.  
-Mechanical gate before Fixable upload: `python3 automation/sentinel_submitter.py static-check --task-name TASK` then `preflight`.
-
-## Platform Evaluations
-
-Order (Aug 4 2026): Agent Judge before Difficulty; if Judge fails, Difficulty does not run.  
-Drive Judge axes ≥3.5 (esp. coverage/faithfulness). Difficulty: 4 trials/model; worse model ≤50% pass.  
-Details: skill FAQ + `knowledge/patterns/P-010` / `P-011`.
-
-## Agent-Run Analysis
-
-Inspect all failing trials and at least one pass when available. Cite concrete logs for timeouts/misunderstandings. Smaller newer run counts are expected, not packaging defects.
-
-## Supplemental License and Category Reference
-
-Identify the project license when the platform asks for it. Check `environment/repo/LICENSE` (or similar), README, then upstream via `source` if needed.
-
-### License options commonly listed on older/current platform forms
-
-- GNU General Public License v2.0 (GPL-2.0)
-- GNU General Public License v3.0 (GPL-3.0)
-- GNU Affero General Public License v3.0 (AGPL-3.0)
-- GNU Lesser General Public License v2.1 (LGPL-2.1)
-- GNU Lesser General Public License v3.0 (LGPL-3.0)
-- Mozilla Public License 2.0 (MPL-2.0)
-- Eclipse Public License 1.0 (EPL-1.0)
-- Eclipse Public License 2.0 (EPL-2.0)
-- Common Public License 1.0 (CPL-1.0)
-- Open Software License 3.0 (OSL-3.0)
-- Reciprocal Public License 1.5 (RPL-1.5)
-- Other — when more than one license applies, when there is no license, or when the license is not listed
-
-Common licenses often mapped to **Other** when not listed: MIT, Apache 2.0, BSD 2-Clause, BSD 3-Clause, ISC, Unlicense, CC0.
-
-### Category values (reference)
-
-| Category | Description |
-|----------|-------------|
-| Fix | Fixing known bugs or faults within the codebase |
-| Feature | Introducing new internal or user-oriented features |
-| Refactor | Restructuring for maintainability |
-| Documentation | Docs, comments, README, API docs |
-| Build | Build configuration changes |
-| Performance | Performance improvements |
-| Chore | Housekeeping, dependency bumps, version increments |
-| (Ultra free-form) | Current `task.toml` may also use other category labels (e.g. security); edit if needed for accuracy |
-
-Use category values as reference. Prefer the labels present on the **current** platform form and in the task’s `task.toml`.
-
----
-
-## Legacy Compatibility Appendix
-
-Use only for legacy packages / older forms. Prefer skill `reference/harbor-format.md` and current Ultra docs.  
-Do not mix verdict names across versions. Missing `init_state.patch` alone is not a defect. Older Valid/Invalid forms map approximately to Valid as-is / Fixable / Not Fixable as in skill `reference/verdict-rubric.md`.
-
-## Final Checklist
-
-Before marking Valid as-is, uploading a Fixable rewrite, or accepting a submission:
-
-- [ ] Current vs legacy structure identified; current rules applied by default
-- [ ] Instruction clear, non-prescriptive, no leakage; `problem_statement.md` matches
-- [ ] Source PR scope preserved (expand only; never reduce/replace)
-- [ ] f2p count: official ≥10 meaningful; Fixable if <10; exactly 10 meets guideline; select live “More than 10” only when true; preferred practical 11–20; no filler tests; coverage and faithfulness both directions
-- [ ] Outcome-based, deterministic tests; no silent skips / fail-open / overreach patterns
-- [ ] Oracle/`golden.patch` satisfies instruction without gaming
-- [ ] Environment within fixable rules or correctly marked Not Fixable
-- [ ] Metadata/resources/timeouts within limits (agent ≤7200); Harbor network blocks present and correct; compose `network_mode="none"` removed if applicable
-- [ ] Git hygiene clean; tracked repo sources untouched
-- [ ] Packaging zip is flat `task/` contents only; no runs/; no junk artifacts
-- [ ] Role-appropriate local validation completed
-- [ ] Platform evals iterated until appropriate; Send to Reviewer only when ready
-- [ ] Submitter and reviewer verdict systems not mixed
-- [ ] Agent runs inspected (all failing trials; at least one pass when available)
-- [ ] Findings cite concrete files, tests, functions, logs, and paths
-
-<!-- deletion-audit-unplaced:start -->
-## Restored policy (deletion audit — was UNPLACED)
-
-The following statements were removed by the role-`.mdc` trim and were not present in `reference/` prose or as a `check_task.py` finding. Restored verbatim so reviewers/submitters can still read them.
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:12 -->
-- This file (`.cursor/rules/Review_Guidelines.mdc`) — controlling policy
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:13 -->
-- `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` — complete **branch-aware** submitter platform workflow
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:14 -->
-- `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` — reviewer procedure
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:15 -->
-- `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc` — quick reference / field mapping
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:16 -->
-- `CLAUDE.md` — Cursor orchestration / automation
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:19 -->
-Official Ultra documentation and live platform fields outrank stored templates when they conflict.
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:43 -->
-3. `.cursor/rules/Review_Guidelines.mdc` (this file)
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:44 -->
-4. Role-specific workflow (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` for submitters; `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc` for reviewers)
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:45 -->
-5. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:46 -->
-6. Clearly labelled legacy compatibility rules
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:123 -->
-Default current layout:
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:167 -->
-## Legacy Artifact Compatibility
-
-| Legacy artifact | Current treatment |
-| --------------- | ----------------- |
-| `solution/init_state.patch` | Read when supplied in a legacy task. Do **not** automatically treat its absence as a defect. For current uploads use `golden.patch`. |
-| `solution/solution.patch` | Rename to `golden.patch` for current Sentinel Ultra upload. |
-| `tests/files/` | Read when present in older tasks but do **not** treat it as the replacement for current `tests.patch`, `config.json`, or `grade.py`. |
-| Missing `problem_statement.md` | Current task packaging issue. It should exactly match `instruction.md`. |
-| Old Valid/Invalid form | Use only when the actual platform still presents that form. |
-| Current Sentinel Ultra form | Use **Valid as-is**, **Fixable**, or **Not Fixable**. |
-
-How reverse `init_state.patch` worked is preserved in the **Legacy Compatibility Appendix** below. Do not reject solely because `init_state.patch` is absent.
-
----
-
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:178 -->
-How reverse `init_state.patch` worked is preserved in the **Legacy Compatibility Appendix** below. Do not reject solely because `init_state.patch` is absent.
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:537 -->
-This role distinction replaces the old universal statement that contributors should never run local checks.
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:727 -->
-Older platforms sometimes offered only **Valid** / **Invalid** without the minor/major split. Use those labels **only** when the live platform form still presents them.
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:742 -->
-Some legacy Cursor/automation notes claimed only `source` and the three timeouts could make a task Invalid. That rule is **not** the current Ultra controlling policy. Check all metadata fields; verdict and fixability follow the current form and July 22, 2026 guidelines. Timeouts and source remain important, but they are not an exclusive validity filter.
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:758 -->
-### H. Older General Observations / write-up standards
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:760 -->
-Useful legacy expectations retained:
-
-<!-- source .cursor/rules/Review_Guidelines.mdc:764 -->
-- Do not invent numbered Invalid-issue details that the submitter did not provide when acting as a reviewer automation helper — that belongs in `CLAUDE.md` workflow, not as a substitute for platform evidence.
-
-<!-- deletion-audit-unplaced:end -->
+# Project Sentinel — Always-On Policy
+
+**Updated:** 2026-08-06 (Prompt 7 rule budget). Sole `alwaysApply: true` rule — hard cap 120 lines.
+
+Official Ultra docs + **live platform fields** outrank this file. Detail lives in
+`.cursor/rules/Sentinel_Ultra_Policy_Detail.mdc`, role workflows, and
+`.cursor/skills/sentinel-ultra-review/reference/`. If those conflict with this file on the
+items below, follow this file.
+
+## Submitter verdicts (do not mix with reviewer outcomes)
+
+- **Valid as-is** — instruction, tests, oracle, environment, and source PR align; no rewrite; local oracle `1.0` / NOP `0.0` when required.
+- **Fixable** — all defects correctable in allowed task files without reducing/replacing PR scope.
+- **Not Fixable** — validity requires scope reduction/replacement, or a disallowed/unrecoverable environment problem.
+
+## Four core principles
+
+- **Solvability** — solvable from the instruction and pinned repo without arbitrary guessing.
+- **Clarity & No Leakage** — behavior and contracts, not implementation spoilers or verifier internals.
+- **Verifiability** — every requirement tested; every assertion stated or reasonably implied; deterministic; no gaming.
+- **Authenticity** — real engineering work grounded in the source PR (expand scope only; never replace).
+
+## Agent Judge bar
+
+- Blocking axes: **`test_coverage`** and **`test_faithfulness`**.
+- Internal revision bar: drive **every** Agent Judge axis to **≥ 3.5** before treating Difficulty as in-scope (P-010 / P-011). Judge runs before Difficulty.
+
+## Task metadata limits
+
+| Field | Limit |
+|-------|--------|
+| `cpus` | 2 or 4 |
+| `memory_mb` | 2048–16384 |
+| `storage_mb` | 5120–10240 |
+| `gpus` | always 0 |
+| `build_timeout_sec` | ≤ 1800 |
+| `agent.timeout_sec` | ≤ **7200** |
+| `verifier.timeout_sec` | ≤ 1800 |
+| Harbor network | `[environment]=public`; `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`; `[verifier]=no-network` |
+| Compose | remove `network_mode="none"` from `docker_compose.yaml` if present |
+
+Check **all** metadata fields — not only source/timeouts. Full narrative: `reference/harbor-format.md`.
+
+## Never
+
+- Never edit tracked source files in `environment/repo/`.
+- Never reduce or replace PR scope (expand only when allowed).
+- Never invent oracle/NOP rewards or timings.
+- Never mix submitter and reviewer verdict systems (or legacy Valid/Invalid labels on Ultra forms).
+
+## Pointers
+
+| Need | Open |
+|------|------|
+| Expanded policy (precedence, roles, branch-aware, evals) | `Sentinel_Ultra_Policy_Detail.mdc` |
+| Submitter ZIP / platform answers | `Sentinel_Submitter_Platform_Workflow.mdc` |
+| Reviewer Accept / Needs Revision / Reject | `Sentinel_Reviewer_Step_by_Step.mdc` |
+| Quick checklists | `Sentinel_Expert_Contributor_Reference.mdc` |
+| Harbor layout, tests, oracle, env/git | `.cursor/skills/sentinel-ultra-review/reference/` |
+| Automation Python invariants | `Sentinel_Automation_Invariants.mdc` (`automation/**/*.py`) |
+| Orchestration | `CLAUDE.md` / `AGENTS.md` |
+| Placement audit for this trim | `docs/PROMPT7_RULE_BUDGET_PLACEMENT.md` |

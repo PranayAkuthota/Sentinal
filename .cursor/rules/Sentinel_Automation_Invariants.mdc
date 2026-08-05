@@ -1,0 +1,17 @@
+---
+description: Framework invariants when editing Sentinel automation Python — scripts never assign Public/Internal/Duplicate verdicts, never invent oracle/NOP rewards, use absolute paths, and pass --task-name when multiple work sessions exist.
+globs:
+  - automation/**/*.py
+alwaysApply: false
+---
+
+# Sentinel automation invariants
+
+Apply whenever creating or editing files under `automation/**/*.py`.
+
+1. **Scripts never assign verdicts.** Do not set Public Assessment, Internal Validity, or Duplicate Analysis in code, defaults, or generated platform answers. Those fields are human-only.
+2. **Never invent rewards.** Do not fabricate oracle `1.0`, NOP `0.0`, or any Harbor reward/timing. Record only values from real local or platform runs (or leave unset / null).
+3. **Absolute paths.** Prefer absolute paths for ZIPs, task roots, repos, and script invocations so cwd mistakes cannot silently retarget another session.
+4. **`--task-name` when ambiguous.** If more than one `work/<task>/` (or equivalent) session could match, require or pass `--task-name <exact>` — never guess.
+
+Related: `CLAUDE.md` Safety, `AGENTS.md` Must, `docs/EXECUTION_LAYER.md`.

@@ -40,7 +40,7 @@ python3 automation/sentinel_submitter.py ensure-packaging-hygiene --task-name TA
 python3 automation/sentinel_submitter.py sync-problem-statement --task-name TASK
 ```
 
-   - Strip network fields; ensure grade.py; prefer `golden.patch` (P-003)
+   - Ensure Harbor network blocks on `task.toml` (do **not** strip them); strip compose `network_mode="none"` if present; ensure grade.py; prefer `golden.patch` (P-003 / F-011)
    - Mode-only dirty trees → reset/hygiene, not Invalid (P-009)
    - New tests: hard-fail missing deps (P-008), not SkipTest soft-pass
 3. **Valid as-is** — freeze; no task file mutations.

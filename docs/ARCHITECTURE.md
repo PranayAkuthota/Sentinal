@@ -25,15 +25,18 @@ Borrowed as *engineering patterns* only (not product copy) from mature AI task h
 
 | Layer | Owns | Must not own |
 |-------|------|----------------|
-| Policy | `.cursor/rules/Review_Guidelines.mdc`, official docs | Commands, prompts, packaging scripts |
+| Policy | Official Ultra docs + `.cursor/skills/sentinel-ultra-review/reference/` + `.cursor/rules/Review_Guidelines.mdc` | Commands, prompts, packaging scripts |
 | Workflow | `docs/WORKFLOW.md`, `workflows/stages/*` | Verdict decisions |
 | Prompts | `Prompts/` modules + thin orchestrators | Full Ultra policy text |
-| Automation | `automation/*` | Semantic verdicts, instruction quality |
+| Automation | `automation/*` + skill `scripts/check_task.py` via `static-check` | Semantic verdicts |
 | Validation | `validation/checklists/*`, structural scripts, `checkpoint_ready`, `repo_tests` | “Valid as-is” confirmations |
 | Knowledge | `knowledge/patterns`, `knowledge/failures`, `knowledge/proposals` | Task-specific secrets, PR spoilers for agents |
 | Blockers | `docs/SUBMITTER_BLOCKERS.md` | Ultra policy restatement |
 | Workspaces | `incoming_tasks/`, `work/`, `task_outputs/`, `completed_tasks/` | Framework rules |
-| Skills | `.cursor/skills/sentinel-*` | Permanent policy |
+| Skills | `.cursor/skills/sentinel-*` (incl. `sentinel-ultra-review`) | Inventing policy outside `reference/` |
+
+Policy detail for Harbor format, test quality, git, and verdicts lives primarily under  
+`.cursor/skills/sentinel-ultra-review/reference/`. Role `.mdc` files point there.
 
 ---
 
@@ -69,7 +72,8 @@ AGENTS.md ──► CLAUDE.md ──► role mode (submitter | reviewer | framew
                  ├─► docs/WORKFLOW.md (stages S0–S12 — stable)
                  ├─► Prompts/Execution/01…06 (daily interactive; maps onto S0–S12)
                  ├─► Prompts/* orchestrators + Prompts/modules/* (stage modules)
-                 ├─► automation/sentinel_submitter.py (+ lib/) (gates)
+                 ├─► automation/sentinel_submitter.py (+ lib/) (gates + static-check)
+                 ├─► .cursor/skills/sentinel-ultra-review/scripts/check_task.py
                  ├─► automation/checkpoint_ready.py (Execution handoffs)
                  ├─► automation/local_oracle_nop.py (runtime evidence)
                  ├─► automation/capture_learning.py / promote_learning.py

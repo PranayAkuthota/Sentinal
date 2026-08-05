@@ -12,10 +12,11 @@ AI-assisted framework for **Snorkel Sentinel Ultra** Expert Contributors working
 | Platform revision | `Prompts/Submitter_Platform_Revision.md` |
 | Pre-submit blockers | `docs/SUBMITTER_BLOCKERS.md` |
 | Reviewer | `.cursor/skills/sentinel-reviewer` + reviewer rules |
+| Ultra EC skill (Harbor checks) | `.cursor/skills/sentinel-ultra-review/` |
 | Agent router | `AGENTS.md` / `CLAUDE.md` |
 | Redesign record | `docs/FRAMEWORK_REDESIGN_AUDIT.md` |
 
-**Policy authority:** `.cursor/rules/Review_Guidelines.mdc` + official `document 1/2/3.txt`.
+**Policy authority:** official Ultra docs + `.cursor/skills/sentinel-ultra-review/reference/` + `.cursor/rules/Review_Guidelines.mdc` + `document 1/2/3.txt`.
 
 ## Layout
 
@@ -33,8 +34,8 @@ validation/         checklists
 knowledge/          patterns, failures, proposals
 repo_tests/         framework regression tests
 ci_checks/          doctor + pytest runner
-.cursor/rules/      policy + procedures
-.cursor/skills/     opt-in role macros
+.cursor/rules/      policy + procedures (pointers into skill reference)
+.cursor/skills/     sentinel-submitter | reviewer | packager | ultra-review
 ```
 
 ## Quick command path
@@ -42,6 +43,7 @@ ci_checks/          doctor + pytest runner
 ```bash
 python3 automation/sentinel_doctor.py
 python3 automation/sentinel_submitter.py intake --zip /ABS/PATH/task.zip
+python3 automation/sentinel_submitter.py static-check --task-name TASK
 python3 automation/checkpoint_ready.py --task-name TASK --next 02
 # … see docs/COMMANDS.md …
 python3 automation/capture_learning.py --task-name TASK

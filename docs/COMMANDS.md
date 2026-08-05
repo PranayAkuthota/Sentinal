@@ -10,6 +10,9 @@ Interactive daily flow (does not change S0–S12): `docs/EXECUTION_LAYER.md` and
 python3 automation/sentinel_submitter.py intake --zip /ABS/PATH/task.zip
 python3 automation/sentinel_submitter.py prepare --task-name TASK
 python3 automation/sentinel_submitter.py audit --task-name TASK
+python3 automation/sentinel_submitter.py static-check --task-name TASK
+# → task_outputs/<TASK>/static_check_report.{json,md}
+# FIXABLE/NOT_FIXABLE findings block ready_to_package; ADVISORY warns only
 python3 automation/sentinel_submitter.py set-verdicts --task-name TASK \
   --public-analysis Fixable|Invalid/Not Fixable|Valid as-is \
   --internal-validity Invalid|Fixable|Valid-as-is \

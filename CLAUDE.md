@@ -1,25 +1,29 @@
 # Project Sentinel — Cursor Orchestration Controller
 
-**Last updated:** August 1, 2026 (framework harden); August 4, 2026 Agent Judge–first eval (P-010); August 4, 2026 overreach / ≥3.5 bar (P-011)
+**Last updated:** August 5, 2026 (sentinel-ultra-review skill merge + static-check)
 
-If this file conflicts with `Review_Guidelines.mdc`, follow `Review_Guidelines.mdc`.
+If this file conflicts with official Ultra docs or `.cursor/skills/sentinel-ultra-review/reference/`, follow those. Then `.cursor/rules/Review_Guidelines.mdc`.
 
 This file routes work. It does **not** redefine Ultra policy.
 
 ## Authority stack
 
 1. Official Ultra docs + live platform fields  
-2. User instruction (non-conflicting)  
-3. `.cursor/rules/Review_Guidelines.mdc`  
-4. Role workflow `.mdc`  
-5. `docs/WORKFLOW.md` stages + `docs/EXECUTION_LAYER.md`  
-6. `Prompts/` modules + Execution checkpoints  
-7. `knowledge/` patterns (approved)  
+2. `.cursor/skills/sentinel-ultra-review/reference/` (Harbor format, checklists, verdict rubric, test quality)  
+3. Current user instruction, only when it does not conflict with authoritative project requirements  
+4. `.cursor/rules/Review_Guidelines.mdc`  
+5. Role workflow (`.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc` / `Sentinel_Reviewer_Step_by_Step.mdc`)  
+6. `.cursor/rules/Sentinel_Expert_Contributor_Reference.mdc`  
+7. `docs/WORKFLOW.md` stages + `docs/EXECUTION_LAYER.md`  
+8. `Prompts/` modules + Execution checkpoints  
+9. `knowledge/` patterns (approved)  
 
 ## Start maps
 
 - Architecture: `docs/ARCHITECTURE.md`  
 - Commands: `docs/COMMANDS.md`  
+- Mechanical gate: `python3 automation/sentinel_submitter.py static-check --task-name TASK`  
+- Ultra EC skill: `.cursor/skills/sentinel-ultra-review/`  
 - Redesign record: `docs/FRAMEWORK_REDESIGN_AUDIT.md`  
 - Blockers: `docs/SUBMITTER_BLOCKERS.md`  
 
@@ -31,7 +35,7 @@ Triggers: “I am working as a submitter…”, process/prepare/audit submission
 
 Daily: `Prompts/Execution/` **01→06** with `checkpoint_ready` between steps.  
 Orchestrators: `Submitter_First_Pass.md` / `Submitter_Platform_Revision.md`.  
-Skill: `.cursor/skills/sentinel-submitter`.  
+Skills: `.cursor/skills/sentinel-submitter`, `.cursor/skills/sentinel-ultra-review`, `.cursor/skills/sentinel-packager`.  
 Stages: S0–S12 in `docs/WORKFLOW.md`.
 
 ### Reviewer
@@ -56,9 +60,11 @@ Triggers: redesign rules/automation/docs. Do not mutate `work/` task ZIPs or `ta
 intake → prepare → audit → (Execution 01–04) → set-verdicts
   → checkpoint_ready --next 05 → Fixable edits / freeze / evidence
   → ensure-packaging-hygiene → sync-problem-statement
-  → local_oracle_nop → record-validation → preflight → package-*
+  → static-check → local_oracle_nop → record-validation → preflight → package-*
   → capture_learning → (optional) promote_learning → status/archive
 ```
+
+`preflight` / `package-fixable` refuse `ready_to_package` while any static-check **FIXABLE** or **NOT_FIXABLE** finding is open. **ADVISORY** findings warn only.
 
 ## Outputs
 

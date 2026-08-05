@@ -1,6 +1,6 @@
 # Project Sentinel Instructions
 
-Follow `CLAUDE.md` for mode routing. Policy authority: `.cursor/rules/Review_Guidelines.mdc` + official Ultra docs. Legacy never overrides Ultra.
+Follow `CLAUDE.md` for mode routing. Policy authority: official Ultra docs + `.cursor/skills/sentinel-ultra-review/reference/` + `.cursor/rules/Review_Guidelines.mdc`. Legacy never overrides Ultra.
 
 ## Must
 
@@ -14,6 +14,7 @@ Follow `CLAUDE.md` for mode routing. Policy authority: `.cursor/rules/Review_Gui
 8. Snorkel narrative fields = human paragraphs (workflow §13).
 9. End tasks with `capture_learning.py`; promote via `promote_learning.py` (human).
 10. Long framework health: `python3 automation/sentinel_doctor.py`.
+11. Before Fixable `preflight` / upload: `python3 automation/sentinel_submitter.py static-check --task-name TASK` (runs `.cursor/skills/sentinel-ultra-review/scripts/check_task.py`).
 
 ## Map
 
@@ -24,6 +25,7 @@ Follow `CLAUDE.md` for mode routing. Policy authority: `.cursor/rules/Review_Gui
 | Stages S0–S12 | `docs/WORKFLOW.md` |
 | Commands | `docs/COMMANDS.md` |
 | Blockers | `docs/SUBMITTER_BLOCKERS.md` |
+| Harbor format / mechanical checks | `.cursor/skills/sentinel-ultra-review/` |
 | Daily interactive | `Prompts/Execution/README.md` (`01`→`06`) |
 | First-pass / revision | `Prompts/Submitter_First_Pass.md` / `Submitter_Platform_Revision.md` |
 | Execution layer | `docs/EXECUTION_LAYER.md` |

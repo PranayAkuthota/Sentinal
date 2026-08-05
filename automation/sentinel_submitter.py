@@ -192,6 +192,11 @@ def empty_workflow_state() -> Dict[str, Any]:
         "required_files_checked": False,
         "missing_required_files": [],
         "dialect_notes": [],
+        "static_check_completed": False,
+        "static_check_passed": False,
+        "static_check_fixable_ids": [],
+        "static_check_advisory_ids": [],
+        "static_check_not_fixable_ids": [],
         "instruction_problem_statement_match": False,
         "test_config_checked": False,
         "fail_to_pass_count": None,
@@ -725,9 +730,11 @@ def git_hygiene_report(task_root: Path, base_commit: Optional[str] = None) -> Di
         report["errors"].append("environment/repo missing")
         return report
     if not gitdir.exists():
-        report["warnings"].append("no .git directory — git hygiene limited")
-        report["ok"] = True
+        report["errors"].append(
+            ".git is missing — HEAD/base_commit_sha cannot be verified (FIXABLE git hygiene)"
+        )
         report["checks"]["git_present"] = False
+        report["ok"] = False
         return report
     report["checks"]["git_present"] = True
 
@@ -988,7 +995,6 @@ def required_files_report(task_root: Path) -> Dict[str, Any]:
         "ok": len(missing) == 0,
         "dialect_notes": dialect_notes,
     }
-
 
 
 # ----------------------------- commands ---------------------------------
@@ -1309,6 +1315,116 @@ def cmd_audit(args: argparse.Namespace) -> None:
     print(cfg.get("note") or "")
 
 
+ULTRA_REVIEW_SCRIPTS = (
+    WORKSPACE_ROOT / ".cursor" / "skills" / "sentinel-ultra-review" / "scripts"
+)
+CHECK_TASK_PY = ULTRA_REVIEW_SCRIPTS / "check_task.py"
+
+
+def resolve_static_check_root(session: Dict[str, Any], state: Dict[str, Any]) -> Path:
+    """working_copy for Fixable; frozen original root for Valid as-is / otherwise."""
+    branch = state.get("duplicate_analysis") or session.get("duplicate_analysis") or session.get("branch")
+    if branch == "Fixable":
+        root = Path(session.get("working_task_root") or "")
+    else:
+        root = Path(session.get("real_task_root") or session.get("working_task_root") or "")
+    if not root.exists():
+        die(f"static-check task root missing: {root}")
+    return root
+
+
+def run_static_check(task_root: Path, json_out: Path, md_out: Path) -> Dict[str, Any]:
+    """Run check_task.py; preserve analyze_tests_patch_health as a combined-gate add-on."""
+    if not CHECK_TASK_PY.is_file():
+        die(f"check_task.py not found at {CHECK_TASK_PY}")
+    json_out.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        sys.executable,
+        str(CHECK_TASK_PY),
+        str(task_root),
+        "--json",
+        str(json_out),
+        "--md",
+        str(md_out),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    data: Dict[str, Any] = {}
+    if json_out.exists():
+        try:
+            data = json.loads(json_out.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            die(f"static-check wrote unreadable JSON: {e}")
+    findings = data.get("findings") or []
+    # Combined gate: preserve main's patch-health analyzer (check_task lacks it)
+    patch_health = analyze_tests_patch_health(task_root)
+    data["tests_patch_health"] = patch_health
+    if patch_health.get("hunk_mismatches") or (
+        patch_health.get("git_apply_check") is False and patch_health.get("patch_dry_run") is True
+    ):
+        findings.append(
+            {
+                "id": "PH1",
+                "severity": "FIXABLE",
+                "category": "Tests",
+                "where": "tests/tests.patch",
+                "summary": "tests.patch health failure (hunk mismatch and/or git-apply vs patch-only)",
+                "evidence": patch_health.get("apply_detail") or str(patch_health.get("hunk_mismatches")),
+                "rule": "Main pipeline analyze_tests_patch_health (preserved in merge)",
+                "fix": "Regenerate tests.patch so git apply --check passes",
+            }
+        )
+        data["findings"] = findings
+        json_out.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    fixable_ids = sorted({f["id"] for f in findings if f.get("severity") == "FIXABLE"})
+    advisory_ids = sorted({f["id"] for f in findings if f.get("severity") == "ADVISORY"})
+    not_fixable_ids = sorted({f["id"] for f in findings if f.get("severity") == "NOT_FIXABLE"})
+    passed = len(fixable_ids) == 0 and len(not_fixable_ids) == 0
+    return {
+        "ok": passed,
+        "exit_code": proc.returncode,
+        "stdout": proc.stdout,
+        "stderr": proc.stderr,
+        "findings": findings,
+        "fixable_ids": fixable_ids,
+        "advisory_ids": advisory_ids,
+        "not_fixable_ids": not_fixable_ids,
+        "verdict_hint": data.get("verdict_hint"),
+        "json_path": str(json_out),
+        "md_path": str(md_out),
+        "tests_patch_health": patch_health,
+    }
+
+
+def cmd_static_check(args: argparse.Namespace) -> None:
+    task_name, session = load_session(args.task_name)
+    state = load_workflow_state(task_name)
+    root = resolve_static_check_root(session, state)
+    paths = session_paths(task_name)
+    json_out = paths["outputs"] / "static_check_report.json"
+    md_out = paths["outputs"] / "static_check_report.md"
+    result = run_static_check(root, json_out, md_out)
+    state["static_check_completed"] = True
+    state["static_check_passed"] = bool(result["ok"])
+    state["static_check_fixable_ids"] = result["fixable_ids"]
+    state["static_check_advisory_ids"] = result["advisory_ids"]
+    state["static_check_not_fixable_ids"] = result["not_fixable_ids"]
+    req = required_files_report(root)
+    state["dialect_notes"] = req.get("dialect_notes") or []
+    save_workflow_state(task_name, state)
+    print("STATIC CHECK COMPLETE")
+    print(f"  root: {root}")
+    print(f"  passed: {result['ok']}")
+    print(f"  FIXABLE ids: {result['fixable_ids']}")
+    print(f"  ADVISORY ids: {result['advisory_ids']}")
+    print(f"  NOT_FIXABLE ids: {result['not_fixable_ids']}")
+    print(f"  report: {json_out}")
+    if result.get("stdout"):
+        print(result["stdout"][-4000:])
+    if not result["ok"]:
+        raise SystemExit(1)
+
+
 def cmd_set_verdicts(args: argparse.Namespace) -> None:
     task_name, session = load_session(args.task_name)
     pub, internal, dup = args.public_analysis, args.internal_validity, args.duplicate_analysis
@@ -1575,6 +1691,23 @@ def run_preflight(task_name: str, session: Dict[str, Any], state: Dict[str, Any]
             if req["missing"]:
                 # allow golden missing only if already handled
                 blockers.append(f"Missing required files in working copy: {req['missing']}")
+            warnings.extend(req.get("dialect_notes") or [])
+            # Mechanical Ultra gate (check_task) — FIXABLE/NOT_FIXABLE block packaging
+            sc_json = session_paths(task_name)["outputs"] / "static_check_report.json"
+            sc_md = session_paths(task_name)["outputs"] / "static_check_report.md"
+            sc = run_static_check(working, sc_json, sc_md)
+            state["static_check_completed"] = True
+            state["static_check_passed"] = bool(sc["ok"])
+            state["static_check_fixable_ids"] = sc["fixable_ids"]
+            state["static_check_advisory_ids"] = sc["advisory_ids"]
+            state["static_check_not_fixable_ids"] = sc["not_fixable_ids"]
+            state["dialect_notes"] = req.get("dialect_notes") or []
+            for fid in sc["fixable_ids"]:
+                blockers.append(f"static-check FIXABLE open: {fid}")
+            for fid in sc["not_fixable_ids"]:
+                blockers.append(f"static-check NOT_FIXABLE open: {fid}")
+            for fid in sc["advisory_ids"]:
+                warnings.append(f"static-check ADVISORY: {fid}")
         elif branch == "Valid-as-is":
             # validate against original root
             root = Path(session["real_task_root"])
@@ -1587,6 +1720,20 @@ def run_preflight(task_name: str, session: Dict[str, Any], state: Dict[str, Any]
                 warnings.append(
                     f"Valid-as-is live confirmation 'more than 10' requires >=11 (structural count={f2p})"
                 )
+            sc_json = session_paths(task_name)["outputs"] / "static_check_report.json"
+            sc_md = session_paths(task_name)["outputs"] / "static_check_report.md"
+            sc = run_static_check(root, sc_json, sc_md)
+            state["static_check_completed"] = True
+            state["static_check_passed"] = bool(sc["ok"])
+            state["static_check_fixable_ids"] = sc["fixable_ids"]
+            state["static_check_advisory_ids"] = sc["advisory_ids"]
+            state["static_check_not_fixable_ids"] = sc["not_fixable_ids"]
+            for fid in sc["fixable_ids"]:
+                blockers.append(f"static-check FIXABLE open: {fid}")
+            for fid in sc["not_fixable_ids"]:
+                blockers.append(f"static-check NOT_FIXABLE open: {fid}")
+            for fid in sc["advisory_ids"]:
+                warnings.append(f"static-check ADVISORY: {fid}")
             for key, label in (
                 ("docker_build_status", "Docker"),
                 ("oracle_status", "Oracle"),
@@ -1926,6 +2073,13 @@ def build_parser() -> argparse.ArgumentParser:
     audit = sub.add_parser("audit")
     add_task(audit)
     audit.set_defaults(func=cmd_audit)
+
+    sc = sub.add_parser(
+        "static-check",
+        help="Run sentinel-ultra-review check_task.py (+ patch-health) against working_copy or frozen root",
+    )
+    add_task(sc)
+    sc.set_defaults(func=cmd_static_check)
 
     sv = sub.add_parser("set-verdicts")
     add_task(sv)

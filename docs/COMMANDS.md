@@ -57,11 +57,13 @@ python3 automation/local_oracle_nop.py --task-name TASK --mode both
 ## Execution checkpoint readiness
 
 ```bash
-python3 automation/checkpoint_ready.py --task-name TASK --next 02   # or 03..06
+python3 automation/checkpoint_ready.py --task-name TASK --next 02   # or 03..07
 ```
 
 Verifies prior `session/execution/NN__handoff.md` files exist with `status: complete`.  
-For `--next 05` or `06`, also requires Public == Duplicate via `set-verdicts`.
+For `--next 05`, `06`, or `07`, also requires Public == Duplicate via `set-verdicts`.  
+For `--next 07`, prior is **06** only; `--resume-revision "reason"` waives a missing 06
+handoff on pre-framework tasks (verdicts still required).
 
 ## Learning (post-task)
 
@@ -85,6 +87,10 @@ python3 automation/judge_stats.py
 ```
 
 See `docs/VALIDATION_STRATEGY.md` and `knowledge/judge_feedback/`.
+
+Note: `capture_judge_feedback.py` has no `--file` flag this pass — the Execution **07**
+prompt instructs the agent to read the pasted platform report and construct `--axes-json` /
+`--citation` flags. A `--file` ergonomic may be added later.
 
 Pre-submit blockers: `docs/SUBMITTER_BLOCKERS.md`. Failure catalog: `docs/FAILURE_CATALOG.md`.
 

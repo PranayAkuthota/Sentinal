@@ -23,6 +23,9 @@ REQUIRED_PRIORS: Dict[str, List[str]] = {
     "04": ["01", "02", "03"],
     "05": ["01", "02", "03", "04"],
     "06": ["01", "02", "03", "04", "05"],
+    # Revision round: 06 already gated 01–05; requiring all six again is brittle for
+    # legacy / pre-framework sessions. Escape: --resume-revision.
+    "07": ["06"],
 }
 
 
@@ -78,18 +81,31 @@ def main() -> int:
     p.add_argument(
         "--next",
         required=True,
-        help="Next checkpoint id: 01..06",
+        help="Next checkpoint id: 01..07",
     )
     p.add_argument(
         "--require-verdicts",
         action="store_true",
-        help="Also require Public==Duplicate recorded (implied for --next 05/06)",
+        help="Also require Public==Duplicate recorded (implied for --next 05/06/07)",
+    )
+    p.add_argument(
+        "--resume-revision",
+        metavar="REASON",
+        default=None,
+        help=(
+            "For --next 07 only: allow missing 06 handoff when revising a task whose "
+            "earlier handoffs predate the framework. Reason is recorded in the log; "
+            "verdicts are still required."
+        ),
     )
     args = p.parse_args()
 
     nn = args.next.strip()
     if nn not in REQUIRED_PRIORS:
         die(f"--next must be one of {list(REQUIRED_PRIORS)}")
+
+    if args.resume_revision and nn != "07":
+        die("--resume-revision is only valid with --next 07")
 
     work = ROOT / "work" / args.task_name
     if not work.is_dir():
@@ -100,9 +116,21 @@ def main() -> int:
 
     for prior in REQUIRED_PRIORS[nn]:
         ok, msg = check_handoff(handoff_path(work, prior))
+        if (
+            not ok
+            and nn == "07"
+            and prior == "06"
+            and args.resume_revision
+            and str(args.resume_revision).strip()
+        ):
+            notes.append(
+                f"resume-revision waived missing/incomplete 06 handoff: "
+                f"{str(args.resume_revision).strip()!r}"
+            )
+            continue
         (notes if ok else errors).append(msg)
 
-    need_verdicts = args.require_verdicts or nn in ("05", "06")
+    need_verdicts = args.require_verdicts or nn in ("05", "06", "07")
     if need_verdicts:
         session = load_json(work / "session" / "session.json")
         outputs = load_json(ROOT / "task_outputs" / args.task_name / "workflow_state.json")
@@ -110,7 +138,7 @@ def main() -> int:
         duplicate = session.get("duplicate_analysis") or outputs.get("duplicate_analysis")
         internal = session.get("internal_validity") or outputs.get("internal_validity")
         if not public or not duplicate:
-            errors.append("verdicts not recorded (need set-verdicts before 05/06)")
+            errors.append("verdicts not recorded (need set-verdicts before 05/06/07)")
         elif str(public).strip() != str(duplicate).strip():
             errors.append(f"Public ({public}) != Duplicate ({duplicate})")
         else:

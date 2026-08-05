@@ -51,7 +51,7 @@ python3 automation/sentinel_submitter.py preflight --task-name TASK
 python3 automation/sentinel_submitter.py package-fixable --task-name TASK
 ```
 
-   - `package-fixable` writes `knowledge/judge_feedback/predictions/<TASK>.json` (via
+   - `package-fixable` writes `task_outputs/<TASK>/judge_prediction.json` (via
      `write_judge_prediction.py`) automatically when packaging succeeds. If you need to
      refresh the prediction without re-zipping:
 
@@ -60,7 +60,8 @@ python3 automation/write_judge_prediction.py --task-name TASK
 ```
 
    - **Why it matters:** this prediction is what the platform’s actual Judge verdict is later
-     joined against (`capture_judge_feedback.py`). Without it the calibration ledger never fills.
+     joined against (`capture_judge_feedback.py` / `knowledge/judge_feedback/`). Without it
+     the calibration ledger never fills.
    - Confirm upload ZIP: `work/task ready_to_submit/<TASK>__corrected.zip`
    - Mirror may exist under `task_outputs/<TASK>/updated_zip_file/` — cite **ready_to_submit** as upload path
    - Every revision: delete-first refresh of the same ready_to_submit file
@@ -105,7 +106,7 @@ python3 automation/promote_learning.py failure --id F-0NN --title "…" --catego
 ## Expected outputs
 - `platform_answers.txt` + reports
 - Fixable: `work/task ready_to_submit/<TASK>__corrected.zip`
-- Fixable: `knowledge/judge_feedback/predictions/<TASK>.json` (or path printed by packaging)
+- Fixable: `task_outputs/<TASK>/judge_prediction.json`
 - Invalid evidence ZIP / Valid-as-is: none
 - Chat answers block
 - `knowledge/proposals/…__proposal.md`

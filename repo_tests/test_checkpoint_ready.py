@@ -26,6 +26,7 @@ class CheckpointReadyTests(unittest.TestCase):
         self.assertEqual(m.REQUIRED_PRIORS["04"], ["01", "02", "03"])
         self.assertIn("04", m.REQUIRED_PRIORS["05"])
         self.assertIn("05", m.REQUIRED_PRIORS["06"])
+        self.assertEqual(m.REQUIRED_PRIORS["07"], ["06"])
 
     def test_parse_status(self):
         m = _load()

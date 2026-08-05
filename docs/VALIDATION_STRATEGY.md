@@ -70,15 +70,17 @@ or leave nulls and set `axes_source: "missing_rehearsal"`.
 
 ```bash
 python3 automation/capture_judge_feedback.py --task-name TASK \
-  --verdict OK|DISCUSS|REMOVE \
-  --axes-json '{"test_coverage":3.0,...}' \
-  --cited-overreach 'CellMap.out_shape;exact threshold' \
-  --cited-gaps '…' \
+  --verdict DISCUSS --verdict-reason weak_check \
+  --axes-json '{"prescriptiveness":2.5,"test_coverage":3.0}' \
+  --must-haves Q2,Q9,Q10 \
+  --citation 'quoted text||axis=test_faithfulness' \
   --notes '…'
 ```
 
-Writes `task_outputs/<task>/judge_feedback.json` and appends a join row to
-`task_outputs/_judge_calibration_ledger.jsonl`.
+Writes the canonical record to `knowledge/judge_feedback/<task>.json` (schema:
+`knowledge/judge_feedback/schema.json`), mirrors `task_outputs/<task>/judge_feedback.json`,
+and appends a join row to `task_outputs/_judge_calibration_ledger.jsonl`.
+`prediction_ref` points at `task_outputs/<task>/judge_prediction.json` when present.
 
 ### 3. Aggregate stats
 

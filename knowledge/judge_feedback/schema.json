@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.local/schemas/judge_feedback.schema.json",
+  "title": "Sentinel Agent Judge feedback record",
+  "description": "Canonical record of a live (or backfilled) Agent Judge result, joined to an optional prediction.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_name",
+    "recorded_at",
+    "verdict",
+    "verdict_reason",
+    "axes",
+    "citations",
+    "must_haves_failed",
+    "difficulty_run",
+    "fixes_applied",
+    "next_round_result",
+    "prediction_ref",
+    "source"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 2
+    },
+    "task_name": { "type": "string", "minLength": 1 },
+    "recorded_at": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp when this record was written"
+    },
+    "verdict": {
+      "type": ["string", "null"],
+      "enum": ["OK", "DISCUSS", "REMOVE", null]
+    },
+    "verdict_reason": {
+      "type": ["string", "null"],
+      "description": "Platform reason tag when stated (e.g. weak_check, overreach)"
+    },
+    "axes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adjudicated", "per_judge"],
+      "properties": {
+        "adjudicated": {
+          "type": "object",
+          "description": "Panel/adjudicated axis scores. Missing axes are null.",
+          "additionalProperties": { "type": ["number", "null"] }
+        },
+        "per_judge": {
+          "type": ["object", "null"],
+          "description": "Per-judge scores when the platform shows them; otherwise null",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "type": ["number", "null"] }
+          }
+        }
+      }
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "line_range", "quoted_text", "axis"],
+        "properties": {
+          "file": { "type": ["string", "null"] },
+          "line_range": { "type": ["string", "null"] },
+          "quoted_text": { "type": ["string", "null"] },
+          "axis": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "must_haves_failed": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "difficulty_run": {
+      "type": ["boolean", "null"]
+    },
+    "fixes_applied": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "change", "axis_targeted"],
+        "properties": {
+          "file": { "type": ["string", "null"] },
+          "change": { "type": ["string", "null"] },
+          "axis_targeted": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "next_round_result": {
+      "type": ["object", "null"],
+      "description": "Filled after a subsequent upload round; null until then"
+    },
+    "prediction_ref": {
+      "type": ["string", "null"],
+      "description": "Relative path to task_outputs/<task>/judge_prediction.json when it exists"
+    },
+    "source": {
+      "type": "string",
+      "description": "Provenance, e.g. live platform capture or backfilled from task_outputs"
+    },
+    "notes": {
+      "type": ["string", "null"]
+    }
+  }
+}

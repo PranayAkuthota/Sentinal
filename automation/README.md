@@ -13,9 +13,9 @@ See `docs/COMMANDS.md` and `docs/ARCHITECTURE.md`.
 | `local_oracle_nop.py` | Docker oracle/NOP evidence |
 | `docker_grade_f2p.py` | In-container f2p grader helper |
 | `checkpoint_ready.py` | Execution handoff readiness before 02–06 |
-| `capture_learning.py` | Post-task proposal → `knowledge/proposals/` |
+| `capture_learning.py` | Post-task proposal from real state only (never `(edit)` placeholders) |
 | `write_judge_prediction.py` | Upload-time Judge prediction (`judge_prediction.json`) |
-| `capture_judge_feedback.py` | Join live Judge result to prediction (ledger) |
+| `capture_judge_feedback.py` | Canonical record → `knowledge/judge_feedback/` + prediction join |
 | `judge_stats.py` | Forward calibration: predicted vs actual P/R |
 | `promote_learning.py` | Human-assisted promote → patterns/failures |
 | `sentinel_doctor.py` | Framework health score (depth-aware) |

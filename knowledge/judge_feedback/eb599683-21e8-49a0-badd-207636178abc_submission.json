@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "task_name": "eb599683-21e8-49a0-badd-207636178abc_submission",
+  "recorded_at": "2026-08-05T18:20:00Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "overreach",
+  "axes": {
+    "adjudicated": {
+      "realism": null,
+      "clarity": null,
+      "self_containedness": null,
+      "prescriptiveness": null,
+      "test_coverage": null,
+      "test_faithfulness": null,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": null
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "CellMap public attrs when tests assert them",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "atypical path suffix vs decode",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "soften exact ValueError match both sides",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": ".python-version can hard-cap packaging — remove from shipped tree and realign base_commit_sha",
+      "axis": "packaging"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [
+    {
+      "file": "tests/config.json",
+      "change": "Gated two ungraded patch tests in config.json (18 f2p)",
+      "axis_targeted": null
+    },
+    {
+      "file": "instruction.md",
+      "change": "Instruction rewrite + problem_statement sync",
+      "axis_targeted": null
+    },
+    {
+      "file": "task.toml",
+      "change": "Stripped network fields; removed frozen git+ pin; extracted grade.py",
+      "axis_targeted": "packaging"
+    }
+  ],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "backfilled from task_outputs",
+  "notes": "Evidence: knowledge/proposals/20260804_150446__eb599683-21e8-49a0-badd-207636178abc_submission__proposal.md Agent notes (Judge remove(overreach): CellMap / path-suffix / ValueError / .python-version packaging). Axis numeric scores and difficulty_run were not written down → null. must_haves_failed not stated for this bounce → null."
+}

@@ -81,8 +81,10 @@ python3 automation/promote_learning.py failure --id F-0NN --title "…" --catego
 ```bash
 python3 automation/capture_judge_feedback.py --task-name TASK \
   --verdict OK|DISCUSS|REMOVE \
+  --verdict-reason weak_check|overreach|… \
   --axes-json '{"test_coverage":3.0,"test_faithfulness":2.5,"prescriptiveness":2.5}' \
-  --cited-overreach 'semicolon-separated citations' \
+  --must-haves Q2,Q9,Q10 \
+  --citation 'quoted text||axis=test_faithfulness' \
   --notes '…'
 python3 automation/judge_stats.py
 ```

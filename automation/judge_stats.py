@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Aggregate predicted vs actual Agent Judge calibration from the ledger.
+"""Aggregate predicted vs actual Agent Judge calibration.
+
+Reads knowledge/judge_feedback/*.json (schema v2) and joins prediction_ref when present.
+Also accepts the legacy task_outputs/_judge_calibration_ledger.jsonl.
 
 See docs/VALIDATION_STRATEGY.md. Does not tune thresholds.
 
 Usage:
   python3 automation/judge_stats.py
-  python3 automation/judge_stats.py --ledger PATH
+  python3 automation/judge_stats.py --feedback-dir knowledge/judge_feedback
 """
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_FEEDBACK_DIR = ROOT / "knowledge" / "judge_feedback"
 DEFAULT_LEDGER = ROOT / "task_outputs" / "_judge_calibration_ledger.jsonl"
 
 AXES = (
@@ -32,6 +36,55 @@ AXES = (
     "robustness",
     "packaging",
 )
+
+
+def _load_json(path: Path) -> Dict[str, Any]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def load_feedback_rows(feedback_dir: Path) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    if not feedback_dir.is_dir():
+        return rows
+    for path in sorted(feedback_dir.glob("*.json")):
+        if path.name == "schema.json":
+            continue
+        doc = _load_json(path)
+        if not doc.get("task_name"):
+            continue
+        pred: Dict[str, Any] = {}
+        pref = doc.get("prediction_ref")
+        if pref:
+            pred = _load_json(ROOT / pref)
+        axes = (doc.get("axes") or {}).get("adjudicated") or {}
+        cited = [
+            c.get("quoted_text")
+            for c in (doc.get("citations") or [])
+            if isinstance(c, dict) and c.get("quoted_text")
+        ]
+        rows.append(
+            {
+                "task_name": doc.get("task_name"),
+                "recorded_at": doc.get("recorded_at"),
+                "predicted_verdict": pred.get("predicted_verdict"),
+                "actual_verdict": doc.get("verdict"),
+                "verdict_reason": doc.get("verdict_reason"),
+                "confirmed_overreach": pred.get("confirmed_overreach") or [],
+                "cited_overreach": cited,
+                "confirmed_gaps": pred.get("confirmed_gaps") or [],
+                "cited_gaps": [],
+                "predicted_axes": pred.get("predicted_axes"),
+                "actual_axes": axes,
+                "source": doc.get("source"),
+                "feedback_path": str(path.relative_to(ROOT)),
+                "must_haves_failed": doc.get("must_haves_failed"),
+                "difficulty_run": doc.get("difficulty_run"),
+            }
+        )
+    return rows
 
 
 def load_ledger(path: Path) -> List[Dict[str, Any]]:
@@ -54,7 +107,6 @@ def _norm(s: str) -> str:
 
 
 def cite_match(confirmed: str, cited: str) -> bool:
-    """Loose match: id equality or mutual substring after normalize."""
     a, b = _norm(confirmed), _norm(cited)
     if not a or not b:
         return False
@@ -83,22 +135,37 @@ def precision_recall(confirmed: List[str], cited: List[str]) -> Dict[str, Any]:
     return {"precision": precision, "recall": recall, "tp": tp, "fp": fp, "fn": fn}
 
 
+def _fmt(x: Optional[float]) -> str:
+    if x is None:
+        return "n/a"
+    return f"{x:.2f}"
+
+
 def report(rows: List[Dict[str, Any]]) -> str:
     lines: List[str] = []
-    lines.append(f"# Judge calibration stats ({len(rows)} joined rows)")
+    lines.append(f"# Judge calibration stats ({len(rows)} feedback records)")
     lines.append("")
     if not rows:
-        lines.append("No ledger rows yet. Upload with write_judge_prediction, then")
-        lines.append("capture_judge_feedback after the platform returns.")
+        lines.append("No feedback records yet. Capture with capture_judge_feedback.py")
+        lines.append("or place schema-v2 JSON under knowledge/judge_feedback/.")
         return "\n".join(lines) + "\n"
 
-    verdict_agree = sum(
-        1 for r in rows if r.get("predicted_verdict") and r.get("predicted_verdict") == r.get("actual_verdict")
-    )
-    lines.append(f"Verdict agreement: {verdict_agree}/{len(rows)}")
+    for r in rows:
+        lines.append(
+            f"- {r.get('task_name')}: verdict={r.get('actual_verdict')} "
+            f"reason={r.get('verdict_reason')} source={r.get('source')} "
+            f"pred={r.get('predicted_verdict')}"
+        )
     lines.append("")
 
-    # Overreach P/R pooled
+    paired = [r for r in rows if r.get("predicted_verdict") and r.get("actual_verdict")]
+    if paired:
+        agree = sum(1 for r in paired if r["predicted_verdict"] == r["actual_verdict"])
+        lines.append(f"Verdict agreement (rows with prediction): {agree}/{len(paired)}")
+    else:
+        lines.append("Verdict agreement: n/a (no prediction_ref joins yet)")
+    lines.append("")
+
     all_conf: List[str] = []
     all_cit: List[str] = []
     per_task = []
@@ -106,7 +173,7 @@ def report(rows: List[Dict[str, Any]]) -> str:
         conf = list(r.get("confirmed_overreach") or [])
         cit = list(r.get("cited_overreach") or [])
         pr = precision_recall(conf, cit)
-        per_task.append((r.get("task_name"), pr))
+        per_task.append((r.get("task_name"), pr, conf, cit))
         all_conf.extend(conf)
         all_cit.extend(cit)
     pooled = precision_recall(all_conf, all_cit)
@@ -115,23 +182,11 @@ def report(rows: List[Dict[str, Any]]) -> str:
         f"Pooled: precision={_fmt(pooled['precision'])} recall={_fmt(pooled['recall'])} "
         f"(tp={pooled['tp']} fp={pooled['fp']} fn={pooled['fn']})"
     )
-    for name, pr in per_task:
+    for name, pr, conf, cit in per_task:
         lines.append(
             f"- {name}: P={_fmt(pr['precision'])} R={_fmt(pr['recall'])} "
-            f"(confirmed={pr['tp']+pr['fp']} cited={pr['tp']+pr['fn']})"
+            f"(confirmed={len(conf)} cited={len(cit)})"
         )
-    lines.append("")
-
-    gap_conf: List[str] = []
-    gap_cit: List[str] = []
-    for r in rows:
-        gap_conf.extend(r.get("confirmed_gaps") or [])
-        gap_cit.extend(r.get("cited_gaps") or [])
-    gp = precision_recall(gap_conf, gap_cit)
-    lines.append("## Confirmed-gap precision / recall")
-    lines.append(
-        f"Pooled: precision={_fmt(gp['precision'])} recall={_fmt(gp['recall'])}"
-    )
     lines.append("")
 
     lines.append("## Per-axis |predicted − actual| (mean when both present)")
@@ -153,23 +208,25 @@ def report(rows: List[Dict[str, Any]]) -> str:
         else:
             lines.append(f"- {axis}: (no paired scores yet)")
     lines.append("")
-    lines.append("Do not tune thresholds from sparse n. Prefer prompt/map fixes when P or R is poor.")
+    lines.append("Backfilled rows without predictions show cited counts only; P/R stays n/a until live joins.")
     return "\n".join(lines) + "\n"
-
-
-def _fmt(x: Optional[float]) -> str:
-    if x is None:
-        return "n/a"
-    return f"{x:.2f}"
 
 
 def main(argv: Optional[list] = None) -> int:
     p = argparse.ArgumentParser(description="Judge prediction vs actual calibration stats")
-    p.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
+    p.add_argument("--feedback-dir", type=Path, default=DEFAULT_FEEDBACK_DIR)
+    p.add_argument(
+        "--ledger",
+        type=Path,
+        default=None,
+        help="Optional legacy jsonl; used only when feedback-dir has no records",
+    )
     args = p.parse_args(argv)
-    rows = load_ledger(args.ledger)
-    text = report(rows)
-    sys.stdout.write(text)
+    rows = load_feedback_rows(args.feedback_dir)
+    if not rows:
+        ledger = args.ledger or DEFAULT_LEDGER
+        rows = load_ledger(ledger)
+    sys.stdout.write(report(rows))
     return 0
 
 

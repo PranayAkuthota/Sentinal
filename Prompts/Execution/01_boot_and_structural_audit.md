@@ -18,31 +18,44 @@ Confirm submitter mode, preserve the ZIP immutably, run structural Harbor audit.
 - `Prompts/modules/intake.md`, `structural_audit.md`
 - `validation/checklists/structural_preflight.md`
 - `docs/COMMANDS.md`
-- `knowledge/patterns/INDEX.md` (P-001 patch apply, P-002 ungraded tests, P-005 paths)
+- `knowledge/patterns/INDEX.md` (P-001 patch apply, P-002 ungraded tests, P-005 paths,
+  P-010 Judge before Difficulty, P-011 overreach / ≥3.5)
+- `knowledge/failures/F-011_corrected_zips_stripped_network_blocks_pre_2026_08_05.json`
+  (corrected ZIPs that shipped with Harbor network blocks stripped under the pre-2026-08-05 pipeline)
 
 ## Do
 1. Confirm mode = **submitter** (not reviewer).
 2. Use `python3` + absolute paths. If multiple `work/*` sessions exist, plan to pass `--task-name` always.
-3. Intake → prepare → audit:
+3. Intake → prepare → audit → static-check:
 
 ```bash
 python3 automation/sentinel_submitter.py intake --zip /ABS/PATH/task.zip
 python3 automation/sentinel_submitter.py prepare --task-name TASK
 python3 automation/sentinel_submitter.py audit --task-name TASK
+python3 automation/sentinel_submitter.py static-check --task-name TASK
 ```
 
 4. Save metadata to `work/<TASK>/session/platform_input.txt` when provided.
 5. Verify `original/`, `extracted_original/`, `working_copy/`, `session/` exist; never mutate `extracted_original/`.
-6. Summarize only structural facts for the handoff:
+6. **Authenticity early stop (lean only — never a verdict).** Cross-check and report:
+   - `work/<TASK>/session/platform_input.txt` `source_pr_url` host/org/repo tokens vs `task.toml` `[metadata].source`
+   - the source repo’s language vs what is actually in `environment/repo/`
+   - Original Directory Name vs the shipped task root name
+   - presence of the ten REQUIRED Harbor paths (`docs/REPO_CONVENTIONS.md`)
+   A **hard mismatch** means: stop, record the lean in the handoff, and **do not** open **02**
+   without an explicit human “continue anyway”. Scripts and this step never assign Public/Internal/Duplicate.
+7. Summarize only structural facts for the handoff:
    - task root / format dialect (current vs legacy)
    - f2p / p2p counts from config
    - instruction ↔ problem_statement sync
    - `tests.patch` **git-apply** status + hunk health (not patch-only — P-001)
    - ungraded `+def test_*` when `allow_extra_failures` (P-002)
    - network fields, metadata limits, git hygiene
-7. Label evidence: Inspected / Executed / Not verified. **Do not** set Public/Internal/Duplicate.
-8. Write `session/execution/01__handoff.md` using `templates/execution_handoff.md` with `status: complete|blocked|partial`.
-9. Draft findings in **human EC voice** (will feed Snorkel later).
+   - static-check: FIXABLE finding ids, ADVISORY finding ids, and whether any hard-stop class
+     is present (PH1 / V0 / missing config)
+8. Label evidence: Inspected / Executed / Not verified. **Do not** set Public/Internal/Duplicate.
+9. Write `session/execution/01__handoff.md` using `templates/execution_handoff.md` with `status: complete|blocked|partial`.
+10. Draft findings in **human EC voice** (will feed Snorkel later).
 
 ## Do not
 - Edit instruction/tests/oracle/Dockerfile in this step
@@ -53,12 +66,14 @@ python3 automation/sentinel_submitter.py audit --task-name TASK
 ## Expected outputs
 - Preserved ZIP + SHA in session
 - Audit artifacts under `work/<TASK>/analysis/` and/or `task_outputs/<TASK>/`
-- Chat: short structural summary
-- `01__handoff.md` with `task_name`, ZIP path, f2p count, top risks, audit paths
+- `task_outputs/<TASK>/static_check_report.{json,md}`
+- Chat: short structural summary (+ authenticity lean if mismatched)
+- `01__handoff.md` with `task_name`, ZIP path, f2p count, top risks, audit + static-check paths
 
 ## Done when
 - Intake did not overwrite original unless user forced re-intake
-- Audit finished on `extracted_original`
+- Audit and static-check finished on the selected task root
+- Authenticity lean recorded; hard mismatch either waived by human or handoff `blocked`
 - Handoff has `status: complete` (or honest `blocked`)
 - No premature package / no verdicts
 
@@ -67,7 +82,8 @@ python3 automation/sentinel_submitter.py audit --task-name TASK
 |---------|--------|
 | Corrupt / ambiguous ZIP | Stop; require explicit `--zip` |
 | Prepare cannot find task root | Fix selection; handoff `blocked` |
-| Audit crashes | Capture error; do not invent counts |
+| Audit / static-check crashes | Capture error; do not invent counts |
+| Authenticity hard mismatch | Record lean; `blocked` until human says “continue anyway” |
 
 ## Next
 Open **02** only after inspecting `01__handoff.md`.  

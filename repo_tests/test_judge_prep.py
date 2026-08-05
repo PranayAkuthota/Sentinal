@@ -437,5 +437,189 @@ class JudgePrepSchemaKindTests(unittest.TestCase):
         self.assertIn("stated_schema", kinds)
 
 
+class JudgePrepPreflightInputsHashTests(unittest.TestCase):
+    """prep → rehearsal → preflight hash gate (never silently regenerate)."""
+
+    def _write_clear_rehearsal(self, prep: dict, prep_path: Path, reh_path: Path) -> None:
+        import hashlib
+
+        fp = hashlib.sha256(prep_path.read_bytes()).hexdigest()
+        cov_rows = [
+            {
+                "requirement_id": r["requirement_id"],
+                "prep_status": r["status"],
+                "verdict": "NOT_A_GAP",
+                "bucket": "a",
+                "rationale": "clear",
+            }
+            for r in prep.get("coverage") or []
+            if r.get("status") in jp.COVERAGE_TRIAGE_STATUSES
+        ]
+        faith_rows = [
+            {
+                "assertion_id": r["assertion_id"],
+                "prep_status": r["status"],
+                "verdict": "NOT_OVERREACH",
+                "bucket": "a",
+                "rationale": "clear",
+            }
+            for r in prep.get("faithfulness") or []
+            if r.get("status") in jp.FAITHFULNESS_TRIAGE_STATUSES
+        ]
+        spot = prep.get("linked_spot_check") or {}
+        reh = {
+            "schema_version": 1,
+            "judge_prep_fingerprint": fp,
+            "triage": {"coverage": cov_rows, "faithfulness": faith_rows},
+            "linked_spot_check": {
+                "seed": spot.get("seed"),
+                "assertion_ids": list(spot.get("assertion_ids") or []),
+                "triage": [
+                    {
+                        "assertion_id": aid,
+                        "prep_status": "ok",
+                        "bucket": "a",
+                        "verdict": "NOT_OVERREACH",
+                        "rationale": "sample clear",
+                    }
+                    for aid in (spot.get("assertion_ids") or [])
+                ],
+                "sample_hits": [],
+            },
+            "platform_logic": "OK",
+            "operational_bar_3_5": "PASS",
+        }
+        reh_path.write_text(json.dumps(reh, indent=2) + "\n", encoding="utf-8")
+
+    def test_prep_rehearsal_preflight_stable_then_edit_fails(self):
+        src = FIX / "clean"
+        task_src = src / "task"
+        sc = src / "static_check_report.json"
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            task = root / "task"
+            out = root / "outputs"
+            out.mkdir()
+            # copy fixture task so we can edit it
+            import shutil
+
+            shutil.copytree(task_src, task)
+            prep = jp.run_judge_prep(task, out, sc, task_name="clean_chain")
+            prep_path = out / "judge_prep.json"
+            self.assertTrue(prep_path.is_file())
+            self.assertTrue(prep.get("inputs_hash"))
+            self.assertEqual(prep["inputs_hash"], jp.prep_inputs_hash(task))
+
+            reh_path = out / "judge_rehearsal.json"
+            self._write_clear_rehearsal(prep, prep_path, reh_path)
+
+            # Stable: load for preflight + rehearsal validate both clean
+            loaded, hash_blockers = jp.load_judge_prep_for_preflight(task, prep_path)
+            self.assertEqual(hash_blockers, [], hash_blockers)
+            self.assertIsNotNone(loaded)
+            reh = json.loads(reh_path.read_text(encoding="utf-8"))
+            reh_blockers, _ = jp.validate_judge_rehearsal(reh, prep_path, prep_report=loaded)
+            self.assertEqual(reh_blockers, [], reh_blockers)
+            # File bytes unchanged (no regenerate)
+            before = prep_path.read_bytes()
+            loaded2, _ = jp.load_judge_prep_for_preflight(task, prep_path)
+            self.assertEqual(prep_path.read_bytes(), before)
+            self.assertEqual(loaded2.get("inputs_hash"), prep["inputs_hash"])
+
+            # Edit a test file between rehearsal and preflight → specific message
+            patch = task / "tests" / "tests.patch"
+            patch.write_text(patch.read_text(encoding="utf-8") + "\n# drift\n", encoding="utf-8")
+            loaded3, hash_blockers3 = jp.load_judge_prep_for_preflight(task, prep_path)
+            self.assertIsNone(loaded3)
+            self.assertEqual(hash_blockers3, [jp.PREP_INPUTS_CHANGED_MSG], hash_blockers3)
+
+
+class JudgeRehearsalModuleExampleTests(unittest.TestCase):
+    """Validator must accept the exact JSON shape documented in judge_rehearsal.md."""
+
+    def test_module_documented_example_shape_validates(self):
+        """linked_spot_check.triage is canonical — not triage.linked_spot_check."""
+        src = FIX / "clean"
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td)
+            prep = jp.run_judge_prep(
+                src / "task", out, src / "static_check_report.json", task_name="example_shape"
+            )
+            prep_path = out / "judge_prep.json"
+            import hashlib
+
+            fp = hashlib.sha256(prep_path.read_bytes()).hexdigest()
+            spot = prep.get("linked_spot_check") or {}
+            # Minimal instance of the module's documented example (same keys / nesting)
+            example = {
+                "schema_version": 1,
+                "judge_prep_fingerprint": fp,
+                "triage": {
+                    "coverage": [
+                        {
+                            "requirement_id": r["requirement_id"],
+                            "prep_status": r["status"],
+                            "bucket": "a",
+                            "verdict": "NOT_A_GAP",
+                            "rationale": "...",
+                        }
+                        for r in prep.get("coverage") or []
+                        if r.get("status") in jp.COVERAGE_TRIAGE_STATUSES
+                    ],
+                    "faithfulness": [
+                        {
+                            "assertion_id": r["assertion_id"],
+                            "prep_status": r["status"],
+                            "grade": r.get("grade") or "GRADED",
+                            "severity": r.get("severity") or "high",
+                            "bucket": "a",
+                            "verdict": "NOT_OVERREACH",
+                            "rationale": "...",
+                        }
+                        for r in prep.get("faithfulness") or []
+                        if r.get("status") in jp.FAITHFULNESS_TRIAGE_STATUSES
+                    ],
+                },
+                "confirmed_gaps": [],
+                "confirmed_overreach": [],
+                "linked_spot_check": {
+                    "seed": spot.get("seed"),
+                    "assertion_ids": list(spot.get("assertion_ids") or []),
+                    "triage": [
+                        {
+                            "assertion_id": aid,
+                            "prep_status": "ok",
+                            "bucket": "a",
+                            "verdict": "NOT_OVERREACH",
+                            "rationale": "...",
+                        }
+                        for aid in (spot.get("assertion_ids") or [])
+                    ],
+                    "sample_hits": [],
+                },
+                "platform_logic": "OK",
+                "operational_bar_3_5": "PASS",
+            }
+            blockers, summary = jp.validate_judge_rehearsal(
+                example, prep_path, prep_report=prep
+            )
+            self.assertEqual(blockers, [], blockers)
+            self.assertEqual(
+                summary.get("n_sample_triaged"),
+                len(spot.get("assertion_ids") or []),
+            )
+            # Wrong legacy nesting must NOT satisfy the sample gate when samples exist
+            if spot.get("assertion_ids"):
+                wrong = json.loads(json.dumps(example))
+                wrong["triage"]["linked_spot_check"] = wrong["linked_spot_check"].pop("triage")
+                blockers_wrong, _ = jp.validate_judge_rehearsal(
+                    wrong, prep_path, prep_report=prep
+                )
+                self.assertTrue(
+                    any("untagged linked_spot_check sample" in b for b in blockers_wrong),
+                    blockers_wrong,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1617,6 +1617,12 @@ def cmd_record_validation(args: argparse.Namespace) -> None:
     print(json.dumps(evidence_entry, indent=2))
 
 
+def apply_state_from_judge_prep(state: Dict[str, Any], report: Dict[str, Any]) -> None:
+    state["judge_prep_completed"] = True
+    state["judge_prep_passed"] = bool(report.get("prep_passed"))
+    state["judge_prep_blockers"] = list(report.get("blockers") or [])
+
+
 def run_judge_prep_for_task(task_name: str, task_root: Path, state: Dict[str, Any]) -> Dict[str, Any]:
     """Invoke automation/judge_prep.py against task_root; update workflow state fields."""
     from judge_prep import run_judge_prep  # local import — keep submitter load light
@@ -1631,9 +1637,32 @@ def run_judge_prep_for_task(task_name: str, task_root: Path, state: Dict[str, An
         task_name=task_name,
         accept_risk=accept,
     )
-    state["judge_prep_completed"] = True
-    state["judge_prep_passed"] = bool(report.get("prep_passed"))
-    state["judge_prep_blockers"] = list(report.get("blockers") or [])
+    apply_state_from_judge_prep(state, report)
+    return report
+
+
+def load_judge_prep_for_preflight_gate(
+    task_name: str,
+    task_root: Path,
+    state: Dict[str, Any],
+    blockers: List[str],
+    warnings: List[str],
+    accept_risk_reason: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    """Preflight: read existing judge_prep.json; never regenerate. Hash-gate inputs."""
+    from judge_prep import load_judge_prep_for_preflight  # type: ignore
+
+    paths = session_paths(task_name)
+    prep_path = paths["outputs"] / "judge_prep.json"
+    report, hash_blockers = load_judge_prep_for_preflight(task_root, prep_path)
+    for b in hash_blockers:
+        if accept_risk_reason:
+            warnings.append(f"{b} (accept-risk: {accept_risk_reason})")
+        else:
+            blockers.append(b)
+    if report is None:
+        return None
+    apply_state_from_judge_prep(state, report)
     return report
 
 
@@ -1838,9 +1867,12 @@ def run_preflight(
                 blockers.append(f"static-check NOT_FIXABLE open: {fid}")
             for fid in sc["advisory_ids"]:
                 warnings.append(f"static-check ADVISORY: {fid}")
-            # S10.5 — judge_prep after static-check (map even if FIXABLE open)
-            jp_report = run_judge_prep_for_task(task_name, working, state)
-            apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
+            # S10.5 — read existing judge_prep (never regenerate); hash-gate inputs
+            jp_report = load_judge_prep_for_preflight_gate(
+                task_name, working, state, blockers, warnings, accept_risk_reason
+            )
+            if jp_report is not None:
+                apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
             apply_judge_rehearsal_preflight_blockers(
                 session_paths(task_name)["outputs"], blockers, warnings, accept_risk_reason
             )
@@ -1878,8 +1910,11 @@ def run_preflight(
                 blockers.append(f"static-check NOT_FIXABLE open: {fid}")
             for fid in sc["advisory_ids"]:
                 warnings.append(f"static-check ADVISORY: {fid}")
-            jp_report = run_judge_prep_for_task(task_name, root, state)
-            apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
+            jp_report = load_judge_prep_for_preflight_gate(
+                task_name, root, state, blockers, warnings, accept_risk_reason
+            )
+            if jp_report is not None:
+                apply_judge_prep_preflight_blockers(jp_report, blockers, warnings, accept_risk_reason)
             apply_judge_rehearsal_preflight_blockers(
                 session_paths(task_name)["outputs"], blockers, warnings, accept_risk_reason
             )

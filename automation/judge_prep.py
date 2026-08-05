@@ -1169,6 +1169,7 @@ def run_judge_prep(
         base_report["allow_extra_failures"] = {"enabled": False, "rows": []}
         base_report["decision_join"] = {}
         base_report["invalidated_decisions"] = []
+        base_report["inputs_hash"] = prep_inputs_hash(task_root)
         write_json(json_path, base_report)
         md_path.write_text(render_md(base_report), encoding="utf-8")
         # never overwrite decisions file
@@ -1316,6 +1317,7 @@ def run_judge_prep(
             "judge_rehearsal confirms via P-011 before preflight blocks. "
             "linked_spot_check samples status=ok rows for SAMPLE_HIT detection."
         ),
+        "inputs_hash": prep_inputs_hash(task_root),
     }
 
     write_json(json_path, report)
@@ -1329,6 +1331,119 @@ def file_sha256(path: Path) -> str:
     h = hashlib.sha256()
     h.update(path.read_bytes())
     return h.hexdigest()
+
+
+# Exact preflight message when task inputs diverge from the stored judge_prep.json.
+PREP_INPUTS_CHANGED_MSG = (
+    "prep inputs changed since rehearsal; re-run judge-prep then rehearsal"
+)
+
+# Paths hashed as named inputs (also covered by the tree walk; listed for clarity).
+_PREP_NAMED_INPUTS = (
+    "instruction.md",
+    "tests/tests.patch",
+    "tests/config.json",
+)
+
+_PREP_HASH_SKIP_PARTS = frozenset(
+    {
+        "__pycache__",
+        ".pyc",
+        ".DS_Store",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".venv",
+        "node_modules",
+        ".idea",
+        ".vscode",
+        "runs",
+    }
+)
+
+
+def _prep_hash_skip(rel: str) -> bool:
+    parts = Path(rel).parts
+    for part in parts:
+        if part in _PREP_HASH_SKIP_PARTS:
+            return True
+        if part.endswith((".pyc", ".orig", ".bak", ".swp", "~")):
+            return True
+    return False
+
+
+def prep_inputs_hash(task_root: Path) -> str:
+    """Deterministic hash of named prep inputs + task-tree file inventory.
+
+    Used by preflight to detect drift without rewriting judge_prep.json.
+    """
+    h = hashlib.sha256()
+    root = task_root.resolve()
+    for rel in _PREP_NAMED_INPUTS:
+        h.update(rel.encode("utf-8"))
+        h.update(b"\0")
+        p = root / rel
+        if p.is_file():
+            h.update(p.read_bytes())
+        else:
+            h.update(b"__MISSING__")
+        h.update(b"\0")
+
+    # Full tree: every file (content digest) and every empty directory marker.
+    entries: List[str] = []
+    if root.is_dir():
+        for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+            rel_dir = Path(dirpath).relative_to(root)
+            keep: List[str] = []
+            for d in sorted(dirnames):
+                rel_d = (rel_dir / d).as_posix() if str(rel_dir) != "." else d
+                if _prep_hash_skip(rel_d):
+                    continue
+                keep.append(d)
+                full_d = Path(dirpath) / d
+                try:
+                    if full_d.is_dir() and not any(full_d.iterdir()):
+                        entries.append(f"DIR:{rel_d}")
+                except OSError:
+                    entries.append(f"DIR:{rel_d}")
+            dirnames[:] = keep
+            for fn in sorted(filenames):
+                full = Path(dirpath) / fn
+                rel = full.relative_to(root).as_posix()
+                if _prep_hash_skip(rel):
+                    continue
+                if full.is_symlink() or not full.is_file():
+                    continue
+                digest = hashlib.sha256(full.read_bytes()).hexdigest()
+                entries.append(f"FILE:{rel}:{digest}")
+    for e in sorted(entries):
+        h.update(e.encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()
+
+
+def load_judge_prep_for_preflight(
+    task_root: Path,
+    judge_prep_path: Path,
+) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+    """Read existing judge_prep.json for preflight — never regenerate.
+
+    Returns (report, blockers). On success report is non-None and blockers empty
+    for the inputs-hash check (callers still apply prep/rehearsal blockers).
+    """
+    if not judge_prep_path.is_file():
+        return None, ["judge_prep.json missing (run judge-prep first)"]
+    try:
+        report = load_json(judge_prep_path)
+    except (json.JSONDecodeError, OSError) as exc:
+        return None, [f"judge_prep.json unreadable: {exc}"]
+    stored = report.get("inputs_hash")
+    if not stored:
+        return None, [PREP_INPUTS_CHANGED_MSG]
+    current = prep_inputs_hash(task_root)
+    if stored != current:
+        return None, [PREP_INPUTS_CHANGED_MSG]
+    return report, []
 
 
 def validate_judge_rehearsal(
@@ -1409,13 +1524,15 @@ def validate_judge_rehearsal(
             blockers.append(f"rehearsal:bad_faith_verdict:{aid}:{v}")
 
     # Linked-row spot check (strong ok sample) — SAMPLE_HIT is a signal, not a packaging block
+    # Canonical shape (Prompts/modules/judge_rehearsal.md): linked_spot_check.triage[]
     warnings: List[str] = []
     sample_hits: List[str] = []
-    spot = (prep_report or {}).get("linked_spot_check") or rehearsal.get("linked_spot_check") or {}
-    need_sample = set(spot.get("assertion_ids") or [])
-    sample_rows = list((triage.get("linked_spot_check") or rehearsal.get("linked_spot_check_triage") or []))
-    if isinstance(sample_rows, dict):
-        sample_rows = list(sample_rows.get("triage") or [])
+    prep_spot = (prep_report or {}).get("linked_spot_check") or {}
+    reh_spot = rehearsal.get("linked_spot_check") or {}
+    need_sample = set(prep_spot.get("assertion_ids") or reh_spot.get("assertion_ids") or [])
+    sample_rows = list(reh_spot.get("triage") or [])
+    if not isinstance(sample_rows, list):
+        sample_rows = []
     got_sample = {r.get("assertion_id") for r in sample_rows if isinstance(r, dict)}
     if require_all_candidates and need_sample:
         missing_s = sorted(need_sample - got_sample)
@@ -1423,9 +1540,7 @@ def validate_judge_rehearsal(
             blockers.append(
                 f"judge_rehearsal: untagged linked_spot_check sample: {','.join(missing_s)}"
             )
-        # seed must match prep when both present
-        reh_spot = rehearsal.get("linked_spot_check") or {}
-        if reh_spot.get("seed") and spot.get("seed") and reh_spot.get("seed") != spot.get("seed"):
+        if reh_spot.get("seed") and prep_spot.get("seed") and reh_spot.get("seed") != prep_spot.get("seed"):
             blockers.append("judge_rehearsal: linked_spot_check seed mismatch vs judge_prep")
     for row in sample_rows:
         if not isinstance(row, dict):

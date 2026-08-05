@@ -81,263 +81,14 @@ Check **current artifacts first**. Use legacy artifacts only as **compatibility 
 
 ---
 
-## Stage 3: Review the instruction
+## Stages 3–10: Instruction through packaging (pointer)
 
-Check:
+Perform the reviewer checklist in `.cursor/skills/sentinel-ultra-review/reference/checklists.md`  
+and principles in `reference/core-principles.md`. Mechanical findings from submitter  
+`static-check` / `check_task.py` are evidence — still judge independently.
 
-- Realistic engineering wording
-- Clear behavior
-- Measurable success criteria
-- Self-contained requirements
-- No contradictions
-- No unsupported repository claims
-- No implementation walkthrough
-- No exact hidden-test references
-- No PR or solution leakage
-- Required public schemas documented (schema is not leakage)
-- Scope matches the source PR
-- Added complexity is a natural extension (not a replacement or reduction)
-
-Also confirm `environment/problem_statement.md` is an **exact copy** of the final `instruction.md` when present (required for current packages).
-
----
-
-## Stage 4: Review tests in both directions
-
-Build an internal coverage/faithfulness table:
-
-| Instruction requirement | Test ID or assertion | Covered? | Faithful? | Notes |
-| ----------------------- | -------------------- | -------- | --------- | ----- |
-
-Check:
-
-- Fail-to-pass count: official minimum **≥10** meaningful; **Fixable if <10**; exactly **10** meets the guideline (not automatically Fixable); when the live form requires **“more than 10,”** require that confirmation to be true; preferred practical range **11–20**; no filler tests
-- Plain wording: At least 10 meaningful fail-to-pass tests. Preferred practical range: 11–20 meaningful fail-to-pass tests.
-- Checkbox wording: **“Less than 10 fail-to-pass tests in the test suite”** only when count ≤9; never claim **“More than 10 fail-to-pass tests in the test suite”** for exactly 10
-- Regression test for the original failure
-- Pass-to-pass coverage intact
-- `tests.patch` contents and clean apply to base
-- Existing / pre-existing p2p tests **not modified** (byte-identical)
-- Observable behavior (not source-text matching)
-- Determinism (no flaky time/order/network dependence)
-- No silent skips
-- No fail-open behavior
-- No existence-only checks
-- No agent-controlled coverage
-- No hidden arbitrary names
-- Real CLI or service invocation when the instruction requires it
-- Correct strictness of assertions
-- Correct reward writing and exit behavior in `test.sh`
-- Correct test IDs, commands, and parser in `config.json`
-- Sensible `grade.py` when present
-- No solution-side dependencies / hidden golden outputs
-
-**Blocking Quality Check axes:** test coverage and test faithfulness. A “3 with reservations” on either is a remaining defect — prefer Needs Revision while cycles remain.
-
----
-
-## Stage 5: Review oracle
-
-Check:
-
-- `solve.sh` works conceptually with the current patch structure (`golden.patch`)
-- `golden.patch` contains the complete required solution
-- Every instruction requirement is implemented
-- No unrelated / drive-by changes
-- No hardcoded test answers
-- No hidden golden-file reading
-- No network reliance
-- Deterministic behavior (fixed seeds; timeouts on subprocesses)
-- Any expansion remains connected to the original PR
-- Extra functionality alone is **not** a defect if it does not conflict with the instruction or tests
-- Missing legacy `init_state.patch` alone is **not** a defect
-- If only `solution.patch` appears, expect rename to `golden.patch` for current uploads
-
----
-
-## Stage 6: Review environment and metadata
-
-Check:
-
-- Correct paths vs repo layout
-- Required tools present (language runtime, test framework, tmux/asciinema when Harbor needs them)
-- Offline viability (no build-time network dependence)
-- Concrete image version (not unpinned `:latest` when that is fixable)
-- Resource limits within published ranges
-- Timeouts within limits; raise agent timeout if runs show unfair timeout pressure
-- `gpus` = 0
-- Harbor network blocks present and correct (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`)
-- No `network_mode="none"` left in `docker_compose.yaml`
-- Source URL correctness
-- Category and difficulty explanation accuracy
-- Potential leakage in Docker layers or copied files
-- Allowed versus disallowed environment problems (Fixable vs Not Fixable)
-
-Review **all** metadata fields that are present. Do **not** use the old rule that only source and timeout fields matter for validity.
-
----
-
-## Stage 7: Review Git and package hygiene
-
-Inspect available evidence; run commands when useful (optional):
-
-- HEAD resolves
-- Base commit matches HEAD (HEAD wins if they disagree)
-- No leaked commits after HEAD
-- No remotes
-- No filter drivers
-- Clean working tree
-- No reflog
-- `.git` below 100 MB
-- `tests.patch` applies
-- No tracked source modifications by the submitter
-- No solution leakage into agent-readable paths
-- Correct flat ZIP structure
-- No `runs/` in upload
-- No outer `task/` wrapper
-- No cache, IDE, temporary, backup, or leakage artifacts (`__pycache__/`, `*.pyc`, `.DS_Store`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.venv/`, `node_modules/`, `.idea/`, `.vscode/`, `metadata.json`, `ground_truth.*`, `*.orig`, `*.bak`, `*.swp`, `*~`) — inspect before treating a name as disposable
-- `problem_statement.md` equals `instruction.md`
-- Correct `golden.patch` name
-
-Git problems are usually **Fixable**, not automatically Not Fixable.
-
-Also note: in-app platform checks have a **five-minute** runtime limit; do not treat a runtime-limit stop as a completed successful platform run.
-
----
-
-## Stage 8: Review agent runs
-
-Retain useful run analysis:
-
-- Read every failing trial where practical
-- Identify repeated failure patterns
-- Distinguish **task defects** from normal agent mistakes
-- Check timeouts
-- Check systematic misinterpretation
-- Check reward results
-- Confirm at least one passing trial when available
-- Do **not** assume a task is valid because models failed
-- Do **not** assume a task is invalid because one model failed
-- Cite `runs/` only when it supports or contradicts a concrete finding
-
-**Historical note:** Older packages may contain several trials per model; newer batches may contain fewer (for example, batches from April 28 2026 onward often include two runs — one per model). A smaller newer set is expected and is not automatically a packaging defect.
-
----
-
-## Stage 9: Compare against submitter work
-
-Only after Stages 2–8, reconcile with the submitter:
-
-- Confirm each claim against files
-- Confirm issue category
-- Confirm the correction actually fixed the issue (for Fixable uploads)
-- Check whether any issue was missed
-- Check whether a new defect was introduced by the rewrite
-- Verify the file-change list
-- Verify PR expansion explanation (or “NA”)
-- Verify comments for reviewer
-- Verify Not Fixable reasoning when used
-- Verify the uploaded bundle is complete
-- Note whether submitter comments influenced your decision
-
-Independent disagreement with the submitter is allowed when file-level evidence supports it.
-
----
-
-## Stage 10: Read rebuttal or comments
-
-Before finalizing, open Comments for Reviewer / rebuttal and select the applicable acknowledgement:
-
-- I read the submitter’s rebuttal and it does not change my review outcome.
-- I read the submitter’s rebuttal and revised my review outcome accordingly.
-- No rebuttal comments available.
-
-**Do not omit this step.**
-
----
-
-## Reviewer Outcomes
-
-### Accept
-
-Use when:
-
-- Submission is accurate
-- Corrected task is complete
-- No meaningful defect remains
-- Instruction, tests, and oracle align
-- Source PR scope is preserved (or valid natural expansion)
-- Bundle is complete
-- Submitter analysis is supported
-
-### Needs Revision
-
-Use when any correctable problem remains, including:
-
-- Instruction styling
-- Instruction prescriptiveness
-- Test and instruction misalignment
-- Test coverage gap
-- Exposed hints or answers
-- Oracle defect
-- PR scope violation that can still be corrected without replacing the source task
-- Test build problem
-- Time-based tests
-- Difficulty problem
-- Metadata problem
-- Runtime internet use
-- Agent timeout
-- Wrong coding language
-- Test dependency location
-- Pinning problem
-- Environment issue
-- PR relevance issue
-- Other correctable issue
-
-Prefer Needs Revision whenever revision cycles remain. **Reject is not a substitute for Needs Revision.**
-
-### Reject
-
-Use only when:
-
-- The maximum number of revision cycles has been reached
-- Needs Revision is no longer available
-- Meaningful defects remain
-
-**Maximum-revision fallback:**
-
-- When the platform blocks Needs Revision and Reject exists, use **Reject**.
-- If Reject is unavailable, follow the platform instruction (often Accept with notes) and document unresolved defects for adjudication.
-
----
-
-## Current Reviewer Error Categories
-
-Use these labels for Needs Revision tracking (select all that apply):
-
-| Category | When it applies |
-|----------|-----------------|
-| Instruction Styling | Wording is robotic, LLM-templated, unclear, or poorly structured as an engineering ask. |
-| Instruction Prescriptiveness | Instruction walks through implementation, files to edit, or verifier internals instead of required behavior. |
-| Test ↔ Instruction Misalignment | Assertions and instruction contract disagree in either direction. |
-| Test Coverage Issues | Required behaviors lack real enforcing assertions or f2p count/coverage is insufficient. |
-| Exposing Hints/Answers | Solution leakage via PR links, spoilers, hidden-test names, or environment clues. |
-| Oracle Solution Issues | Oracle incomplete, incorrect, gaming, non-deterministic, or poorly aligned with the instruction. |
-| PR Scope Violation | Scope reduced, replaced, or expanded in a way that no longer maps to the source PR. |
-| Test Build Issues | Suite/setup fails to run correctly, patch apply fails, or harness wiring is broken. |
-| Time-Based Tests | Assertions depend on wall-clock time or other flaky timing. |
-| Task Difficulty | Task too easy/hard for the wrong reasons (e.g. vagueness) or difficulty not restored after fixes. See Difficulty Handling After Corrections in policy. |
-| Metadata Issues | Wrong/missing source, category, difficulty explanation, resources, timeouts, or related fields. |
-| Uses Internet | Build, solve, or tests require live network when they must be offline/self-contained. |
-| Agent Timeout | Agent timeout unfair or inconsistent with runs/complexity. |
-| Wrong Coding Language | Declared or expected language does not match the actual task. |
-| Test Dependency Location | Fixtures/deps placed where the agent can tamper or where the verifier cannot reliably use them. |
-| Pinning Issues | Unpinned images/deps or unstable pins that break reproducibility. |
-| Environment | Dockerfile/tooling/repo environment problems within or beyond allowed fixes. |
-| PR Relevancy | Task does not meaningfully correspond to the cited source PR/commit/issue. |
-| Other | Correctable issue that does not fit the labels above — explain in notes. |
-
----
+Outcomes remain **Accept** / **Needs Revision** / **Reject** (Reject only after max revision cycles).  
+Do not mix submitter verdict labels. Harbor REQUIRED paths exclude `tests/grade.py` (dialect-optional).
 
 ## Submission Quality Score
 
@@ -592,3 +343,64 @@ When the old form asks: identify license from `environment/repo/` or upstream an
 | Local execution prohibited | Optional for reviewers |
 | Only selected metadata fields matter | Review all present metadata against current limits |
 | Always emit Submission Error Categories | Only when the live legacy form requires them |
+
+<!-- deletion-audit-unplaced:start -->
+## Restored policy (deletion audit — was UNPLACED)
+
+The following statements were removed by the role-`.mdc` trim and were not present in `reference/` prose or as a `check_task.py` finding. Restored verbatim so reviewers/submitters can still read them.
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:92 -->
+- No contradictions
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:99 -->
+- Added complexity is a natural extension (not a replacement or reduction)
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:132 -->
+- Sensible `grade.py` when present
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:182 -->
+Inspect available evidence; run commands when useful (optional):
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:197 -->
+- No outer `task/` wrapper
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:214 -->
+- Distinguish **task defects** from normal agent mistakes
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:219 -->
+- Do **not** assume a task is valid because models failed
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:229 -->
+Only after Stages 2–8, reconcile with the submitter:
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:243 -->
+Independent disagreement with the submitter is allowed when file-level evidence supports it.
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:252 -->
+- I read the submitter’s rebuttal and revised my review outcome accordingly.
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:253 -->
+- No rebuttal comments available.
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:267 -->
+- No meaningful defect remains
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:271 -->
+- Submitter analysis is supported
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:275 -->
+Use when any correctable problem remains, including:
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:303 -->
+- The maximum number of revision cycles has been reached
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:305 -->
+- Meaningful defects remain
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:310 -->
+- If Reject is unavailable, follow the platform instruction (often Accept with notes) and document unresolved defects for adjudication.
+
+<!-- source .cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc:338 -->
+| Other | Correctable issue that does not fit the labels above — explain in notes. |
+
+<!-- deletion-audit-unplaced:end -->

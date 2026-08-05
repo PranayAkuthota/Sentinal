@@ -79,9 +79,9 @@ Typical items:
 
 - Ensure Harbor `network_mode` / `allowed_hosts` on `task.toml` (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); strip `network_mode="none"` from `docker_compose.yaml` if present
 - Ensure `solution/golden.patch` (rename from `solution.patch` if needed)
-- Ensure sibling `tests/grade.py` when grader is only embedded inside `test.sh`
+- Optionally extract sibling `tests/grade.py` when grader is embedded in `test.sh` (dialect-optional; never blocking)
 - `chmod +x solution/solve.sh` (Docker bind-mounts may still need `bash solve.sh`)
-
+- Run `static-check` before `preflight`
 ---
 
 ## 6. Local validation

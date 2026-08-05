@@ -1,0 +1,12 @@
+{
+  "id": "F-011",
+  "title": "Corrected ZIPs shipped without Harbor network blocks (pre-2026-08-05 strip hygiene)",
+  "category": "packaging",
+  "symptom": "corrected ZIPs shipped with network_mode/allowed_hosts removed under pre-2026-08-05 hygiene",
+  "root_cause_class": "Old ensure-packaging / strip behaviour deleted per-block network_mode and allowed_hosts that Harbor requires (env=public, agent=allowlist+[api.portkey.ai], verifier=no-network).",
+  "recovery": "re-run ensure-packaging-hygiene and re-upload if the submission is still open",
+  "reusable": true,
+  "automation_opportunity": "static-check / check_task T3–T6 already flag missing blocks; keep ensure_network_blocks_in_task_toml as the repair path — never strip required blocks.",
+  "seen_count": 1,
+  "notes": "Observed 2026-08-05 Phase 2 smoke on a historical corrected working_copy (004e50af-…): FIXABLE T3/T4/T5/T6. Do not mutate archived/historical packages; record only. Policy corrected Aug 5 2026 Ultra refresh."
+}

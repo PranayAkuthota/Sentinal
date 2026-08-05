@@ -95,47 +95,28 @@ Legacy needing review/normalization: `solution/solution.patch`, `solution/init_s
 
 ---
 
-## 7. Instruction checklist
+## 7–15. Checklists (pointer)
 
-- [ ] Clear problem + measurable success criteria
-- [ ] Solvable from instruction + repo
-- [ ] No hidden tests / verifier internals / solution leak
-- [ ] Not LLM-sounding / not overly prescriptive
-- [ ] Matches PR scope (expand only when naturally anchored)
-- [ ] Byte-identical to `environment/problem_statement.md`
+Instruction, tests, oracle, environment/git, validation-by-role, Fixable traps, and packaging:  
+use `.cursor/skills/sentinel-ultra-review/reference/checklists.md`, `test-quality.md`,  
+`environment-and-git.md`, `verdict-rubric.md`, plus `docs/SUBMITTER_BLOCKERS.md`.  
+Mechanical gate: `python3 automation/sentinel_submitter.py static-check --task-name TASK`.
 
----
+Harbor REQUIRED vs dialect-optional paths: `docs/REPO_CONVENTIONS.md`.  
+Network blocks + agent timeout ≤7200: skill `reference/harbor-format.md`.
 
-## 8. Test checklist
+## 16. Master rules
 
-- [ ] Every instruction requirement tested
-- [ ] Every assertion specified or reasonably implied
-- [ ] ≥10 meaningful f2p (exactly 10 meets minimum; “more than 10” needs ≥11)
-- [ ] Original-failure regression present
-- [ ] No p2p mutation; new f2p via `tests.patch`
-- [ ] No filler / silent skip / fail-open / existence-only / agent-controlled coverage
-- [ ] Count ≠ semantic proof — expert review still required
+Policy: `.cursor/rules/Review_Guidelines.mdc`  
+Submitter procedure: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`  
+Operational patterns: `.cursor/rules/Sentinel_Submitter_Operational_Patterns.mdc`  
+Reviewer procedure: `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc`  
+Routing: `CLAUDE.md` · Entry: `AGENTS.md` · Automation: `automation/sentinel_submitter.py` · Local validate: `automation/local_oracle_nop.py`
 
----
+<!-- deletion-audit-unplaced:start -->
+## Restored policy (deletion audit — was UNPLACED)
 
-## 9. Oracle checklist
-
-- [ ] `solve.sh` + `golden.patch` implement instruction
-- [ ] No unrelated changes / fixture hardcoding / hidden goldens
-- [ ] Offline; timeouts set; randomness controlled
-
----
-
-## 10. Environment and Git checklist
-
-- [ ] CPUs 2|4; memory 2048–16384; storage 5120–10240; gpus 0
-- [ ] Timeouts: build ≤1800; agent ≤7200; verifier ≤1800
-- [ ] Corrected current Fixable: Harbor network blocks required (`env=public`, `agent=allowlist`+`api.portkey.ai`, `verifier=no-network`); strip compose `network_mode="none"`; keep Dockerfile offline
-- [ ] Concrete non-`latest` base image
-- [ ] HEAD resolves; matches `base_commit_sha`; no remotes; clean tree; no reflog leak; `.git` <100MB
-- [ ] `tests.patch` applies to intended base
-
----
+The following statements were removed by the role-`.mdc` trim and were not present in `reference/` prose or as a `check_task.py` finding. Restored so reviewers/submitters can still read them.
 
 ## 11. Validation-by-role table
 
@@ -149,46 +130,13 @@ Never claim pass without execution or reliable supplied logs.
 
 ---
 
-## 12. Packaging checklist
-
-- [ ] Original ZIP preserved
-- [ ] Flat contents (no outer `task/`, no `runs/`)
-- [ ] No reports/session/backups/caches/editor junk
-- [ ] Fixable only after `ready_to_package` + preflight
-- [ ] Fixable upload ZIP at `work/task ready_to_submit/<task>__corrected.zip` (cite this path)
-- [ ] Valid-as-is: no new ZIP
-- [ ] Invalid: evidence ZIP only, labelled manual-review
-
----
-
-## 13. Common platform fields
-
-Always: difficulty paragraph · senior estimate (`<10` / `10-20` / `20-40` / `40+`) · reviewer comments · initial review time · entire submission time. Never invent times; else `User confirmation required`.
-
-**Snorkel voice:** narrative answers = human paragraphs (not LLM/audit tone). Difficulty, Comments, Internal reason, issue write-ups included.
-
-**Files Changed (Fixable):** every edited path with what + why; human EC voice; skip validation rehash. Valid-as-is / no edits: `None`.
-
----
-
 ## 14. Legacy compatibility summary
 
 Use current Ultra as default. Read legacy artifacts for context. Do not treat missing optional legacy files as defects. Never mix old Valid/Invalid or Accept/Reject-only systems with Ultra forms unless explicitly requested.
 
 ---
 
-## 15. Recurring Fixable traps (see Operational Patterns for detail)
+- [ ] No reports/session/backups/caches/editor junk
+- [ ] Fixable only after `ready_to_package` + preflight
 
-- `tests.patch`: require `git apply --check` (patch-only ≠ rename-safe)
-- `allow_extra_failures`: ungraded patch tests can fail while reward=1.0
-- Exactly 10 f2p ≠ live “more than 10” (≥11)
-- Corrected current: ensure Harbor network blocks (+ compose cleanup); ensure `grade.py` + `golden.patch`
-- Always `--task-name` + absolute paths when multiple sessions
-
-## 16. Master rules
-
-Policy: `.cursor/rules/Review_Guidelines.mdc`  
-Submitter procedure: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`  
-Operational patterns: `.cursor/rules/Sentinel_Submitter_Operational_Patterns.mdc`  
-Reviewer procedure: `.cursor/rules/Sentinel_Reviewer_Step_by_Step.mdc`  
-Routing: `CLAUDE.md` · Entry: `AGENTS.md` · Automation: `automation/sentinel_submitter.py` · Local validate: `automation/local_oracle_nop.py`
+<!-- deletion-audit-unplaced:end -->

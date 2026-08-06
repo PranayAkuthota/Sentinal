@@ -14,4 +14,4 @@ These are finished framework audits/reconciliations, not live runbooks. Do not t
 | `PROMPT7_RULE_BUDGET_PLACEMENT.md` | Prompt 7 always-on rule-budget placement audit (≤120 line trim) |
 | `RECONCILIATION_check_task.md` | check_task.py reconciliation notes vs Ultra mechanical gates |
 
-Live pointers that still mention the old `docs/` paths should be updated to `docs/history/<file>` when those rule files are next committed.
+Live rule pointers use `docs/history/<file>`.

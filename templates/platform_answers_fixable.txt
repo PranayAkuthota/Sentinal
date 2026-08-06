@@ -19,13 +19,13 @@ A. PUBLIC MAIN ANALYSIS
 [Fixable / Invalid/Not Fixable / Valid as-is]
 
 B. INTERNAL VALIDITY
-[Invalid / Fixable / Valid-as-is]
+[Invalid / Fixable / Valid-as-is — must agree with Public/Duplicate]
 
 Internal Validity reason:
-[one human paragraph with evidence; do not copy Duplicate blindly]
+[one human paragraph with evidence; same semantic branch as Public/Duplicate; do not call the task internally invalid when Internal is Fixable]
 
 C. DUPLICATE ANALYSIS
-[must match Public semantically]
+[must match Public and Internal semantically]
 
 D. CONDITIONAL BRANCH
 [same as Duplicate]

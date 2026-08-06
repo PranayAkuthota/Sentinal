@@ -422,11 +422,7 @@ AUTO_REMOVE = [
      "Fail-open (early return when the artifact is absent)",
      "auto-REMOVE 'Fail-open'",
      "Assert the artifact exists AND assert its contents; never return early."),
-    ("source-scan", r"(?:read_text\(\)|\.read\(\)|open\([^)]*\)\.read\(\))[^\n]{0,80}(?:in\b|find\(|search\()"
-                    r"|assert\s+['\"][\w.]+['\"]\s+in\s+(?:src|source|content|code|text)\b",
-     "Source-text assertion (keyword/substring scan of source code)",
-     "Guidelines - outcome-based tests; checklist: \"Don't assert on source code text\"",
-     "Replace with a behavioral assertion that runs the code and checks the result."),
+    # source-scan handled by emit_source_text_ratio_findings (ratio-aware V9 extension)
     ("wallclock", r"\b(?:datetime\.(?:now|utcnow|today)|time\.time|date\.today)\s*\(",
      "Wall-clock dependence (non-deterministic test)",
      "Guidelines - 'Deterministic and fast'; reviewer tag 'Time-Based Tests'",
@@ -449,9 +445,415 @@ AUTO_REMOVE = [
 ]
 
 
+# ---------------------------------------------------------------- grading config (V15 / V16)
+
+
+def resolve_allow_extra_failures(cfg):
+    """Prefer nested grading.allow_extra_failures; default False when absent."""
+    grading = cfg.get("grading") if isinstance(cfg.get("grading"), dict) else {}
+    if grading.get("allow_extra_failures") is not None:
+        return bool(grading.get("allow_extra_failures"))
+    if cfg.get("allow_extra_failures") is not None:
+        return bool(cfg.get("allow_extra_failures"))
+    return False
+
+
+def collect_execution_command_text(cfg, test_sh_text=""):
+    chunks = []
+    for src in (cfg.get("execution") if isinstance(cfg.get("execution"), dict) else {},
+                cfg.get("grading") if isinstance(cfg.get("grading"), dict) else {},
+                cfg if isinstance(cfg, dict) else {}):
+        for key in ("commands", "command"):
+            v = src.get(key)
+            if isinstance(v, str) and v.strip():
+                chunks.append(v)
+            elif isinstance(v, list):
+                chunks.extend(str(x) for x in v if str(x).strip())
+    if test_sh_text:
+        chunks.append(test_sh_text)
+    return "\n".join(chunks)
+
+
+_TEST_PATH_REF = re.compile(
+    r"(?ix)(?:^|[\s\"'=])("
+    r"(?:[\w.\-]+/)*(?:test_[\w./\-]+|tests?/[\w./\-]+|[\w.\-]+_test\.py|"
+    r"[\w.\-]+\.test\.[a-z]+|Test[\w]+\.java)"
+    r"(?:::[^\s\"']+)?"
+    r")"
+)
+
+# Shell / harness noise that looks vaguely path-like but is not a suite selector.
+_TEST_REF_NOISE_BASENAMES = frozenset({
+    "config.json", "tests.patch", "test.sh", "grade.py", "TEST_DESIGN.md",
+    "metadata.json", "problem_statement.md", "instruction.md",
+})
+_TEST_REF_CODE_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".java", ".go", ".rs", ".kt")
+
+
+def _is_plausible_test_suite_ref(ref: str) -> bool:
+    """True only for real test files / pytest|jest node ids — not shell vars or config paths."""
+    if not ref:
+        return False
+    r = ref.strip().strip("\"'")
+    if not r or "${" in r or r.startswith("$"):
+        return False
+    bare = r.split("::")[0].split("/")[-1]
+    if re.fullmatch(r"[A-Z][A-Z0-9_]{2,}", bare):
+        return False
+    if bare in _TEST_REF_NOISE_BASENAMES:
+        return False
+    path_part = r.split("::")[0].lstrip("./")
+    base = os.path.basename(path_part)
+    if base in _TEST_REF_NOISE_BASENAMES:
+        return False
+    lower = base.lower()
+    if lower.endswith((".json", ".patch", ".md", ".toml", ".yml", ".yaml", ".txt", ".sh")):
+        return False
+    if "::" in r:
+        return True
+    if re.search(r"(^|/)(tests?/|test_)|_test\.[a-z]+$|\.test\.[a-z]+$", path_part):
+        return True
+    if any(path_part.endswith(ext) for ext in _TEST_REF_CODE_EXTS):
+        return True
+    return False
+
+
+def extract_test_path_refs(command_blob):
+    """Suite selectors from execution commands / test.sh (not bare `pytest`).
+
+    Only keeps refs that resolve to real test files or pytest/jest node ids.
+    Ignores shell variables, config.json, tests.patch, and harness noise.
+    """
+    refs = []
+    for m in _TEST_PATH_REF.finditer(command_blob or ""):
+        ref = m.group(1).strip().strip("\"'")
+        if _is_plausible_test_suite_ref(ref) and ref not in refs:
+            refs.append(ref)
+    for m in re.finditer(r"(?i)(?:-s|--start-directory|--pyargs)\s+(\S+)", command_blob or ""):
+        ref = m.group(1).strip().strip("\"'")
+        if _is_plausible_test_suite_ref(ref) and ref not in refs:
+            refs.append(ref)
+    return refs
+
+
+def unrelated_suite_paths(path_refs, patch_files):
+    """Refs that are not the patch's own tests (nor a parent/child of those paths)."""
+    patch_norm = {p.lstrip("./") for p in patch_files}
+    unrelated = []
+    for ref in path_refs:
+        r = ref.lstrip("./").split("::")[0]
+        covered = False
+        for pf in patch_norm:
+            if pf == r or pf.startswith(r.rstrip("/") + "/") or r.startswith(pf.rstrip("/") + "/"):
+                covered = True
+                break
+            if os.path.basename(pf) == os.path.basename(r) or (
+                os.path.splitext(os.path.basename(pf))[0] == os.path.splitext(os.path.basename(r))[0]
+            ):
+                covered = True
+                break
+        if not covered:
+            unrelated.append(ref)
+    return unrelated
+
+
+def emit_grading_config_findings(cfg, cfg_where, patch_files, test_sh_text=""):
+    """V15: allow_extra_failures=true. V16: false + unrelated suite paths gate reward."""
+    allow_extra = resolve_allow_extra_failures(cfg)
+    if allow_extra:
+        add("V15", "FIXABLE", "Tests", cfg_where,
+            "allow_extra_failures=true — ungraded tests can fail without losing reward "
+            "(coverage gap risk)",
+            "allow_extra_failures=true",
+            "Grading config — reward must be gated by the full scoped suite; "
+            "allow_extra_failures=true hides requirements in ungraded tests",
+            "Set allow_extra_failures=false and scope the execution command to the "
+            "task's own tests (paths introduced by tests.patch).")
+        return
+    # Prefer execution.commands from config; fall back to filtered test.sh refs
+    exec_blob = collect_execution_command_text(cfg, test_sh_text="")
+    refs = extract_test_path_refs(exec_blob)
+    if not refs and test_sh_text:
+        refs = extract_test_path_refs(test_sh_text)
+    unrelated = unrelated_suite_paths(refs, patch_files)
+    if unrelated:
+        add("V16", "FIXABLE", "Tests", cfg_where,
+            "allow_extra_failures=false but execution command references test paths "
+            "not in tests.patch — unrelated suites gate the reward (faithfulness / "
+            "hidden-requirement risk)",
+            "unrelated=" + ", ".join(unrelated[:8])
+            + (f" (+{len(unrelated) - 8} more)" if len(unrelated) > 8 else "")
+            + f"; patch_files={len(patch_files)}",
+            "Grading config — with allow_extra_failures=false the verifier enforces "
+            "every test the command runs; legacy/unrelated suites become hidden reqs",
+            "Scope execution.commands / test.sh to only the tests introduced by "
+            "tests.patch (remove unrelated suite paths).")
+
+
+# ---------------------------------------------------------------- source-text ratio (V9 extension)
+
+
+_SOURCE_TEXT_LINE = re.compile(
+    r"(?ix)"
+    r"(?:read_text\s*\(|\.read\s*\(|open\s*\([^)]*\)\s*\.read\s*\()"
+    r".{0,120}(?:\bin\b|find\s*\(|search\s*\(|match\s*\(|findall\s*\(|assertIn|assertRegex)"
+    r"|assert(?:In|Regex)?\s*\(\s*[\'\"][^\'\"]+[\'\"]\s*,\s*"
+    r"(?:src|source|content|code|text|body|cmake|cmakelists|\w+_src|\w+_text)\b"
+    r"|assert\s+[\'\"][^\'\"]+[\'\"]\s+in\s+"
+    r"(?:src|source|content|code|text|body|cmake|cmakelists|\w+_src|\w+_text)\b"
+    r"|re\.(?:search|match|findall|fullmatch)\s*\([^)]*"
+    r"(?:src|source|content|code|text|body|read_text|\.read\()"
+    r"|(?:src|source|content|code|text|body)\s*=\s*(?:.*\.(?:read_text|read)\s*\()"
+)
+
+_BEHAVIOURAL_LINE = re.compile(
+    r"(?ix)"
+    r"(?:subprocess\.|pytest\.raises|assertRaises(?:Regex)?|assertWarns|"
+    r"self\.assert(?:equal|true|false|is|count|almost|list|dict|set|tuple)|"
+    r"assert\s+(?![\'\"][^\'\"]+[\'\"]\s+in\s+(?:src|source|content|code|text)\b)"
+    r"(?:\w+\s*\(|not\s+\w|\w+\.\w+)|"
+    r"(?:\.call\s*\(|\.invoke\s*\(|\.run\s*\(|\.execute\s*\(|\.main\s*\())"
+)
+
+_ASSERTISH_LINE = re.compile(
+    r"(?ix)^\s*(?:assert\b|self\.assert|pytest\.raises|assertRaises|expect\(|should\.)"
+)
+
+# Assignment from reading repo / source-file text (taint source).
+_FILE_READ_ASSIGN = re.compile(
+    r"(?ix)^\s*"
+    r"([A-Za-z_][\w]*)\s*=\s*"
+    r"(?:"
+    r"Path\s*\([^)]*\)\s*\.\s*(?:read_text|read_bytes|open)\s*\("
+    r"|open\s*\([^)]*\)\s*\.\s*(?:read|readlines)\s*\("
+    r"|(?:[\w.]+)\.(?:read_text|read_bytes|readlines)\s*\("
+    r"|[A-Za-z_][\w]*\s*\.\s*read\s*\(\s*\)"
+    r")"
+)
+
+_FILE_READ_ASSIGN_ALT = re.compile(
+    r"(?ix)^\s*"
+    r"([A-Za-z_][\w]*)\s*=\s*"
+    r"(?:"
+    r"open\s*\(\s*[\'\"][^\'\"]+[\'\"][^)]*\)\s*\.\s*(?:read|readlines)\s*\("
+    r"|Path\s*\(\s*[\'\"][^\'\"]+[\'\"]\s*\)\s*\.\s*read_text\s*\("
+    r")"
+)
+
+_FILE_READ_WITH = re.compile(
+    r"(?ix)\bopen\s*\([^)]*\)\s+as\s+([A-Za-z_][\w]*)"
+)
+_FILE_READ_FROM_HANDLE = re.compile(
+    r"(?ix)^\s*([A-Za-z_][\w]*)\s*=\s*([A-Za-z_][\w]*)\s*\.\s*(?:read|readlines)\s*\("
+)
+_ASSIGN_ANY = re.compile(r"(?ix)^\s*([A-Za-z_][\w]*)\s*=\s*(.+)$")
+_HELPER_CALL_ASSIGN = re.compile(
+    r"(?ix)^\s*([A-Za-z_][\w]*)\s*=\s*([A-Za-z_][\w]*)\s*\("
+)
+
+# Common local wrappers (d41a2c3a: `text = read("CMakeLists.txt")`).
+_DEFAULT_FILE_READ_HELPERS = frozenset({
+    "read", "read_file", "read_text", "read_source", "load_text", "load_source",
+    "load_file", "slurp", "get_source", "get_text", "file_text", "repo_read",
+})
+
+
+def _iter_added_test_bodies(all_added):
+    # Close only at the next test_* def so nested helpers stay inside the body.
+    for m in re.finditer(r"(?m)^\s*(?:async\s+)?def\s+(test_\w+)\s*\([^)]*\)\s*:", all_added):
+        start = m.end()
+        nxt = re.search(r"(?m)^\s*(?:async\s+)?def\s+test_\w+\s*\(", all_added[start:])
+        body = all_added[start:start + (nxt.start() if nxt else len(all_added))]
+        yield m.group(1), body
+
+
+def _file_read_helper_names(all_added: str) -> set:
+    """Names of helpers that open/read repo files (module-level or nested)."""
+    names = set(_DEFAULT_FILE_READ_HELPERS)
+    for m in re.finditer(r"(?m)^\s*(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\([^)]*\)\s*:", all_added):
+        name = m.group(1)
+        if name.startswith("test_"):
+            continue
+        start = m.end()
+        nxt = re.search(r"(?m)^\s*(?:async\s+)?def\s+", all_added[start:])
+        body = all_added[start:start + (nxt.start() if nxt else min(2500, len(all_added) - start))]
+        body = "\n".join(body.splitlines()[:50])
+        if re.search(
+            r"(?ix)\bopen\s*\(|\.read_text\s*\(|\.readlines\s*\(|\.read_bytes\s*\("
+            r"|\.read\s*\(\s*\)",
+            body,
+        ):
+            names.add(name)
+    return names
+
+
+def _tainted_file_text_vars(body: str, helpers: set | None = None) -> set:
+    """Vars assigned from open/Path.read_text/readlines/helpers; propagate via RHS use."""
+    helpers = set(helpers or _DEFAULT_FILE_READ_HELPERS)
+    tainted: set = set()
+    handles: set = set()
+    for line in body.splitlines():
+        if line.startswith("+"):
+            line = line[1:]
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        m = _FILE_READ_ASSIGN.search(line) or _FILE_READ_ASSIGN_ALT.search(line)
+        if m:
+            tainted.add(m.group(1))
+            continue
+        m = _FILE_READ_WITH.search(line)
+        if m:
+            handles.add(m.group(1))
+            continue
+        m = _FILE_READ_FROM_HANDLE.search(line)
+        if m and m.group(2) in handles:
+            tainted.add(m.group(1))
+            continue
+        m = _HELPER_CALL_ASSIGN.match(line)
+        if m and m.group(2) in helpers:
+            tainted.add(m.group(1))
+            continue
+        # Propagate: any assignment whose RHS mentions a tainted var / handle read.
+        m = _ASSIGN_ANY.match(line)
+        if m:
+            lhs, rhs = m.group(1), m.group(2)
+            if _line_uses_tainted(rhs, tainted) or _line_uses_tainted(rhs, handles):
+                tainted.add(lhs)
+    return tainted
+
+
+def _line_uses_tainted(line: str, tainted: set) -> bool:
+    if not tainted:
+        return False
+    for name in tainted:
+        if re.search(rf"(?<![\w.]){re.escape(name)}(?![\w])", line):
+            return True
+    return False
+
+
+def classify_assertion_line(line, tainted=None):
+    """Return 'source', 'behavioural', or None.
+
+    Taint rule: if the line is an assertion that references a variable assigned from
+    reading repo/source file text (open/read_text/readlines/helpers like read(path)),
+    it is source-text even when the match uses re.search / assertEqual / etc.
+    Those are not execution of the code under test.
+    """
+    s = line.strip()
+    if not s or s.startswith("#"):
+        return None
+    tainted = tainted or set()
+    is_assert = bool(_ASSERTISH_LINE.search(s) or _SOURCE_TEXT_LINE.search(s))
+    if not is_assert:
+        return None
+    if _line_uses_tainted(s, tainted):
+        return "source"
+    if _SOURCE_TEXT_LINE.search(s):
+        return "source"
+    if _BEHAVIOURAL_LINE.search(s) or _ASSERTISH_LINE.search(s):
+        return "behavioural"
+    return None
+
+
+def analyze_source_text_ratios(all_added, f2p_ids=None):
+    """Per-test source-text vs behavioural assertion counts and ratios."""
+    f2p_ids = f2p_ids or []
+    helpers = _file_read_helper_names(all_added)
+    rows = []
+    for name, body in _iter_added_test_bodies(all_added):
+        tainted = _tainted_file_text_vars(body, helpers)
+        source_n = behav_n = 0
+        for line in body.splitlines():
+            if line.startswith("+"):
+                line = line[1:]
+            kind = classify_assertion_line(line, tainted)
+            if kind == "source":
+                source_n += 1
+            elif kind == "behavioural":
+                behav_n += 1
+        total = source_n + behav_n
+        ratio = (source_n / total) if total else 0.0
+        graded = (not f2p_ids) or any(name in str(t) for t in f2p_ids)
+        rows.append({
+            "test": name,
+            "source": source_n,
+            "behavioural": behav_n,
+            "ratio": ratio,
+            "graded": graded,
+            "tainted_vars": sorted(tainted),
+        })
+    return rows
+
+
+
+def emit_source_text_ratio_findings(tp_where, all_added, f2p_ids=None):
+    """Extend V9 source-scan: per-test + suite-level FIXABLE; ADVISORY mixed; always report."""
+    rows = analyze_source_text_ratios(all_added, f2p_ids)
+    if not rows:
+        return rows
+    graded_rows = [r for r in rows if r["graded"]]
+    suite_src = sum(r["source"] for r in graded_rows)
+    suite_beh = sum(r["behavioural"] for r in graded_rows)
+    suite_total = suite_src + suite_beh
+    suite_ratio = (suite_src / suite_total) if suite_total else 0.0
+    ratio_table = (
+        f"suite_graded={suite_src}/{suite_total} (ratio={suite_ratio:.2f}); "
+        + "; ".join(
+            f"{r['test']}={r['source']}/{r['source'] + r['behavioural']} "
+            f"(ratio={r['ratio']:.2f})"
+            for r in rows
+        )
+    )
+    pure = [r for r in graded_rows if r["source"] >= 1 and r["behavioural"] == 0]
+    mixed_high = [
+        r for r in graded_rows
+        if r["behavioural"] >= 1 and r["ratio"] >= 0.5
+    ]
+    suite_fixable = suite_total > 0 and suite_ratio >= 0.5 and suite_src >= 1
+    fixable_emitted = False
+    if pure:
+        add("V9", "FIXABLE", "Tests", tp_where,
+            f"{len(pure)} graded test(s) use only source-text assertions "
+            "(zero behavioural) — stub can pass; trivially gamed",
+            ratio_table,
+            "Guidelines - outcome-based tests; checklist: \"Don't assert on source code text\" "
+            "(V9 source-scan ratio extension)",
+            "Replace source-substring/regex checks with assertions that execute the code "
+            "under test and check observable behaviour.")
+        fixable_emitted = True
+    if suite_fixable and not pure:
+        add("V9", "FIXABLE", "Tests", tp_where,
+            f"Graded suite source-text assertion ratio {suite_ratio:.2f} >= 0.5 "
+            f"({suite_src}/{suite_total}) — verifier is predominantly source-scanning",
+            ratio_table,
+            "Guidelines - outcome-based tests; checklist: \"Don't assert on source code text\" "
+            "(V9 suite-level source-scan ratio)",
+            "Convert the suite toward behavioural assertions that execute the code under "
+            "test; a source-restructuring contract still needs runnable checks, not regex-only.")
+        fixable_emitted = True
+    if mixed_high and not suite_fixable:
+        add("V9", "ADVISORY", "Tests", tp_where,
+            f"{len(mixed_high)} graded test(s) have source-text assertion ratio >= 0.5 "
+            "(judgment call — may be defensible for source-restructuring contracts)",
+            ratio_table,
+            "Guidelines - prefer behavioural assertions; source-heavy suites risk "
+            "faithfulness complaints",
+            "Review whether each source check is required by an instruction-stated "
+            "source contract; otherwise convert to behavioural asserts.")
+    if not fixable_emitted and not mixed_high:
+        add("V9", "INFO", "Tests", tp_where,
+            "Source-text assertion ratios (no FIXABLE/ADVISORY threshold hit)",
+            ratio_table,
+            "Guidelines - outcome-based tests; checklist: \"Don't assert on source code text\"",
+            "No action required unless ratios climb toward source-only tests.")
+    return rows
+
+
 def check_tests(root, paths, instruction_text):
     cfg_p = paths.get("tests/config.json")
     f2p, p2p = [], []
+    cfg = {}
     if cfg_p:
         try:
             cfg = json.loads(read(cfg_p) or "{}")
@@ -562,6 +964,9 @@ def check_tests(root, paths, instruction_text):
                     "  |  ".join(" ".join(h.split())[:110] for h in hits[:3]),
                     rule, fix)
 
+        # V9 source-scan (ratio-aware extension — replaces binary source-scan AUTO_REMOVE)
+        emit_source_text_ratio_findings(os.path.relpath(tp_p, root), all_added, f2p)
+
         # pre-created artifact: exists() with no content/behavior assertion in the SAME test
         CONTENT = (r"read_text|read_bytes|json\.load|\.read\(\)|loads\(|"
                    r"len\s*\(.*\)\s*[=><]|==|!=|\bin\b|assert_called|>\s*0")
@@ -610,6 +1015,7 @@ def check_tests(root, paths, instruction_text):
 
     # ---- test.sh ----
     ts_p = paths.get("tests/test.sh")
+    ts = ""
     if ts_p:
         ts = read(ts_p) or ""
         if "reward" not in ts:
@@ -631,6 +1037,13 @@ def check_tests(root, paths, instruction_text):
                     "auto-REMOVE pattern 'No CLI/entry-point invocation'",
                     "Actually invoke the thing being built (subprocess the entry point / hit "
                     "the endpoint), not just its internals.")
+
+    # ---- grading configuration (V15 / V16) ----
+    if cfg_p and cfg:
+        patch_files = list(parse_patch(patch_txt or "").keys()) if patch_txt else []
+        emit_grading_config_findings(
+            cfg, os.path.relpath(cfg_p, root), patch_files, test_sh_text=ts
+        )
     return {"f2p": f2p, "p2p": p2p, "added_tests": added_test_fns}
 
 
@@ -770,24 +1183,92 @@ def check_dockerfile(root, paths):
 
 # ---------------------------------------------------------------- 7. packaging
 STRAY = ["__pycache__", ".DS_Store", ".pytest_cache", ".mypy_cache", ".ruff_cache",
-         ".venv", "node_modules", ".idea", ".vscode"]
+         ".venv", "node_modules", ".idea", ".vscode", ".gradle"]
 STRAY_EXT = [".pyc", ".swp", ".orig", ".bak"]
+# Directory path suffixes that are build/run caches (not mere names — avoid flagging
+# legitimate upstream `build/` source trees unless reports/artifacts nest under them).
+STRAY_PATH_MARKERS = (
+    "/.gradle/",
+    "/build/reports/",
+    "/build/tmp/",
+    "/outputs/",
+)
+
+
+_GIT_AUTHORING_BRANCH = re.compile(
+    r"(?i)\b(framework/|sentinel|submission|fixable|task[_-]?ready|corrected|revision)\b"
+)
+
+
+def inspect_git_authoring_leakage(root):
+    """Flag agent-readable task-authoring history inside environment/repo/.git."""
+    repo_git = os.path.join(root, "environment", "repo", ".git")
+    if not os.path.isdir(repo_git):
+        return []
+    hits = []
+    cem = os.path.join(repo_git, "COMMIT_EDITMSG")
+    if os.path.isfile(cem):
+        text = (read(cem) or "").strip()
+        if text:
+            hits.append(("environment/repo/.git/COMMIT_EDITMSG",
+                         f"COMMIT_EDITMSG has task-authoring text: {text[:120]!r}"))
+    logs = os.path.join(repo_git, "logs")
+    if os.path.isdir(logs):
+        # any non-empty log is agent-readable history
+        for dirpath, _, filenames in os.walk(logs):
+            for fn in filenames:
+                fp = os.path.join(dirpath, fn)
+                if os.path.getsize(fp) > 0:
+                    rel = os.path.relpath(fp, root)
+                    hits.append((rel, "non-empty .git/logs entry (authoring history)"))
+                    break
+            if hits and hits[-1][0].startswith("environment/repo/.git/logs"):
+                break
+    for name in ("packed-refs",):
+        pr = os.path.join(repo_git, name)
+        if not os.path.isfile(pr):
+            continue
+        body = read(pr) or ""
+        if _GIT_AUTHORING_BRANCH.search(body):
+            hits.append((f"environment/repo/.git/{name}",
+                         "packed-refs names task-authoring branches"))
+    heads = os.path.join(repo_git, "refs", "heads")
+    if os.path.isdir(heads):
+        for dirpath, _, filenames in os.walk(heads):
+            for fn in filenames:
+                branch = os.path.relpath(os.path.join(dirpath, fn), heads)
+                if _GIT_AUTHORING_BRANCH.search(branch):
+                    hits.append((f"environment/repo/.git/refs/heads/{branch}",
+                                 f"authoring branch ref: {branch}"))
+    return hits
 
 
 def check_packaging(root):
     found = []
     for dirpath, dirnames, filenames in os.walk(root):
         rel = os.path.relpath(dirpath, root)
-        if os.sep + ".git" in os.sep + rel or rel.startswith(".git"):
+        # Skip .git contents in the generic stray walk; handled by inspect_git_authoring_leakage
+        if os.sep + ".git" in os.sep + rel or rel.startswith(".git") or rel.endswith(os.sep + ".git") or rel == ".git":
             dirnames[:] = []
             continue
         for d in list(dirnames):
             if d in STRAY:
-                found.append(os.path.join(rel, d))
+                found.append(os.path.join(rel, d) if rel != "." else d)
                 dirnames.remove(d)
         for f in filenames:
             if f in STRAY or any(f.endswith(e) for e in STRAY_EXT) or f.endswith("~"):
-                found.append(os.path.join(rel, f))
+                found.append(os.path.join(rel, f) if rel != "." else f)
+        # path-marker caches (build/reports, outputs, .gradle nested)
+        norm = "/" + rel.replace("\\", "/").strip(".") + "/"
+        if rel == ".":
+            norm = "/"
+        for marker in STRAY_PATH_MARKERS:
+            if marker in norm:
+                found.append(rel if rel != "." else marker.strip("/"))
+                break
+        # environment/repo/outputs as a directory name
+        if os.path.basename(dirpath) == "outputs" and "environment" in Path_parts_safe(rel):
+            found.append(rel if rel != "." else "outputs")
     if found:
         add("P2", "FIXABLE", "Environment", "bundle",
             f"{len(found)} stray developer artifact(s) in the bundle - a SINGLE one hard-caps "
@@ -795,7 +1276,18 @@ def check_packaging(root):
             ", ".join(sorted(set(found))[:8]) + (" ..." if len(found) > 8 else ""),
             "Tasking Guide - 'No stray artifacts or leakage in the bundle'",
             "Delete every one of them before zipping. Intentional dotfiles (.gitignore, "
-            ".dockerignore, .gitattributes, .gitkeep, .github/, .env) are fine.")
+            ".dockerignore, .gitattributes, .gitkeep, .github/, .env) are fine. "
+            "For tracked paths: delete and realign base_commit_sha.")
+
+    git_hits = inspect_git_authoring_leakage(root)
+    if git_hits:
+        add("P4", "FIXABLE", "Environment", "environment/repo/.git",
+            f"{len(git_hits)} .git authoring-leakage hit(s) — agent-readable packaging history",
+            " | ".join(f"{p}: {note}" for p, note in git_hits[:4])
+            + (" ..." if len(git_hits) > 4 else ""),
+            "Packaging — do not ship task-authoring COMMIT_EDITMSG / logs / branch refs",
+            "Clear COMMIT_EDITMSG and authoring logs/refs from the shipped .git; keep HEAD "
+            "== base_commit_sha. Untracked → delete; tracked metadata → delete and realign.")
 
     if os.path.isdir(os.path.join(root, "runs")):
         add("P3", "ADVISORY", "Environment", "runs/",
@@ -821,6 +1313,10 @@ def check_packaging(root):
                 "Tasking Guide - 'Confirm no solution material (golden patch content, expected "
                 "outputs, ground_truth.* files) is readable from agent paths'",
                 "Remove it. Any such leakage also hard-caps the packaging axis at 1.")
+
+
+def Path_parts_safe(rel):
+    return rel.replace("\\", "/").split("/")
 
 
 # ---------------------------------------------------------------- 8. git

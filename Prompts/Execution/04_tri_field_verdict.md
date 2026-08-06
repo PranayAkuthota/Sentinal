@@ -1,7 +1,7 @@
 # 04 — Tri-Field Verdict
 
 **Canonical daily prompt · Stage S8**  
-**Hard gate:** no Fixable mutations and no packaging until this step completes with Public == Duplicate.
+**Hard gate:** no Fixable mutations and no packaging until this step completes with Public == Internal == Duplicate (same semantic branch).
 
 ## Purpose
 Expert-only assignment of the three live platform fields. Record them; choose the **05** branch.
@@ -36,10 +36,10 @@ python3 automation/checkpoint_ready.py --task-name TASK --next 04
      (b) an environment issue on the **Not-Fixable** list.
      Bias to **Fixable** when correction stays inside allowed files.
 3. Choose **Public Main Analysis**, **Internal Validity** (+ reason), **Duplicate Analysis** using **live** labels.
-4. Ensure Public matches Duplicate (same semantic branch).
-5. Map Not Fixable → live **Invalid/Not Fixable** (or exact live wording).
-6. Write Internal reason as a normal human paragraph (what you saw, why that label).
-7. Record (script records only — you choose values):
+4. Ensure **all three agree** on the same semantic branch (Public ≡ Internal ≡ Duplicate). Do **not** set Internal=`Invalid` with Public/Duplicate=`Fixable`.
+5. Map Not Fixable → live **Invalid/Not Fixable** on Public/Duplicate and **Invalid** on Internal (or exact live wording).
+6. Write Internal reason as a normal human paragraph that matches the agreed label (if Internal is `Fixable`, do not call the task “internally invalid”).
+7. Record (script records only — you choose values; `set-verdicts` enforces `all_validity_fields_agree`):
 
 ```bash
 python3 automation/sentinel_submitter.py set-verdicts --task-name TASK \
@@ -73,14 +73,14 @@ python3 automation/sentinel_submitter.py set-verdicts --task-name TASK \
 
 ## Done when
 - All three fields set; Internal reason non-empty
-- Public ≡ Duplicate
+- Public ≡ Internal ≡ Duplicate (same semantic branch)
 - `set-verdicts` succeeded
 - No content mutations; no ZIP
 
 ## Failure
 | Symptom | Action |
 |---------|--------|
-| Public ≠ Duplicate | `blocked`; reconcile before **05** |
+| Any of Public / Internal / Duplicate disagree | `blocked`; reconcile before **05** |
 | Thin evidence | `partial`; reopen weak prior step |
 
 ## Next

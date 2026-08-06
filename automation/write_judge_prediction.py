@@ -85,6 +85,7 @@ def build_prediction(outputs_dir: Path, task_name: str) -> Dict[str, Any]:
         "predicted_verdict": predicted_verdict,
         "predicted_axes": axes,
         "axes_source": axes_source,
+        "source": "at_upload",
         "confirmed_overreach": list(reh.get("confirmed_overreach") or []),
         "confirmed_gaps": list(reh.get("confirmed_gaps") or []),
         "packaging_hard_cap": bool((prep.get("packaging") or {}).get("hard_cap")),

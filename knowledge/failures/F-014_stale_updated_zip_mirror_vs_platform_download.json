@@ -1,0 +1,12 @@
+{
+  "id": "F-014",
+  "title": "Stale updated_zip_file mirror ≠ platform-downloaded corrected ZIP",
+  "category": "packaging",
+  "symptom": "Revision work (static-check / judge-prep / OOS recall / edits) ran against task_outputs/<task>/updated_zip_file/<task>__corrected.zip while the Agent Judge scored a different platform-downloaded *__corrected.zip. Example: 965e30ce mirror had allow_extra_failures=true + scoped harbor_f2p; platform zip had allow_extra_failures=false with gs_quant/test/test_index.py, test_time.py, test_timeseries.py in the execution command (V16 shape). Detectors and EC review nearly revised the wrong package six times.",
+  "root_cause_class": "updated_zip_file is a local mirror that can lag or diverge from the zip actually uploaded/downloaded from the platform. Treating it as ground truth for revision is unsafe.",
+  "recovery": "On Execution 07, pass --platform-zip to checkpoint_ready. When a mirror exists, SHA-256 must match or the checkpoint FAILS LOUDLY. Re-import / refresh working_copy from the platform zip before any revision edits. Never calibrate detectors or apply fixes against the stale mirror alone.",
+  "reusable": true,
+  "automation_opportunity": "checkpoint_ready --next 07 --platform-zip PATH compares sha256(mirror) vs sha256(platform) and fails on mismatch or missing --platform-zip when mirror exists.",
+  "seen_count": 1,
+  "notes": "Discovered 2026-08-06 during six-revision detector OOS pass. Platform zips lived under ~/Downloads/*__corrected.zip."
+}

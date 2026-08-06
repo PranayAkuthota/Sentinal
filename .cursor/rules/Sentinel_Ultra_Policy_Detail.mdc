@@ -10,7 +10,7 @@ Harbor mechanics: `.cursor/skills/sentinel-ultra-review/reference/`.
 Submitter procedure: `Sentinel_Submitter_Platform_Workflow.mdc`.  
 Reviewer procedure: `Sentinel_Reviewer_Step_by_Step.mdc`.
 
-Placement source: `docs/PROMPT7_RULE_BUDGET_PLACEMENT.md` (rows MOVE → Policy_Detail).
+Placement source: `docs/history/PROMPT7_RULE_BUDGET_PLACEMENT.md` (rows MOVE → Policy_Detail).
 
 ---
 
@@ -69,7 +69,7 @@ Does not weaken Ultra policy:
 - On Fixable corrected current packages: ensure Harbor network blocks (`[environment]=public`, `[agent]=allowlist` + `allowed_hosts=["api.portkey.ai"]`, `[verifier]=no-network`); remove `network_mode="none"` from `docker_compose.yaml` if present; normalize `solution.patch` → `golden.patch`; new f2p tests go in `tests.patch` (never edit existing p2p tests).
 - Invalid evidence packages are **not** corrected submission ZIPs.
 - Valid-as-is tasks remain unchanged (no new ZIP).
-- Public must match Duplicate; Internal Validity is separate (nine combinations).
+- Public, Internal Validity, and Duplicate must **agree** on the same semantic branch (tri-field agreement). Internal `Invalid` ↔ Public/Duplicate `Invalid/Not Fixable` only. Duplicate still selects the conditional branch.
 - Packaging requires automation preflight; structural checks ≠ semantic proof.
 - End-to-end submitter steps: `.cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc`.
 

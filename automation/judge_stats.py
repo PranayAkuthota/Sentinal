@@ -40,7 +40,7 @@ AXES = (
     "packaging",
 )
 
-RETROSPECTIVE_SOURCES = frozenset({"retrospective backtest"})
+RETROSPECTIVE_SOURCES = frozenset({"retrospective backtest", "retrospective out-of-sample"})
 
 
 def _load_json(path: Path) -> Dict[str, Any]:

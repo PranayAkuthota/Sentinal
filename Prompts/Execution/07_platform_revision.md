@@ -11,14 +11,21 @@ preflight / package / prediction / answers.
 
 ## Gate (must pass)
 ```bash
-python3 automation/checkpoint_ready.py --task-name TASK --next 07
+python3 automation/checkpoint_ready.py --task-name TASK --next 07 \
+  --platform-zip /ABS/PATH/TO/platform_downloaded/TASK__corrected.zip
 ```
 Requires `06__handoff.md` complete + Public == Duplicate recorded.  
+**F-014:** if `task_outputs/TASK/updated_zip_file/TASK__corrected.zip` exists, its
+SHA-256 **must** match `--platform-zip` or the checkpoint **FAILS LOUDLY**. Never
+revise from the stale mirror alone.  
 Escape for pre-framework sessions: `--resume-revision "reason"` (see `checkpoint_ready --help`).
 
 ## Required inputs
 - Pasted platform report (Quality Check per-axis with citations; Difficulty **only if it ran**; Static Checks)
-- Prior corrected ZIP / `working_copy/` from the bounced upload
+- **Platform-downloaded** corrected ZIP (the package that received the judge report) —
+  pass via `--platform-zip` above; do **not** trust `task_outputs/.../updated_zip_file/`
+  without a SHA match (F-014)
+- Prior `working_copy/` only after confirming it matches that platform ZIP
 - `06__handoff.md` (or `--resume-revision` reason)
 - Prior `task_outputs/<TASK>/judge_prediction.json` when present
 
@@ -33,6 +40,10 @@ Escape for pre-framework sessions: `--resume-revision "reason"` (see `checkpoint
 - `docs/VALIDATION_STRATEGY.md` (ledger / calibration)
 
 ## Do
+0. **Verify the package (F-014)** — before capture or edits. Confirm
+   `checkpoint_ready --next 07 --platform-zip …` passed. If SHA mismatch, stop, replace
+   the session tree from the platform ZIP, and only then continue.
+
 1. **Capture feedback FIRST** — before any fix. Read the pasted platform report and
    **construct** the capture command (map axes → `--axes-json`; each cited defect → a
    `--citation`). Do not skip this; the ledger never fills if it is skipped.
@@ -84,6 +95,8 @@ python3 automation/sentinel_submitter.py judge-prep --task-name TASK
 
 ## Do not
 - Fix before capturing feedback
+- Revise against `task_outputs/.../updated_zip_file/` without SHA-matching the
+  platform-downloaded zip (F-014)
 - Re-upload while any Judge axis is below 3.5
 - Claim Difficulty results the Judge blocked
 - Leave `discuss (overreach)` unresolved

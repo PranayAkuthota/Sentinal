@@ -1,0 +1,12 @@
+{
+  "id": "F-013",
+  "title": "Rehearsal predicted OK while live Judge returned DISCUSS (optimistic axes)",
+  "category": "validation",
+  "symptom": "At-upload judge_prediction.json predicted_verdict=OK with rehearsal axes ≥4.0 on test_coverage and test_faithfulness; live Agent Judge returned DISCUSS with both blocking axes at 3.0 (gpt faithfulness 2). Citation recall 0/8 on the live join.",
+  "root_cause_class": "Systematic optimism: single-model rehearsal / P-011 triage NOT_A_GAP / NOT_OVERREACH over-clears residual gaps (defaults-subset incompleteness, undocumented public kwargs, arbitrary letter pinning, Q9/Q10 fixture-shaped instruction prose) that the live panel still scores ≤3.",
+  "recovery": "Treat the first live miss as calibration data. Record predicted vs actual axis deltas in docs/VALIDATION_STRATEGY.md. Do not raise the ≥3.5 packaging bar from a single join. On revision, fix cited defects (widen coverage assertions, document real API params, relax arbitrary assigns, reframe contracts vs fixtures per P-012). Keep rehearsal predicted axes conservative on blocking axes after a miss.",
+  "reusable": true,
+  "automation_opportunity": "judge_stats already splits live joins; after N≥3 live misses with OK→DISCUSS on blocking axes, consider a rehearsal confidence discount — not yet.",
+  "seen_count": 1,
+  "notes": "0cf2e9a3 round 2 (2026-08-06). Predicted coverage/faith 4.5/4.5 → actual 3.0/3.0 (MAE 1.5). Difficulty/Oracle not run. Related: P-012 oscillation; F-012 V9 fail-open gap from round 1 OOS."
+}

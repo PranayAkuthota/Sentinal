@@ -478,20 +478,60 @@ _TEST_PATH_REF = re.compile(
     r"(?ix)(?:^|[\s\"'=])("
     r"(?:[\w.\-]+/)*(?:test_[\w./\-]+|tests?/[\w./\-]+|[\w.\-]+_test\.py|"
     r"[\w.\-]+\.test\.[a-z]+|Test[\w]+\.java)"
+    r"(?:::[^\s\"']+)?"
     r")"
 )
 
+# Shell / harness noise that looks vaguely path-like but is not a suite selector.
+_TEST_REF_NOISE_BASENAMES = frozenset({
+    "config.json", "tests.patch", "test.sh", "grade.py", "TEST_DESIGN.md",
+    "metadata.json", "problem_statement.md", "instruction.md",
+})
+_TEST_REF_CODE_EXTS = (".py", ".ts", ".tsx", ".js", ".jsx", ".java", ".go", ".rs", ".kt")
+
+
+def _is_plausible_test_suite_ref(ref: str) -> bool:
+    """True only for real test files / pytest|jest node ids — not shell vars or config paths."""
+    if not ref:
+        return False
+    r = ref.strip().strip("\"'")
+    if not r or "${" in r or r.startswith("$"):
+        return False
+    bare = r.split("::")[0].split("/")[-1]
+    if re.fullmatch(r"[A-Z][A-Z0-9_]{2,}", bare):
+        return False
+    if bare in _TEST_REF_NOISE_BASENAMES:
+        return False
+    path_part = r.split("::")[0].lstrip("./")
+    base = os.path.basename(path_part)
+    if base in _TEST_REF_NOISE_BASENAMES:
+        return False
+    lower = base.lower()
+    if lower.endswith((".json", ".patch", ".md", ".toml", ".yml", ".yaml", ".txt", ".sh")):
+        return False
+    if "::" in r:
+        return True
+    if re.search(r"(^|/)(tests?/|test_)|_test\.[a-z]+$|\.test\.[a-z]+$", path_part):
+        return True
+    if any(path_part.endswith(ext) for ext in _TEST_REF_CODE_EXTS):
+        return True
+    return False
+
 
 def extract_test_path_refs(command_blob):
-    """Path-like suite selectors from execution commands / test.sh (not bare `pytest`)."""
+    """Suite selectors from execution commands / test.sh (not bare `pytest`).
+
+    Only keeps refs that resolve to real test files or pytest/jest node ids.
+    Ignores shell variables, config.json, tests.patch, and harness noise.
+    """
     refs = []
     for m in _TEST_PATH_REF.finditer(command_blob or ""):
         ref = m.group(1).strip().strip("\"'")
-        if ref and ref not in refs:
+        if _is_plausible_test_suite_ref(ref) and ref not in refs:
             refs.append(ref)
     for m in re.finditer(r"(?i)(?:-s|--start-directory|--pyargs)\s+(\S+)", command_blob or ""):
         ref = m.group(1).strip().strip("\"'")
-        if ref and ref not in refs:
+        if _is_plausible_test_suite_ref(ref) and ref not in refs:
             refs.append(ref)
     return refs
 
@@ -501,7 +541,7 @@ def unrelated_suite_paths(path_refs, patch_files):
     patch_norm = {p.lstrip("./") for p in patch_files}
     unrelated = []
     for ref in path_refs:
-        r = ref.lstrip("./")
+        r = ref.lstrip("./").split("::")[0]
         covered = False
         for pf in patch_norm:
             if pf == r or pf.startswith(r.rstrip("/") + "/") or r.startswith(pf.rstrip("/") + "/"):
@@ -530,8 +570,11 @@ def emit_grading_config_findings(cfg, cfg_where, patch_files, test_sh_text=""):
             "Set allow_extra_failures=false and scope the execution command to the "
             "task's own tests (paths introduced by tests.patch).")
         return
-    blob = collect_execution_command_text(cfg, test_sh_text)
-    refs = extract_test_path_refs(blob)
+    # Prefer execution.commands from config; fall back to filtered test.sh refs
+    exec_blob = collect_execution_command_text(cfg, test_sh_text="")
+    refs = extract_test_path_refs(exec_blob)
+    if not refs and test_sh_text:
+        refs = extract_test_path_refs(test_sh_text)
     unrelated = unrelated_suite_paths(refs, patch_files)
     if unrelated:
         add("V16", "FIXABLE", "Tests", cfg_where,
@@ -628,20 +671,30 @@ def analyze_source_text_ratios(all_added, f2p_ids=None):
 
 
 def emit_source_text_ratio_findings(tp_where, all_added, f2p_ids=None):
-    """Extend V9 source-scan: FIXABLE pure source-text tests; ADVISORY high ratio; always report."""
+    """Extend V9 source-scan: per-test + suite-level FIXABLE; ADVISORY mixed; always report."""
     rows = analyze_source_text_ratios(all_added, f2p_ids)
     if not rows:
         return rows
-    ratio_table = "; ".join(
-        f"{r['test']}={r['source']}/{r['source'] + r['behavioural']} "
-        f"(ratio={r['ratio']:.2f})"
-        for r in rows
+    graded_rows = [r for r in rows if r["graded"]]
+    suite_src = sum(r["source"] for r in graded_rows)
+    suite_beh = sum(r["behavioural"] for r in graded_rows)
+    suite_total = suite_src + suite_beh
+    suite_ratio = (suite_src / suite_total) if suite_total else 0.0
+    ratio_table = (
+        f"suite_graded={suite_src}/{suite_total} (ratio={suite_ratio:.2f}); "
+        + "; ".join(
+            f"{r['test']}={r['source']}/{r['source'] + r['behavioural']} "
+            f"(ratio={r['ratio']:.2f})"
+            for r in rows
+        )
     )
-    pure = [r for r in rows if r["graded"] and r["source"] >= 1 and r["behavioural"] == 0]
+    pure = [r for r in graded_rows if r["source"] >= 1 and r["behavioural"] == 0]
     mixed_high = [
-        r for r in rows
-        if r["graded"] and r["behavioural"] >= 1 and r["ratio"] >= 0.5
+        r for r in graded_rows
+        if r["behavioural"] >= 1 and r["ratio"] >= 0.5
     ]
+    suite_fixable = suite_total > 0 and suite_ratio >= 0.5 and suite_src >= 1
+    fixable_emitted = False
     if pure:
         add("V9", "FIXABLE", "Tests", tp_where,
             f"{len(pure)} graded test(s) use only source-text assertions "
@@ -651,7 +704,18 @@ def emit_source_text_ratio_findings(tp_where, all_added, f2p_ids=None):
             "(V9 source-scan ratio extension)",
             "Replace source-substring/regex checks with assertions that execute the code "
             "under test and check observable behaviour.")
-    if mixed_high:
+        fixable_emitted = True
+    if suite_fixable and not pure:
+        add("V9", "FIXABLE", "Tests", tp_where,
+            f"Graded suite source-text assertion ratio {suite_ratio:.2f} >= 0.5 "
+            f"({suite_src}/{suite_total}) — verifier is predominantly source-scanning",
+            ratio_table,
+            "Guidelines - outcome-based tests; checklist: \"Don't assert on source code text\" "
+            "(V9 suite-level source-scan ratio)",
+            "Convert the suite toward behavioural assertions that execute the code under "
+            "test; a source-restructuring contract still needs runnable checks, not regex-only.")
+        fixable_emitted = True
+    if mixed_high and not suite_fixable:
         add("V9", "ADVISORY", "Tests", tp_where,
             f"{len(mixed_high)} graded test(s) have source-text assertion ratio >= 0.5 "
             "(judgment call — may be defensible for source-restructuring contracts)",
@@ -660,7 +724,7 @@ def emit_source_text_ratio_findings(tp_where, all_added, f2p_ids=None):
             "faithfulness complaints",
             "Review whether each source check is required by an instruction-stated "
             "source contract; otherwise convert to behavioural asserts.")
-    if not pure and not mixed_high:
+    if not fixable_emitted and not mixed_high:
         add("V9", "INFO", "Tests", tp_where,
             "Source-text assertion ratios (no FIXABLE/ADVISORY threshold hit)",
             ratio_table,

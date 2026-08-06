@@ -92,17 +92,48 @@ def test_cmake_mentions_simd():
         self.assertTrue(any("ratio=" in (f.get("evidence") or "") for f in v9))
 
     def test_mixed_high_ratio_is_advisory_not_fixable(self):
+        # Per-test ratio high but suite stays under 0.5 via sibling behavioural tests
         body = """
 def test_mixed():
     src = Path("foo.py").read_text()
     assert "toHex" in src
     assert re.search(r"ternary", src)
     assert convert(1) == "1"
+def test_beh_a():
+    assert convert(1) == "1"
+def test_beh_b():
+    assert convert(2) == "2"
+def test_beh_c():
+    assert convert(3) == "3"
 """
-        self.ct.emit_source_text_ratio_findings("tests/tests.patch", body, ["test_mixed"])
+        names = ["test_mixed", "test_beh_a", "test_beh_b", "test_beh_c"]
+        self.ct.emit_source_text_ratio_findings("tests/tests.patch", body, names)
         v9 = [f for f in self.ct.FINDINGS if f["id"] == "V9"]
         self.assertTrue(any(f["severity"] == "ADVISORY" for f in v9), v9)
         self.assertFalse(any(f["severity"] == "FIXABLE" for f in v9), v9)
+
+    def test_suite_level_ratio_fixable_without_pure_test(self):
+        body = """
+def test_a():
+    src = Path("CMakeLists.txt").read_text()
+    assert "FOO" in src
+    assert run() == 1
+def test_b():
+    src = Path("simd.cpp").read_text()
+    assert re.search(r"AVX", src)
+    assert run() == 2
+def test_c():
+    src = Path("CMakeLists.txt").read_text()
+    assert "BAR" in src
+    assert run() == 3
+"""
+        names = ["test_a", "test_b", "test_c"]
+        self.ct.emit_source_text_ratio_findings("tests/tests.patch", body, names)
+        v9 = [f for f in self.ct.FINDINGS if f["id"] == "V9"]
+        self.assertTrue(
+            any(f["severity"] == "FIXABLE" and "suite" in (f.get("summary") or "").lower() for f in v9),
+            v9,
+        )
 
     def test_behavioural_only_reports_info_ratio(self):
         body = """
@@ -139,6 +170,17 @@ class Q9Q10InstructionGuardTests(unittest.TestCase):
         )
         r = jp.scan_q9_q10_instruction(text)
         self.assertEqual(r["path_candidates"], [])
+
+    def test_eb599683_includes_the_words_phrasing(self):
+        text = (
+            "If the resolved format is not `mp4` or `gif`, raise `ValueError` whose "
+            "message includes the words “unsupported” and “format”."
+        )
+        r = jp.scan_q9_q10_instruction(text)
+        self.assertTrue(r["blocking"], r)
+        words = [w for h in r["blocking"] for w in (h.get("words") or [])]
+        self.assertIn("unsupported", words)
+        self.assertIn("format", words)
 
 
 class PrivateInternalsCandidateTests(unittest.TestCase):
@@ -178,6 +220,83 @@ class PrivateInternalsCandidateTests(unittest.TestCase):
         ]
         cands = jp.scan_private_internals(asserts, instr)
         self.assertFalse(any(c["identifier"] == "VideoInfo" for c in cands), cands)
+
+
+class PrivateInternalsExtraTests(unittest.TestCase):
+    def test_videoinfo_in_helper_return_scanned_from_body(self):
+        instr = "Pixelate videos; raise ValueError on bad formats."
+        patch = """
++++ b/tests/test_video.py
+@@
++def test_gif_to_gif():
++    def _info(path):
++        return video_io.VideoInfo(
++            path=path,
++            width=1,
++        )
++    assert _info("x").width == 1
+"""
+        cands = jp.scan_private_internals([], instr, patch)
+        self.assertTrue(any(c["identifier"] == "VideoInfo" for c in cands), cands)
+
+    def test_ungraded_subscript_medium_severity(self):
+        instr = "Composer tray owns slots."
+        asserts = [
+            {
+                "id": "A55",
+                "test_id": "owns empty-state",
+                "grade": "UNGRADED",
+                "assertion_text": "expect(manager['contextTray']['containerEl'].hasClass('has-content')).toBe(false)",
+            }
+        ]
+        cands = jp.scan_private_internals(asserts, instr)
+        hit = [c for c in cands if c["identifier"] in ("contextTray", "containerEl")]
+        self.assertTrue(hit, cands)
+        self.assertTrue(all(c["severity"] == "medium" for c in hit), hit)
+
+    def test_positional_constructor_when_order_undocumented(self):
+        instr = "Construct a `Swap` for the trade."
+        asserts = [
+            {
+                "id": "A9",
+                "test_id": "test_swap",
+                "grade": "GRADED",
+                "assertion_text": "Swap(USD, NYC, pricing_date)",
+            }
+        ]
+        cands = jp.scan_private_internals(asserts, instr)
+        self.assertTrue(any(c["kind"] == "positional_constructor" for c in cands), cands)
+
+
+class V16PathFilterTests(unittest.TestCase):
+    def setUp(self):
+        self.ct = _load_check_task()
+        self.ct.FINDINGS.clear()
+
+    def test_ignores_test_sh_noise_keeps_node_ids(self):
+        refs = self.ct.extract_test_path_refs(
+            "pytest tests/test_video.py::TestX\n"
+            "TEST_EXIT_CODE=1\ntests/config.json tests/tests.patch TEST_DESIGN.md\n"
+        )
+        self.assertTrue(any("test_video" in r for r in refs), refs)
+        self.assertFalse(any("config.json" in r for r in refs), refs)
+        self.assertFalse(any("TEST_EXIT" in r for r in refs), refs)
+
+    def test_v16_clear_when_scoped_command_despite_test_sh_noise(self):
+        self.ct.emit_grading_config_findings(
+            {
+                "grading": {"allow_extra_failures": False},
+                "execution": {
+                    "commands": [
+                        "python -m pytest -v tests/test_video.py::TestVideo"
+                    ]
+                },
+            },
+            "tests/config.json",
+            patch_files=["tests/test_video.py"],
+            test_sh_text="echo $TEST_EXIT_CODE; cat tests/config.json",
+        )
+        self.assertEqual([f["id"] for f in self.ct.FINDINGS], [])
 
 
 class PackagingGitAndCacheTests(unittest.TestCase):

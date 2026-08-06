@@ -98,6 +98,16 @@ def main() -> int:
             "verdicts are still required."
         ),
     )
+    p.add_argument(
+        "--platform-zip",
+        metavar="PATH",
+        default=None,
+        help=(
+            "For --next 07: absolute path to the platform-downloaded corrected ZIP. "
+            "When task_outputs/<task>/updated_zip_file/<task>__corrected.zip also exists, "
+            "SHA-256 must match or the checkpoint FAILS (F-014 — stale mirror)."
+        ),
+    )
     args = p.parse_args()
 
     nn = args.next.strip()
@@ -106,6 +116,8 @@ def main() -> int:
 
     if args.resume_revision and nn != "07":
         die("--resume-revision is only valid with --next 07")
+    if args.platform_zip and nn != "07":
+        die("--platform-zip is only valid with --next 07")
 
     work = ROOT / "work" / args.task_name
     if not work.is_dir():
@@ -143,6 +155,53 @@ def main() -> int:
             errors.append(f"Public ({public}) != Duplicate ({duplicate})")
         else:
             notes.append(f"verdicts ok public=duplicate={public} internal={internal}")
+
+    # F-014: never revise against a stale updated_zip_file mirror
+    if nn == "07":
+        mirror = (
+            ROOT
+            / "task_outputs"
+            / args.task_name
+            / "updated_zip_file"
+            / f"{args.task_name}__corrected.zip"
+        )
+        platform = Path(args.platform_zip).expanduser() if args.platform_zip else None
+        if mirror.is_file() and platform is None:
+            errors.append(
+                "F-014 FATAL: updated_zip_file mirror exists but --platform-zip was not "
+                f"provided. Pass the platform-downloaded corrected ZIP and compare SHA-256 "
+                f"(mirror={mirror}). Do NOT revise from the mirror alone."
+            )
+        elif mirror.is_file() and platform is not None:
+            if not platform.is_file():
+                errors.append(f"F-014 FATAL: --platform-zip not found: {platform}")
+            else:
+                import hashlib
+
+                def _sha(p: Path) -> str:
+                    h = hashlib.sha256()
+                    h.update(p.read_bytes())
+                    return h.hexdigest()
+
+                m_digest = _sha(mirror)
+                p_digest = _sha(platform)
+                if m_digest != p_digest:
+                    errors.append(
+                        "F-014 FATAL: updated_zip_file mirror SHA-256 does not match "
+                        f"platform zip.\n"
+                        f"    mirror   = {mirror}\n"
+                        f"    mirror_sha256   = {m_digest}\n"
+                        f"    platform = {platform}\n"
+                        f"    platform_sha256 = {p_digest}\n"
+                        "    The mirror is STALE. Re-import the platform zip before any "
+                        "revision edits — do not revise the wrong package."
+                    )
+                else:
+                    notes.append(
+                        f"platform zip SHA-256 matches updated_zip_file mirror ({m_digest[:16]}…)"
+                    )
+        elif platform is not None and platform.is_file():
+            notes.append(f"platform zip provided (no updated_zip_file mirror): {platform}")
 
     print("CHECKPOINT READY")
     print(f"  task: {args.task_name}")

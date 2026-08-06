@@ -840,6 +840,7 @@ def dont_list_scan(patch_text: str, findings: List[Dict[str, Any]]) -> List[Dict
 # ---------------------------------------------------------------- Q9/Q10 + private internals
 
 
+
 _ASSERT_NOISE = frozenset({
     "self", "true", "false", "none", "null", "assert", "assertequal", "asserttrue",
     "assertfalse", "assertin", "assertis", "assertisnone", "assertisnotnone",
@@ -850,19 +851,29 @@ _ASSERT_NOISE = frozenset({
     "return", "returns", "isinstance", "issubclass", "hasattr", "getattr", "len",
     "str", "int", "float", "bool", "list", "dict", "set", "tuple", "bytes",
     "path", "pathlib", "open", "print", "range", "type", "object", "super",
+    "expect", "describe", "beforeeach", "aftereach", "it", "const", "let", "var",
+    "document", "window", "htmllement", "htmlelement", "any", "as", "from", "import",
 })
 
+# Broad Q10: contain|include|mention|have (+ tenses) + the words/string/text OR quoted literals
+# near an error/exception/message requirement. Also inverse: message includes the words X and Y.
 _ERROR_MSG_LITERAL = re.compile(
     r"(?is)(?:error\s+message|exception\s+message|(?:raised?\s+)?(?:value)?error|"
-    r"message\s+(?:must|should|shall))\s+"
-    r".{0,120}?\b(?:must|should|shall)\s+contain\b.{0,80}?"
-    r"[`'\"]([^`'\"]{2,})[`'\"]"
-    r"(?:.{0,60}?\band\b.{0,40}?[`'\"]([^`'\"]{2,})[`'\"])?"
+    r"(?:raise|raises|raised)\s+[A-Za-z_.]+|"
+    r"message)\s+"
+    r".{0,160}?\b(?:must|should|shall|whose|that|to)?\s*"
+    r"(?:contain|contains|containing|include|includes|including|included|"
+    r"mention|mentions|mentioning|mentioned|have|has|having)\b"
+    r".{0,80}?(?:(?:the\s+)?(?:words?|strings?|text|substrings?)\s+)?"
+    r"[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"]"
+    r"(?:.{0,60}?\band\b.{0,40}?[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"])?"
 )
 
 _ERROR_MSG_LITERAL_ALT = re.compile(
-    r"(?is)\b(?:must|should|shall)\s+contain\s+(?:the\s+)?(?:words?|substrings?)\s+"
-    r"[`'\"]([^`'\"]{2,})[`'\"]\s+and\s+[`'\"]([^`'\"]{2,})[`'\"]"
+    r"(?is)\b(?:must|should|shall)\s+(?:contain|include|mention|have)\s+"
+    r"(?:the\s+)?(?:words?|substrings?|strings?|text)\s+"
+    r"[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"]\s+and\s+"
+    r"[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"]"
 )
 
 _PATH_IMPERATIVE = re.compile(
@@ -879,22 +890,31 @@ _FS_PATH = re.compile(
     r")\b"
 )
 
+_POS_CALL = re.compile(
+    r"\b([A-Z][A-Za-z0-9_]*)\s*\(([^)]{1,200})\)"
+)
+
 
 def scan_q9_q10_instruction(instruction: str) -> Dict[str, Any]:
     """Q10 error-message literals → blocking. Q9 path-as-navigation → candidates only."""
     blocking: List[Dict[str, Any]] = []
     path_candidates: List[Dict[str, Any]] = []
+    seen_snips: Set[str] = set()
 
     for rx in (_ERROR_MSG_LITERAL, _ERROR_MSG_LITERAL_ALT):
         for m in rx.finditer(instruction or ""):
             words = [w for w in m.groups() if w]
             if not words:
                 continue
+            snip = " ".join(m.group(0).split())[:160]
+            if snip in seen_snips:
+                continue
+            seen_snips.add(snip)
             blocking.append(
                 {
                     "kind": "error_message_literal",
                     "words": words,
-                    "snippet": " ".join(m.group(0).split())[:160],
+                    "snippet": snip,
                     "rule": "Q10 — instruction must not require error messages to contain "
                     "specific literal words (leaks test match= logic)",
                 }
@@ -906,8 +926,6 @@ def scan_q9_q10_instruction(instruction: str) -> Dict[str, Any]:
             continue
         for pm in _FS_PATH.finditer(line):
             path = pm.group(1)
-            # Module/import paths without a filesystem root or extension were already
-            # excluded by _FS_PATH; still skip dotted-only API if somehow matched.
             if "/" not in path and "." not in path.split("/")[-1]:
                 continue
             path_candidates.append(
@@ -924,10 +942,70 @@ def scan_q9_q10_instruction(instruction: str) -> Dict[str, Any]:
     return {"blocking": blocking, "path_candidates": path_candidates}
 
 
+def _iter_patch_test_bodies(patch_text: str) -> List[Tuple[str, str]]:
+    """Yield (test_id, body) from added lines in tests.patch (python def test_*)."""
+    added_lines = []
+    for line in (patch_text or "").splitlines():
+        if line.startswith("+") and not line.startswith("+++"):
+            added_lines.append(line[1:])
+    all_added = "\n".join(added_lines)
+    out: List[Tuple[str, str]] = []
+    for m in re.finditer(r"(?m)^\s*(?:async\s+)?def\s+(test_\w+)\s*\([^)]*\)\s*:", all_added):
+        start = m.end()
+        # Only close at the next top-level test_* def — nested helpers must stay in body
+        # (eb599683: VideoInfo constructed inside a nested return helper).
+        nxt = re.search(r"(?m)^\s*(?:async\s+)?def\s+test_\w+\s*\(", all_added[start:])
+        body = all_added[start : start + (nxt.start() if nxt else len(all_added))]
+        out.append((m.group(1), body))
+    # Also capture jest/it blocks loosely for TS suites
+    for m in re.finditer(
+        r"(?m)^\s*(?:it|test)\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*(?:async\s*)?\([^)]*\)\s*=>\s*\{",
+        all_added,
+    ):
+        start = m.end()
+        body = all_added[start : start + 2500]
+        out.append((m.group(1), body))
+    return out
+
+
+def _positional_args(arglist: str) -> List[str]:
+    parts = []
+    depth = 0
+    cur = []
+    for ch in arglist:
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+        if ch == "," and depth == 0:
+            parts.append("".join(cur).strip())
+            cur = []
+            continue
+        cur.append(ch)
+    if cur:
+        parts.append("".join(cur).strip())
+    # positional = no '=' at top level before comma
+    pos = []
+    for p in parts:
+        if not p:
+            continue
+        if re.search(r"(?<![!<>=])=(?!=)", p):
+            break
+        pos.append(p)
+    return pos
+
+
 def scan_private_internals(
-    asserts: List[Dict[str, Any]], instruction: str
+    asserts: List[Dict[str, Any]],
+    instruction: str,
+    patch_text: str = "",
 ) -> List[Dict[str, Any]]:
-    """Graded assertion identifiers absent from instruction.md — faithfulness candidates."""
+    """Faithfulness candidates: undeclared identifiers / private subscripts / positional pins.
+
+    - Scans whole test bodies (not only assert lines) so helper returns like VideoInfo(...) hit.
+    - Includes UNGRADED/UNRESOLVED asserts at medium severity (judge reads every test file).
+    - Flags positional constructor calls when the instruction does not document ordering.
+    """
     instr_lower = (instruction or "").lower()
     instr_toks = tokens_from(instruction or "")
     cands: List[Dict[str, Any]] = []
@@ -936,49 +1014,108 @@ def scan_private_internals(
         n = name.lower()
         if n in instr_toks or n in instr_lower:
             return True
-        # allow instruction to name without exact case
         return name in (instruction or "")
 
-    for a in asserts:
-        if a.get("grade") != "GRADED":
-            continue
-        text = a.get("assertion_text") or ""
-        # subscript into private-ish members
+    def order_documented(api_name: str) -> bool:
+        if re.search(r"(?i)\b(positional|argument\s+order|in\s+that\s+order|parameter\s+order)\b", instruction or ""):
+            return True
+        # keyword-style docs for this API in instruction
+        if re.search(rf"(?is)\b{re.escape(api_name)}\s*\([^)]*=", instruction or ""):
+            return True
+        return False
+
+    def add_id_hits(text: str, *, assertion_id: str, test_id: str, grade: str, src: str) -> None:
+        sev_base = "high" if grade == "GRADED" else "medium"
         for key in re.findall(r"\[\s*['\"]([^'\"]+)['\"]\s*\]", text):
             if declared(key):
                 continue
             cands.append(
                 {
-                    "assertion_id": a["id"],
-                    "test_id": a.get("test_id"),
+                    "assertion_id": assertion_id,
+                    "test_id": test_id,
                     "identifier": key,
                     "kind": "private_subscript",
-                    "severity": "higher",
-                    "note": f"subscript {key!r} not declared in instruction.md",
+                    "severity": "higher" if grade == "GRADED" else "medium",
+                    "grade": grade,
+                    "note": f"subscript {key!r} not declared in instruction.md ({src})",
                 }
             )
         for name in re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", text):
-            if name.lower() in _ASSERT_NOISE:
+            if name.lower() in _ASSERT_NOISE or len(name) < 3 or declared(name):
                 continue
-            if len(name) < 3:
-                continue
-            if declared(name):
-                continue
-            # Prefer API-ish names: CapWords, snake_case, underscore-private
             if not (name.startswith("_") or "_" in name or name[:1].isupper()):
                 continue
-            sev = "higher" if name.startswith("_") else "normal"
+            sev = "higher" if name.startswith("_") and grade == "GRADED" else (
+                "high" if grade == "GRADED" else "medium"
+            )
+            if name.startswith("_"):
+                sev = "higher" if grade == "GRADED" else "medium"
             cands.append(
                 {
-                    "assertion_id": a["id"],
-                    "test_id": a.get("test_id"),
+                    "assertion_id": assertion_id,
+                    "test_id": test_id,
                     "identifier": name,
                     "kind": "undeclared_identifier",
                     "severity": sev,
-                    "note": f"{name!r} not declared in instruction.md",
+                    "grade": grade,
+                    "note": f"{name!r} not declared in instruction.md ({src})",
                 }
             )
-    # de-dupe
+        for m in _POS_CALL.finditer(text):
+            api, arglist = m.group(1), m.group(2)
+            pos = _positional_args(arglist)
+            if len(pos) < 2:
+                continue
+            if order_documented(api):
+                continue
+            # skip if instruction never names the API at all and it's noise — still flag CapWords
+            cands.append(
+                {
+                    "assertion_id": assertion_id,
+                    "test_id": test_id,
+                    "identifier": api,
+                    "kind": "positional_constructor",
+                    "severity": "high" if grade == "GRADED" else "medium",
+                    "grade": grade,
+                    "note": (
+                        f"{api}(...) uses {len(pos)} positional args but instruction does not "
+                        f"document argument order / keyword form ({src})"
+                    ),
+                }
+            )
+
+    # 1) assertion rows — GRADED + UNGRADED/UNRESOLVED
+    for a in asserts:
+        grade = a.get("grade") or "UNRESOLVED"
+        if grade not in ("GRADED", "UNGRADED", "UNRESOLVED"):
+            continue
+        text = a.get("assertion_text") or ""
+        add_id_hits(
+            text,
+            assertion_id=a["id"],
+            test_id=str(a.get("test_id") or "UNKNOWN"),
+            grade=grade,
+            src="assertion",
+        )
+
+    # 2) whole test bodies from patch (catches helper returns like video_io.VideoInfo(...))
+    grade_by_test: Dict[str, str] = {}
+    for a in asserts:
+        tid = str(a.get("test_id") or "")
+        g = a.get("grade") or "UNRESOLVED"
+        if tid and (tid not in grade_by_test or g == "GRADED"):
+            grade_by_test[tid] = g
+
+    for tid, body in _iter_patch_test_bodies(patch_text):
+        grade = grade_by_test.get(tid, "UNGRADED")
+        add_id_hits(
+            body,
+            assertion_id=f"body:{tid}",
+            test_id=tid,
+            grade=grade,
+            src="test_body",
+        )
+
     seen = set()
     out = []
     for c in cands:
@@ -1526,7 +1663,7 @@ def run_judge_prep(
     dont = dont_list_scan(patch_text, findings)
     ae_enabled, ae_rows = allow_extra_rows(cfg, asserts, grade_meta)
     q9q10 = scan_q9_q10_instruction(instruction)
-    private_internals = scan_private_internals(asserts, instruction)
+    private_internals = scan_private_internals(asserts, instruction, patch_text)
     grading_config = grading_config_from_static(
         findings, {"allow_extra_failures": ae_enabled, **grade_meta}
     )

@@ -10,7 +10,7 @@ Policy details: `.cursor/rules/Review_Guidelines.mdc`. Operational traps: `Senti
 ## A. Verdict & branch
 
 1. Public Main Analysis missing or not recorded via `set-verdicts`
-2. Public ≠ Duplicate Analysis
+2. Tri-field disagreement — Public, Internal Validity, and Duplicate must share the same semantic branch (`all_validity_fields_agree`); includes Public ≠ Duplicate **and** Internal left as `Invalid` while Public/Duplicate are `Fixable` (platform automation rejects that split)
 3. Fixable edits started before Execution **04** / S8 complete
 4. Valid-as-is claimed but instruction/tests/oracle still need rewrites
 5. Invalid path producing a “corrected valid” ZIP (evidence only)

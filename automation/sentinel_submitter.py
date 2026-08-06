@@ -1703,6 +1703,7 @@ def apply_judge_prep_preflight_blockers(
             or b.startswith("auto_remove:")
             or b.startswith("packaging:")
             or b.startswith("hard_stop:")
+            or b.startswith("q10:")
             or b == "decisions:invalidated"
             or (
                 b.startswith("static_fixable:")

@@ -46,13 +46,22 @@ STOPWORDS = {
 
 JUNK_DIR_NAMES = {
     "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv",
-    "node_modules", ".idea", ".vscode",
+    "node_modules", ".idea", ".vscode", ".gradle",
 }
 JUNK_FILE_EXACT = {".DS_Store", "metadata.json", ".python-version"}
 JUNK_FILE_SUFFIXES = (".pyc", ".swp", ".orig", ".rej", ".bak")
 JUNK_FILE_ENDSWITH = ("~",)
 ALLOW_DOTFILES = {".gitignore", ".dockerignore", ".gitattributes", ".gitkeep", ".env"}
 ALLOW_DOTDIRS = {".github", ".git"}
+# Nested cache path markers (segment sequences), not bare `build/` (too broad upstream).
+JUNK_PATH_MARKERS = (
+    "/.gradle/",
+    "/build/reports/",
+    "/build/tmp/",
+)
+_GIT_AUTHORING_BRANCH = re.compile(
+    r"(?i)\b(framework/|sentinel|submission|fixable|task[_-]?ready|corrected|revision)\b"
+)
 
 # Pattern name → static-check id prefixes / exact ids to cite
 AUTO_REMOVE_CITES = {
@@ -622,7 +631,73 @@ def is_junk_path(rel: str, name: str, is_dir: bool) -> bool:
     parts = Path(rel).parts
     if any(p in JUNK_DIR_NAMES for p in parts):
         return True
+    norm = "/" + rel.replace("\\", "/").strip("/") + "/"
+    if any(marker in norm for marker in JUNK_PATH_MARKERS):
+        return True
+    # prior-run artifact dirs under the shipped repo
+    if is_dir and name == "outputs" and "environment/repo" in rel.replace("\\", "/"):
+        return True
     return False
+
+
+def inspect_git_authoring_leakage(task_root: Path) -> List[Dict[str, Any]]:
+    """Agent-readable task-authoring history inside environment/repo/.git."""
+    git_dir = task_root / "environment" / "repo" / ".git"
+    if not git_dir.is_dir():
+        return []
+    hits: List[Dict[str, Any]] = []
+
+    def add_hit(rel: str, note: str) -> None:
+        hits.append(
+            {
+                "path": rel,
+                "class": "git_authoring_leak",
+                "tracked": False,  # .git internals are not tree paths in ls-files
+                "remediation": (
+                    "tracked=false — delete/clear from the shipped .git; keep HEAD == "
+                    "base_commit_sha"
+                ),
+                "note": note,
+            }
+        )
+
+    cem = git_dir / "COMMIT_EDITMSG"
+    if cem.is_file():
+        text = cem.read_text(encoding="utf-8", errors="replace").strip()
+        if text:
+            add_hit(
+                "environment/repo/.git/COMMIT_EDITMSG",
+                f"COMMIT_EDITMSG has task-authoring text: {text[:120]!r}",
+            )
+    logs = git_dir / "logs"
+    if logs.is_dir():
+        for p in logs.rglob("*"):
+            if p.is_file() and p.stat().st_size > 0:
+                add_hit(
+                    p.relative_to(task_root).as_posix(),
+                    "non-empty .git/logs entry (authoring history)",
+                )
+                break
+    packed = git_dir / "packed-refs"
+    if packed.is_file():
+        body = packed.read_text(encoding="utf-8", errors="replace")
+        if _GIT_AUTHORING_BRANCH.search(body):
+            add_hit(
+                "environment/repo/.git/packed-refs",
+                "packed-refs names task-authoring branches",
+            )
+    heads = git_dir / "refs" / "heads"
+    if heads.is_dir():
+        for p in heads.rglob("*"):
+            if not p.is_file():
+                continue
+            branch = p.relative_to(heads).as_posix()
+            if _GIT_AUTHORING_BRANCH.search(branch):
+                add_hit(
+                    f"environment/repo/.git/refs/heads/{branch}",
+                    f"authoring branch ref: {branch}",
+                )
+    return hits
 
 
 # Optional suppressions for junk-named paths that are genuinely upstream source.
@@ -646,7 +721,7 @@ def packaging_sweep(task_root: Path) -> Dict[str, Any]:
     hits: List[Dict[str, Any]] = []
     suppressed: List[Dict[str, str]] = []
 
-    def annotate(path: str) -> Dict[str, Any]:
+    def annotate(path: str, klass: str = "stray_artifact") -> Dict[str, Any]:
         under_repo = path.startswith("environment/repo/")
         rel_in_repo = path[len("environment/repo/") :] if under_repo else ""
         is_tracked = bool(under_repo and rel_in_repo in tracked)
@@ -659,12 +734,13 @@ def packaging_sweep(task_root: Path) -> Dict[str, Any]:
             remediation = "tracked=false — delete from the bundle"
         return {
             "path": path,
-            "class": "stray_artifact",
+            "class": klass,
             "tracked": is_tracked,
             "remediation": remediation,
         }
 
     for dirpath, dirnames, filenames in os.walk(task_root):
+        # Skip .git contents here; inspect_git_authoring_leakage covers them.
         dirnames[:] = [d for d in dirnames if d != ".git"]
         rel_dir = Path(dirpath).relative_to(task_root).as_posix()
         for d in list(dirnames):
@@ -687,6 +763,8 @@ def packaging_sweep(task_root: Path) -> Dict[str, Any]:
                 )
                 continue
             hits.append(annotate(path))
+
+    hits.extend(inspect_git_authoring_leakage(task_root))
 
     instr = task_root / "instruction.md"
     ps = task_root / "environment" / "problem_statement.md"
@@ -757,6 +835,177 @@ def dont_list_scan(patch_text: str, findings: List[Dict[str, Any]]) -> List[Dict
                 }
             )
     return flags
+
+
+# ---------------------------------------------------------------- Q9/Q10 + private internals
+
+
+_ASSERT_NOISE = frozenset({
+    "self", "true", "false", "none", "null", "assert", "assertequal", "asserttrue",
+    "assertfalse", "assertin", "assertis", "assertisnone", "assertisnotnone",
+    "assertalmostequal", "assertraises", "assertraisesregex", "pytest", "raises",
+    "result", "actual", "expected", "output", "value", "values", "data", "obj",
+    "item", "items", "kwargs", "args", "exc", "err", "error", "msg", "message",
+    "match", "regex", "pattern", "test", "tests", "mock", "magicmock", "call",
+    "return", "returns", "isinstance", "issubclass", "hasattr", "getattr", "len",
+    "str", "int", "float", "bool", "list", "dict", "set", "tuple", "bytes",
+    "path", "pathlib", "open", "print", "range", "type", "object", "super",
+})
+
+_ERROR_MSG_LITERAL = re.compile(
+    r"(?is)(?:error\s+message|exception\s+message|(?:raised?\s+)?(?:value)?error|"
+    r"message\s+(?:must|should|shall))\s+"
+    r".{0,120}?\b(?:must|should|shall)\s+contain\b.{0,80}?"
+    r"[`'\"]([^`'\"]{2,})[`'\"]"
+    r"(?:.{0,60}?\band\b.{0,40}?[`'\"]([^`'\"]{2,})[`'\"])?"
+)
+
+_ERROR_MSG_LITERAL_ALT = re.compile(
+    r"(?is)\b(?:must|should|shall)\s+contain\s+(?:the\s+)?(?:words?|substrings?)\s+"
+    r"[`'\"]([^`'\"]{2,})[`'\"]\s+and\s+[`'\"]([^`'\"]{2,})[`'\"]"
+)
+
+_PATH_IMPERATIVE = re.compile(
+    r"(?i)\b(update|modify|edit|add\s+to|look\s+in|start\s+by|change|implement\s+in|"
+    r"place\s+(?:it\s+)?(?:in|under)|put\s+(?:it\s+)?(?:in|under))\b"
+)
+
+_FS_PATH = re.compile(
+    r"(?ix)(?:^|[^\w./])("
+    r"(?:src|lib|tests?|docs?|include|scripts?|app|packages?|environment|"
+    r"resources?|assets?)/[\w./\-]+"
+    r"|[\w./\-]+\.(?:py|ts|tsx|js|jsx|cpp|cc|cxx|h|hpp|java|kt|go|rs|md|toml|"
+    r"yml|yaml|cmake|txt|json|css|scss|xml)"
+    r")\b"
+)
+
+
+def scan_q9_q10_instruction(instruction: str) -> Dict[str, Any]:
+    """Q10 error-message literals → blocking. Q9 path-as-navigation → candidates only."""
+    blocking: List[Dict[str, Any]] = []
+    path_candidates: List[Dict[str, Any]] = []
+
+    for rx in (_ERROR_MSG_LITERAL, _ERROR_MSG_LITERAL_ALT):
+        for m in rx.finditer(instruction or ""):
+            words = [w for w in m.groups() if w]
+            if not words:
+                continue
+            blocking.append(
+                {
+                    "kind": "error_message_literal",
+                    "words": words,
+                    "snippet": " ".join(m.group(0).split())[:160],
+                    "rule": "Q10 — instruction must not require error messages to contain "
+                    "specific literal words (leaks test match= logic)",
+                }
+            )
+
+    lines = (instruction or "").splitlines()
+    for i, line in enumerate(lines, 1):
+        if not _PATH_IMPERATIVE.search(line):
+            continue
+        for pm in _FS_PATH.finditer(line):
+            path = pm.group(1)
+            # Module/import paths without a filesystem root or extension were already
+            # excluded by _FS_PATH; still skip dotted-only API if somehow matched.
+            if "/" not in path and "." not in path.split("/")[-1]:
+                continue
+            path_candidates.append(
+                {
+                    "kind": "path_as_navigation",
+                    "path": path,
+                    "line": i,
+                    "snippet": line.strip()[:160],
+                    "rule": "Q9 candidate — filesystem path near imperative "
+                    "(update/modify/edit/add to/look in/start by); module import "
+                    "paths naming public API are not flagged",
+                }
+            )
+    return {"blocking": blocking, "path_candidates": path_candidates}
+
+
+def scan_private_internals(
+    asserts: List[Dict[str, Any]], instruction: str
+) -> List[Dict[str, Any]]:
+    """Graded assertion identifiers absent from instruction.md — faithfulness candidates."""
+    instr_lower = (instruction or "").lower()
+    instr_toks = tokens_from(instruction or "")
+    cands: List[Dict[str, Any]] = []
+
+    def declared(name: str) -> bool:
+        n = name.lower()
+        if n in instr_toks or n in instr_lower:
+            return True
+        # allow instruction to name without exact case
+        return name in (instruction or "")
+
+    for a in asserts:
+        if a.get("grade") != "GRADED":
+            continue
+        text = a.get("assertion_text") or ""
+        # subscript into private-ish members
+        for key in re.findall(r"\[\s*['\"]([^'\"]+)['\"]\s*\]", text):
+            if declared(key):
+                continue
+            cands.append(
+                {
+                    "assertion_id": a["id"],
+                    "test_id": a.get("test_id"),
+                    "identifier": key,
+                    "kind": "private_subscript",
+                    "severity": "higher",
+                    "note": f"subscript {key!r} not declared in instruction.md",
+                }
+            )
+        for name in re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", text):
+            if name.lower() in _ASSERT_NOISE:
+                continue
+            if len(name) < 3:
+                continue
+            if declared(name):
+                continue
+            # Prefer API-ish names: CapWords, snake_case, underscore-private
+            if not (name.startswith("_") or "_" in name or name[:1].isupper()):
+                continue
+            sev = "higher" if name.startswith("_") else "normal"
+            cands.append(
+                {
+                    "assertion_id": a["id"],
+                    "test_id": a.get("test_id"),
+                    "identifier": name,
+                    "kind": "undeclared_identifier",
+                    "severity": sev,
+                    "note": f"{name!r} not declared in instruction.md",
+                }
+            )
+    # de-dupe
+    seen = set()
+    out = []
+    for c in cands:
+        key = (c["assertion_id"], c["identifier"], c["kind"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(c)
+    return out
+
+
+def grading_config_from_static(findings: List[Dict[str, Any]], grade_meta: Dict[str, Any]) -> Dict[str, Any]:
+    """Dedicated report section for V15/V16 (+ allow_extra mirror)."""
+    v15 = [f for f in findings if f.get("id") == "V15"]
+    v16 = [f for f in findings if f.get("id") == "V16"]
+    return {
+        "allow_extra_failures": bool(grade_meta.get("allow_extra_failures")),
+        "v15_hits": [
+            {"summary": f.get("summary"), "evidence": f.get("evidence"), "fix": f.get("fix")}
+            for f in v15
+        ],
+        "v16_hits": [
+            {"summary": f.get("summary"), "evidence": f.get("evidence"), "fix": f.get("fix")}
+            for f in v16
+        ],
+        "ok": not v15 and not v16,
+    }
 
 
 # ---------------------------------------------------------------- decisions join
@@ -1006,14 +1255,48 @@ def render_md(report: Dict[str, Any]) -> str:
         L.append("")
         L.append("Hits:")
         for h in pk["hits"][:40]:
+            note = h.get("note") or h.get("class") or ""
             L.append(
-                f"- `{h['path']}` (tracked={h.get('tracked')}) — {h.get('remediation') or h.get('class')}"
+                f"- `{h['path']}` (tracked={h.get('tracked')}; class={h.get('class')}) — "
+                f"{h.get('remediation') or note}"
             )
     if pk.get("suppressed_with_justification"):
         L.append("")
         L.append("Suppressed (justified upstream source):")
         for h in pk["suppressed_with_justification"]:
             L.append(f"- `{h['path']}` — {h.get('justification')}")
+    L.append("")
+
+    L.append("## 4b. Grading configuration (V15 / V16)")
+    gc = report.get("grading_config") or {}
+    L.append(
+        f"allow_extra_failures: **{gc.get('allow_extra_failures')}** — "
+        f"{'OK' if gc.get('ok', True) else 'FIXABLE'}"
+    )
+    L.append("")
+    L.append("| id | status | summary | evidence |")
+    L.append("|----|--------|---------|----------|")
+    if gc.get("v15_hits"):
+        for h in gc["v15_hits"]:
+            L.append(
+                f"| V15 | HIT | {(h.get('summary') or '')[:70]} | {(h.get('evidence') or '')[:50]} |"
+            )
+    else:
+        L.append("| V15 | CLEAR | allow_extra_failures is not true | — |")
+    if gc.get("v16_hits"):
+        for h in gc["v16_hits"]:
+            L.append(
+                f"| V16 | HIT | {(h.get('summary') or '')[:70]} | {(h.get('evidence') or '')[:50]} |"
+            )
+    else:
+        L.append(
+            "| V16 | CLEAR | no unrelated suite paths gating reward (or allow_extra true→V15) | — |"
+        )
+    L.append("")
+    L.append(
+        "Correct configuration: `allow_extra_failures=false` with the execution command "
+        "scoped to the task's own tests (paths introduced by `tests.patch`)."
+    )
     L.append("")
 
     L.append("## 5. allow_extra_failures decision list")
@@ -1034,6 +1317,40 @@ def render_md(report: Dict[str, Any]) -> str:
         )
     if not ae["rows"]:
         L.append("| — | 0 | — | no ungraded tests |")
+    L.append("")
+
+    L.append("## 5b. Q9/Q10 instruction guards")
+    q9 = report.get("q9_q10") or {}
+    blocking = q9.get("blocking") or []
+    path_cands = q9.get("path_candidates") or []
+    L.append(
+        f"Q10 error-message literals: **{'BLOCKING (' + str(len(blocking)) + ')' if blocking else 'CLEAR'}**"
+    )
+    for h in blocking[:10]:
+        L.append(f"- words={h.get('words')}: {(h.get('snippet') or '')[:120]}")
+    L.append(
+        f"Q9 path-as-navigation candidates: **{len(path_cands)}** "
+        "(rehearsal / P-011 triage — not prep blockers)"
+    )
+    for h in path_cands[:10]:
+        L.append(f"- L{h.get('line')}: `{h.get('path')}` — {(h.get('snippet') or '')[:100]}")
+    L.append("")
+
+    L.append("## 5c. Private-internals candidates")
+    pi = report.get("private_internals_candidates") or []
+    L.append(
+        f"{len(pi)} candidate(s) — graded assertion identifiers absent from instruction.md "
+        "(rehearsal confirms via P-011; underscore / private subscript = higher severity)"
+    )
+    L.append("| assertion | id | kind | severity | note |")
+    L.append("|-----------|----|------|----------|------|")
+    for c in pi[:25]:
+        L.append(
+            f"| {c.get('assertion_id')} | `{c.get('identifier')}` | {c.get('kind')} | "
+            f"{c.get('severity')} | {(c.get('note') or '')[:60]} |"
+        )
+    if not pi:
+        L.append("| — | — | — | — | none |")
     L.append("")
 
     L.append("## 6. Prep verdict (deterministic)")
@@ -1208,6 +1525,11 @@ def run_judge_prep(
     packaging = packaging_sweep(task_root)
     dont = dont_list_scan(patch_text, findings)
     ae_enabled, ae_rows = allow_extra_rows(cfg, asserts, grade_meta)
+    q9q10 = scan_q9_q10_instruction(instruction)
+    private_internals = scan_private_internals(asserts, instruction)
+    grading_config = grading_config_from_static(
+        findings, {"allow_extra_failures": ae_enabled, **grade_meta}
+    )
 
     reqs_by_id = {r["id"]: r for r in reqs}
     asserts_by_id = {a["id"]: a for a in asserts}
@@ -1265,6 +1587,10 @@ def run_judge_prep(
     if packaging.get("leakage"):
         blockers.append("packaging:leakage")
 
+    # Q10 error-message literal words — blocking (platform must-have / leakage)
+    for i, hit in enumerate(q9q10.get("blocking") or [], 1):
+        blockers.append(f"q10:error_message_literal:{i}")
+
     if invalidated:
         blockers.append("decisions:invalidated")
 
@@ -1295,7 +1621,9 @@ def run_judge_prep(
             "required_pass_source": grade_meta.get("required_pass_source"),
             "fail_to_pass_count": len(grade_meta.get("fail_to_pass") or []),
             "warnings": grade_meta.get("warnings") or [],
+            "allow_extra_failures": ae_enabled,
         },
+        "grading_config": grading_config,
         "auto_remove": auto_remove,
         "faithfulness_triage_candidates": faithfulness_triage_candidates,
         "unlinked_lexically_candidates": unlinked_lexically_candidates,
@@ -1308,13 +1636,17 @@ def run_judge_prep(
         "dont_list": dont,
         "packaging": packaging,
         "allow_extra_failures": {"enabled": ae_enabled, "rows": ae_rows},
+        "q9_q10": q9q10,
+        "private_internals_candidates": private_internals,
         "decision_join": by_ref,
         "invalidated_decisions": invalidated,
         "prep_passed": prep_passed,
         "blockers": blockers,
         "candidate_note": (
-            "no_graded_link / unlinked_lexically / weak_link are lexical candidates only; "
+            "no_graded_link / unlinked_lexically / weak_link / private_internals / "
+            "q9 path-as-navigation are lexical candidates only; "
             "judge_rehearsal confirms via P-011 before preflight blocks. "
+            "Q10 error-message literal words ARE prep blockers. "
             "linked_spot_check samples status=ok rows for SAMPLE_HIT detection."
         ),
         "inputs_hash": prep_inputs_hash(task_root),

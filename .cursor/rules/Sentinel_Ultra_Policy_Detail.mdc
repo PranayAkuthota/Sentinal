@@ -10,7 +10,7 @@ Harbor mechanics: `.cursor/skills/sentinel-ultra-review/reference/`.
 Submitter procedure: `Sentinel_Submitter_Platform_Workflow.mdc`.  
 Reviewer procedure: `Sentinel_Reviewer_Step_by_Step.mdc`.
 
-Placement source: `docs/PROMPT7_RULE_BUDGET_PLACEMENT.md` (rows MOVE → Policy_Detail).
+Placement source: `docs/history/PROMPT7_RULE_BUDGET_PLACEMENT.md` (rows MOVE → Policy_Detail).
 
 ---
 

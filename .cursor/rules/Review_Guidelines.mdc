@@ -69,4 +69,4 @@ Check **all** metadata fields — not only source/timeouts. Full narrative:
 | Harbor layout, tests, oracle, env/git | `.cursor/skills/sentinel-ultra-review/reference/` |
 | Automation Python invariants | `.cursor/rules/Sentinel_Automation_Invariants.mdc` (`automation/**/*.py`) |
 | Orchestration | `CLAUDE.md` / `AGENTS.md` |
-| Placement audit for this trim | `docs/PROMPT7_RULE_BUDGET_PLACEMENT.md` |
+| Placement audit for this trim | `docs/history/PROMPT7_RULE_BUDGET_PLACEMENT.md` |

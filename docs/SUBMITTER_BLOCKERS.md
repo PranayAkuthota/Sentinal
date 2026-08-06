@@ -39,6 +39,12 @@ Policy details: `.cursor/rules/Review_Guidelines.mdc`. Operational traps: `Senti
 16g. Skipped S10.5 / missing `judge_prep.json` or `judge_rehearsal.json` / auto-REMOVE cite still HIT / stale rehearsal fingerprint before package
 16h. `judge_prep` decisions invalidated by subsequent edits (fingerprint mismatch) and not re-decided
 16i. Rehearsal UNDECIDED triage rows or incomplete candidate coverage (every lexical candidate must be triaged)
+16j. **V15** — `allow_extra_failures=true` (static-check FIXABLE). Correct config is `false` with the execution command scoped to the task’s own tests; otherwise requirements can live in ungraded tests that fail without losing reward (coverage gap)
+16k. **V16** — `allow_extra_failures=false` but execution command / `test.sh` references test paths **not** in `tests.patch` (static-check FIXABLE). Unrelated suites gate the reward → hidden requirements / faithfulness overreach
+16l. Graded tests that are **source-text only** (V9 FIXABLE source-scan ratio: ≥1 source-text assert, zero behavioural) — replace with executable behaviour checks; ADVISORY when ratio ≥ 0.5 with some behavioural asserts still present
+16m. Instruction Q10 — error message must contain specific literal words (judge_prep **blocks**). Prefer public failure contract over `match=`-shaped wording (P-012)
+16n. Instruction Q9 path-as-navigation candidate — filesystem path near update/modify/edit/look in/start by (judge_prep candidate; rehearsal confirms). Module/import API paths are fine
+16o. Packaging — `.git` authoring leakage (`COMMIT_EDITMSG`, `.git/logs`, authoring branch refs) or build caches (`.gradle/`, `build/reports/`, `outputs/` run artifacts); untracked → delete; tracked → delete and realign `base_commit_sha`
 
 ## D. Oracle & solution
 

@@ -44,7 +44,25 @@ electrostatics), not a flat key/value dump that mirrors the test dictionary 1:1.
 Task `0cf2e9a3` (mbuild GOMC writers), round 1 REMOVE(overreach) → round 2 DISCUSS +
 static 13/15 Q9/Q10 fail after stating NVT checklist values.
 
+## Additional instances (six-revision batch — summarised, not quoted)
+
+These came from submitter notes on simultaneous revision returns (full judge report
+bodies were not pasted into the framework session). Treat as mechanical summaries,
+not verbatim judge text:
+
+- **eb599683 — Q10:** instruction requires the error message to contain
+  `'unsupported'` and `'format'`; the test asserts
+  `match=r'(?i)unsupported.*format'`. Same oscillation class: stating the test’s
+  literal match words in the instruction to fix faithfulness risks Q10 leakage.
+- **a8d30c64 — Q9:** instruction text amounting to “Update styles under
+  `src/style/`” is navigation hand-holding (path-as-navigation), not a public API
+  import path.
+
+Framework guard: `judge_prep` blocks Q10 error-message literal-word requirements;
+Q9 filesystem paths near imperatives are candidates only (P-011 rehearsal confirms).
+
 ## When it applies
 
 Any revision where faithfulness is fixed by pasting graded assertion literals into the
-instruction, especially writer/CLI output tasks with large required-field sets.
+instruction, especially writer/CLI output tasks with large required-field sets. Also
+when error-message word lists or edit-path walkthroughs are added to clear overreach.

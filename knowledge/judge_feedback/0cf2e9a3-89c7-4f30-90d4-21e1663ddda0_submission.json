@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "task_name": "0cf2e9a3-89c7-4f30-90d4-21e1663ddda0_submission",
+  "recorded_at": "2026-08-06T06:21:58Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.0,
+      "prescriptiveness": 4.0,
+      "test_coverage": 3.0,
+      "test_faithfulness": 3.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": {
+      "gpt": {
+        "test_coverage": 3.0,
+        "test_faithfulness": 2.0
+      },
+      "claude": {
+        "test_coverage": 3.0,
+        "test_faithfulness": 3.0
+      }
+    }
+  },
+  "citations": [
+    {
+      "file": "instruction.md",
+      "line_range": "56-60",
+      "quoted_text": "Static Q9/Q10 FAIL: instruction lists exact NVT/NPT required fields and values that mirror NVT_REQUIRED_KEYS / NVT_REQUIRED_VALUES \u2014 leaking internal test logic",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": "tests/tests.patch",
+      "line_range": "451-459",
+      "quoted_text": "gpt: _get_default_variables_dict must include coul_1_4_scaling along with representative subset, but test required subset omits Pressure, Rcut, LRC, ChemPot, Fugacity",
+      "axis": "test_coverage"
+    },
+    {
+      "file": "instruction.md",
+      "line_range": "36-44",
+      "quoted_text": "bead_to_atom_name_dict required in UA Charmm constructor but never documented in instruction constructor options",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": "tests/tests.patch",
+      "line_range": "233-248",
+      "quoted_text": "UA atom-type letter assignment A->15.035 B->13.019 D->15.999 C->1.007 pinned including non-alphabetic C/D swap; instruction only names masses and FF-qualified names",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": "instruction.md",
+      "line_range": "30",
+      "quoted_text": "specific_ff_to_residue describes internal mechanism groups atoms by residue name",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": "instruction.md",
+      "line_range": "67",
+      "quoted_text": "exact Foyer import statements pinned",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": "instruction.md",
+      "line_range": "53",
+      "quoted_text": "private helper _get_default_variables_dict internal key ordering described",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": "instruction.md",
+      "line_range": "44",
+      "quoted_text": "at least one well-formed atom row vague for UA psf/pdb",
+      "axis": "clarity"
+    }
+  ],
+  "must_haves_failed": [
+    "Q9",
+    "Q10"
+  ],
+  "difficulty_run": false,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": "task_outputs/0cf2e9a3-89c7-4f30-90d4-21e1663ddda0_submission/judge_prediction.json",
+  "source": "platform_round2_discuss_coverage_gap",
+  "notes": "Round 2 live miss: predicted OK with coverage/faith 4.5; actual DISCUSS with both at 3.0. Static 13/15 Q9 Q10 fail. Difficulty/Oracle not run. Oscillation: round1 faithfulness fixed by stating values -> round2 Q9/Q10 leak."
+}

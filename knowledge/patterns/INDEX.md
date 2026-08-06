@@ -13,5 +13,6 @@
 | P-009 | Mode-only dirty trees are Fixable via reset not Invalid | approved | promoted |
 | P-010 | Agent Judge before Difficulty; revise Judge first (4 trials/model, ≤50% bar) | approved | platform update 2026-08-04 |
 | P-011 | Agent Judge overreach: sync instruction↔tests; target axis scores ≥3.5 before Difficulty | approved | platform update 2026-08-04 |
+| P-012 | Faithfulness fixture-dump flips Q9/Q10 — state CONTRACT not fixture INSTANCE | approved | 0cf2e9a3 round1→2 live |
 
 Add new rows via `python3 automation/promote_learning.py pattern …` after human review of `knowledge/proposals/`.

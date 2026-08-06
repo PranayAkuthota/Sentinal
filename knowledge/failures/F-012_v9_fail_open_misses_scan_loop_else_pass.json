@@ -1,0 +1,12 @@
+{
+  "id": "F-012",
+  "title": "V9 fail_open misses scan-loop else:pass without post-loop presence assert",
+  "category": "tests",
+  "symptom": "Graded writer tests loop over file lines with if/elif header matches and end in else: pass, with no assertion that any required header was ever seen. Empty .psf/.pdb/.conf files can pass. Platform Agent Judge cites this as a coverage / fail-open REMOVE. check_task V9 and judge_prep auto_remove.fail_open stay CLEAR.",
+  "root_cause_class": "Detector gap: AUTO_REMOVE fail-open regexes only match except…pass/return and if-not-exists:return. They do not match for-line if/elif…else:pass scans that never assert presence after the loop.",
+  "recovery": "Do not rely on V9 alone for writer output tests. In EC review / revision, require post-loop presence guards (saw_header / required-key set built from the instruction, never from the artifact). On this task the idiom appeared ~23 times and was the primary coverage citation. Leave detector code unchanged until a dedicated follow-up; record misses in judge OOS recall.",
+  "reusable": true,
+  "automation_opportunity": "Future V9 (or a sibling id) could flag pytest tests that iterate file lines, match headers, and lack any post-loop assert on a seen_* / required-keys set. Do not implement in the same session as the bounce that discovered the gap.",
+  "seen_count": 1,
+  "notes": "Out-of-sample on 0cf2e9a3 (as-uploaded corrected ZIP): semantic recall 3/14; fail-open group 0/5. Verdict still predicted REMOVE via silent_skip V9, not via this defect. In-sample eb599683 3/4 recall must not be quoted as the baseline."
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "task_name": "0cf2e9a3-89c7-4f30-90d4-21e1663ddda0_submission",
+  "predicted_at": "2026-08-05T19:21:19Z",
+  "source": "retrospective out-of-sample",
+  "prep_fingerprint": "05d735287eaa632940593aae68b1b66a1349e35311bcec692921be8a2e538a6e",
+  "predicted_verdict": "REMOVE",
+  "predicted_axes": {
+    "realism": 4.0,
+    "clarity": 3.0,
+    "self_containedness": 3.0,
+    "prescriptiveness": 2.5,
+    "test_coverage": 3.5,
+    "test_faithfulness": 2.5,
+    "spec_faithfulness": 4.0,
+    "no_gaming": 5.0,
+    "robustness": 3.5,
+    "packaging": 4.0
+  },
+  "axes_source": "rehearsal.predicted_axes",
+  "confirmed_overreach": [
+    "UA_PSF_PDB_HIDDEN",
+    "NVT_EXTRA_DEFAULTS",
+    "INP_COMMENT_PARSER"
+  ],
+  "confirmed_overreach_detail": [
+    {
+      "id": "UA_PSF_PDB_HIDDEN",
+      "artifacts": [
+        "0.265",
+        "0.265000",
+        "BD1",
+        "POL",
+        "-0.700",
+        "0.435",
+        "EP",
+        "test_save_charmm_ua_psf",
+        "test_save_charmm_ua_pdb"
+      ],
+      "assertion_text": "UA propanol PSF/PDB row golden values (charges/names/elements) not stated in instruction",
+      "bucket": "c",
+      "note": "prep assertion_text only has assert out_gomc==list[j]; literals not extracted \u2014 body read required"
+    },
+    {
+      "id": "NVT_EXTRA_DEFAULTS",
+      "artifacts": [
+        "CBMC_First",
+        "DisFreq",
+        "RotFreq",
+        "IntraSwapFreq",
+        "RunLetter",
+        "OutputName",
+        "EqSteps",
+        "AdjSteps",
+        "PressureCalc",
+        "test_save_basic_NVT"
+      ],
+      "assertion_text": "NVT conf asserts defaults beyond the 17 instruction-named keys",
+      "bucket": "c",
+      "note": "prep assert lines are RHS-only ('0.15'); field names only in startswith \u2014 body read required"
+    },
+    {
+      "id": "INP_COMMENT_PARSER",
+      "artifacts": [
+        "!atype",
+        "ignored",
+        "epsilon",
+        "Rmin/2",
+        "test_save_charmm_gomc_ff",
+        "test_save_charmm_ua_gomc_ff"
+      ],
+      "assertion_text": "write_inp section detection keys on exact FF comment banner strings",
+      "bucket": "c"
+    }
+  ],
+  "confirmed_gaps": [],
+  "confirmed_gap_detail": [],
+  "packaging_hard_cap": false,
+  "operational_bar_3_5": "REFUSE_PACKAGE",
+  "notes": "OOS on as-uploaded corrected ZIP. silent_skip\u2192REMOVE. fail_open CLEAR (V9 miss on else:pass). UA/NVT/comment overreach via body read. _get_* order not confirmed overreach (was stated). Fail-open scans intentionally absent from confirmed_gaps."
+}

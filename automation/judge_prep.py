@@ -855,26 +855,34 @@ _ASSERT_NOISE = frozenset({
     "document", "window", "htmllement", "htmlelement", "any", "as", "from", "import",
 })
 
-# Broad Q10: contain|include|mention|have (+ tenses) + the words/string/text OR quoted literals
-# near an error/exception/message requirement. Also inverse: message includes the words X and Y.
+# Q10: only quoted string literals (or "the words X and Y" enumerations).
+# Do NOT use backticks as quote delimiters — those mark code refs (`ValueError`), not
+# message-token requirements. Bare nouns like "error" in prose are not tokens.
+_Q10_QUOTE = r"[\'\"\u201c\u201d]"
 _ERROR_MSG_LITERAL = re.compile(
-    r"(?is)(?:error\s+message|exception\s+message|(?:raised?\s+)?(?:value)?error|"
-    r"(?:raise|raises|raised)\s+[A-Za-z_.]+|"
-    r"message)\s+"
-    r".{0,160}?\b(?:must|should|shall|whose|that|to)?\s*"
-    r"(?:contain|contains|containing|include|includes|including|included|"
-    r"mention|mentions|mentioning|mentioned|have|has|having)\b"
-    r".{0,80}?(?:(?:the\s+)?(?:words?|strings?|text|substrings?)\s+)?"
-    r"[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"]"
-    r"(?:.{0,60}?\band\b.{0,40}?[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"])?"
+    rf"(?is)(?:error\s+message|exception\s+message|(?:raised?\s+)?(?:value)?error|"
+    rf"(?:raise|raises|raised)\s+[A-Za-z_.]+|"
+    rf"message)\s+"
+    rf".{{0,160}}?\b(?:must|should|shall|whose|that|to)?\s*"
+    rf"(?:contain|contains|containing|include|includes|including|included|"
+    rf"mention|mentions|mentioning|mentioned|have|has|having)\b"
+    rf".{{0,80}}?(?:(?:the\s+)?(?:words?|strings?|text|substrings?)\s+)?"
+    rf"{_Q10_QUOTE}([^\'\"\u201c\u201d]{{2,}}){_Q10_QUOTE}"
+    rf"(?:.{{0,60}}?\band\b.{{0,40}}?{_Q10_QUOTE}([^\'\"\u201c\u201d]{{2,}}){_Q10_QUOTE})?"
 )
 
 _ERROR_MSG_LITERAL_ALT = re.compile(
-    r"(?is)\b(?:must|should|shall)\s+(?:contain|include|mention|have)\s+"
-    r"(?:the\s+)?(?:words?|substrings?|strings?|text)\s+"
-    r"[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"]\s+and\s+"
-    r"[`'\u201c\u201d\"]([^`'\u201c\u201d\"]{2,})[`'\u201c\u201d\"]"
+    rf"(?is)\b(?:must|should|shall)\s+(?:contain|include|mention|have)\s+"
+    rf"(?:the\s+)?(?:words?|substrings?|strings?|text)\s+"
+    rf"{_Q10_QUOTE}([^\'\"\u201c\u201d]{{2,}}){_Q10_QUOTE}\s+and\s+"
+    rf"{_Q10_QUOTE}([^\'\"\u201c\u201d]{{2,}}){_Q10_QUOTE}"
 )
+
+# Reject captures that are just meta nouns, not required message tokens.
+_Q10_META_WORDS = frozenset({
+    "error", "errors", "message", "messages", "exception", "exceptions",
+    "string", "strings", "text", "word", "words", "substring", "substrings",
+})
 
 _PATH_IMPERATIVE = re.compile(
     r"(?i)\b(update|modify|edit|add\s+to|look\s+in|start\s+by|change|implement\s+in|"
@@ -904,6 +912,8 @@ def scan_q9_q10_instruction(instruction: str) -> Dict[str, Any]:
     for rx in (_ERROR_MSG_LITERAL, _ERROR_MSG_LITERAL_ALT):
         for m in rx.finditer(instruction or ""):
             words = [w for w in m.groups() if w]
+            # Keep only quoted literals that are actual token requirements, not meta nouns.
+            words = [w for w in words if w.strip().lower() not in _Q10_META_WORDS]
             if not words:
                 continue
             snip = " ".join(m.group(0).split())[:160]

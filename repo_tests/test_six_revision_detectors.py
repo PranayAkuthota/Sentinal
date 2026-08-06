@@ -147,6 +147,28 @@ def test_ok():
         self.assertTrue(any(f["severity"] == "INFO" for f in v9), v9)
         self.assertTrue(any("ratio=" in (f.get("evidence") or "") for f in v9))
 
+    def test_helper_read_taints_re_search_as_source(self):
+        # d41a2c3a pattern: module helper opens repo file; re.search is still source-text.
+        body = """
+def read(rel):
+    with open(os.path.join(REPO_ROOT, rel), "r", encoding="utf-8") as f:
+        return f.read()
+
+def test_cmakelists_fatal():
+    text = read("CMakeLists.txt")
+    assert re.search(r"FATAL_ERROR", text)
+    assert "ENABLE_GNUABI" not in text
+    assert run_configure() == 0
+"""
+        rows = self.ct.analyze_source_text_ratios(body, ["test_cmakelists_fatal"])
+        self.assertEqual(len(rows), 1)
+        self.assertIn("text", rows[0]["tainted_vars"])
+        self.assertGreaterEqual(rows[0]["source"], 2)
+        self.assertEqual(rows[0]["behavioural"], 1)
+        self.ct.emit_source_text_ratio_findings("tests/tests.patch", body, ["test_cmakelists_fatal"])
+        v9 = [f for f in self.ct.FINDINGS if f["id"] == "V9"]
+        self.assertTrue(any(f["severity"] == "FIXABLE" for f in v9), v9)
+
 
 class Q9Q10InstructionGuardTests(unittest.TestCase):
     def test_error_message_literal_blocks(self):
@@ -156,6 +178,15 @@ class Q9Q10InstructionGuardTests(unittest.TestCase):
         r = jp.scan_q9_q10_instruction(text)
         self.assertTrue(r["blocking"], r)
         self.assertTrue(any("unsupported" in (h.get("words") or []) for h in r["blocking"]))
+
+    def test_bare_noun_error_not_q10(self):
+        # c6889dd0 FP: prose "error" is not a required message token.
+        text = (
+            "The parser must raise an error when the input is empty. "
+            "Callers should handle the exception."
+        )
+        r = jp.scan_q9_q10_instruction(text)
+        self.assertEqual(r["blocking"], [])
 
     def test_path_near_imperative_is_candidate(self):
         text = "Update styles under src/style/ to match the tray theme."

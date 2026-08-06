@@ -609,7 +609,7 @@ _SOURCE_TEXT_LINE = re.compile(
 _BEHAVIOURAL_LINE = re.compile(
     r"(?ix)"
     r"(?:subprocess\.|pytest\.raises|assertRaises(?:Regex)?|assertWarns|"
-    r"self\.assert(?:Equal|true|false|is|count|almost|list|dict|set|tuple)|"
+    r"self\.assert(?:equal|true|false|is|count|almost|list|dict|set|tuple)|"
     r"assert\s+(?![\'\"][^\'\"]+[\'\"]\s+in\s+(?:src|source|content|code|text)\b)"
     r"(?:\w+\s*\(|not\s+\w|\w+\.\w+)|"
     r"(?:\.call\s*\(|\.invoke\s*\(|\.run\s*\(|\.execute\s*\(|\.main\s*\())"
@@ -619,22 +619,136 @@ _ASSERTISH_LINE = re.compile(
     r"(?ix)^\s*(?:assert\b|self\.assert|pytest\.raises|assertRaises|expect\(|should\.)"
 )
 
+# Assignment from reading repo / source-file text (taint source).
+_FILE_READ_ASSIGN = re.compile(
+    r"(?ix)^\s*"
+    r"([A-Za-z_][\w]*)\s*=\s*"
+    r"(?:"
+    r"Path\s*\([^)]*\)\s*\.\s*(?:read_text|read_bytes|open)\s*\("
+    r"|open\s*\([^)]*\)\s*\.\s*(?:read|readlines)\s*\("
+    r"|(?:[\w.]+)\.(?:read_text|read_bytes|readlines)\s*\("
+    r"|[A-Za-z_][\w]*\s*\.\s*read\s*\(\s*\)"
+    r")"
+)
+
+_FILE_READ_ASSIGN_ALT = re.compile(
+    r"(?ix)^\s*"
+    r"([A-Za-z_][\w]*)\s*=\s*"
+    r"(?:"
+    r"open\s*\(\s*[\'\"][^\'\"]+[\'\"][^)]*\)\s*\.\s*(?:read|readlines)\s*\("
+    r"|Path\s*\(\s*[\'\"][^\'\"]+[\'\"]\s*\)\s*\.\s*read_text\s*\("
+    r")"
+)
+
+_FILE_READ_WITH = re.compile(
+    r"(?ix)\bopen\s*\([^)]*\)\s+as\s+([A-Za-z_][\w]*)"
+)
+_FILE_READ_FROM_HANDLE = re.compile(
+    r"(?ix)^\s*([A-Za-z_][\w]*)\s*=\s*([A-Za-z_][\w]*)\s*\.\s*(?:read|readlines)\s*\("
+)
+_ASSIGN_ANY = re.compile(r"(?ix)^\s*([A-Za-z_][\w]*)\s*=\s*(.+)$")
+_HELPER_CALL_ASSIGN = re.compile(
+    r"(?ix)^\s*([A-Za-z_][\w]*)\s*=\s*([A-Za-z_][\w]*)\s*\("
+)
+
+# Common local wrappers (d41a2c3a: `text = read("CMakeLists.txt")`).
+_DEFAULT_FILE_READ_HELPERS = frozenset({
+    "read", "read_file", "read_text", "read_source", "load_text", "load_source",
+    "load_file", "slurp", "get_source", "get_text", "file_text", "repo_read",
+})
+
 
 def _iter_added_test_bodies(all_added):
+    # Close only at the next test_* def so nested helpers stay inside the body.
     for m in re.finditer(r"(?m)^\s*(?:async\s+)?def\s+(test_\w+)\s*\([^)]*\)\s*:", all_added):
         start = m.end()
-        nxt = re.search(r"(?m)^\s*(?:async\s+)?def\s+\w+\s*\(", all_added[start:])
+        nxt = re.search(r"(?m)^\s*(?:async\s+)?def\s+test_\w+\s*\(", all_added[start:])
         body = all_added[start:start + (nxt.start() if nxt else len(all_added))]
         yield m.group(1), body
 
 
-def classify_assertion_line(line):
-    """Return 'source', 'behavioural', or None."""
+def _file_read_helper_names(all_added: str) -> set:
+    """Names of helpers that open/read repo files (module-level or nested)."""
+    names = set(_DEFAULT_FILE_READ_HELPERS)
+    for m in re.finditer(r"(?m)^\s*(?:async\s+)?def\s+([A-Za-z_][\w]*)\s*\([^)]*\)\s*:", all_added):
+        name = m.group(1)
+        if name.startswith("test_"):
+            continue
+        start = m.end()
+        nxt = re.search(r"(?m)^\s*(?:async\s+)?def\s+", all_added[start:])
+        body = all_added[start:start + (nxt.start() if nxt else min(2500, len(all_added) - start))]
+        body = "\n".join(body.splitlines()[:50])
+        if re.search(
+            r"(?ix)\bopen\s*\(|\.read_text\s*\(|\.readlines\s*\(|\.read_bytes\s*\("
+            r"|\.read\s*\(\s*\)",
+            body,
+        ):
+            names.add(name)
+    return names
+
+
+def _tainted_file_text_vars(body: str, helpers: set | None = None) -> set:
+    """Vars assigned from open/Path.read_text/readlines/helpers; propagate via RHS use."""
+    helpers = set(helpers or _DEFAULT_FILE_READ_HELPERS)
+    tainted: set = set()
+    handles: set = set()
+    for line in body.splitlines():
+        if line.startswith("+"):
+            line = line[1:]
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        m = _FILE_READ_ASSIGN.search(line) or _FILE_READ_ASSIGN_ALT.search(line)
+        if m:
+            tainted.add(m.group(1))
+            continue
+        m = _FILE_READ_WITH.search(line)
+        if m:
+            handles.add(m.group(1))
+            continue
+        m = _FILE_READ_FROM_HANDLE.search(line)
+        if m and m.group(2) in handles:
+            tainted.add(m.group(1))
+            continue
+        m = _HELPER_CALL_ASSIGN.match(line)
+        if m and m.group(2) in helpers:
+            tainted.add(m.group(1))
+            continue
+        # Propagate: any assignment whose RHS mentions a tainted var / handle read.
+        m = _ASSIGN_ANY.match(line)
+        if m:
+            lhs, rhs = m.group(1), m.group(2)
+            if _line_uses_tainted(rhs, tainted) or _line_uses_tainted(rhs, handles):
+                tainted.add(lhs)
+    return tainted
+
+
+def _line_uses_tainted(line: str, tainted: set) -> bool:
+    if not tainted:
+        return False
+    for name in tainted:
+        if re.search(rf"(?<![\w.]){re.escape(name)}(?![\w])", line):
+            return True
+    return False
+
+
+def classify_assertion_line(line, tainted=None):
+    """Return 'source', 'behavioural', or None.
+
+    Taint rule: if the line is an assertion that references a variable assigned from
+    reading repo/source file text (open/read_text/readlines/helpers like read(path)),
+    it is source-text even when the match uses re.search / assertEqual / etc.
+    Those are not execution of the code under test.
+    """
     s = line.strip()
     if not s or s.startswith("#"):
         return None
-    if not _ASSERTISH_LINE.search(s) and not _SOURCE_TEXT_LINE.search(s):
+    tainted = tainted or set()
+    is_assert = bool(_ASSERTISH_LINE.search(s) or _SOURCE_TEXT_LINE.search(s))
+    if not is_assert:
         return None
+    if _line_uses_tainted(s, tainted):
+        return "source"
     if _SOURCE_TEXT_LINE.search(s):
         return "source"
     if _BEHAVIOURAL_LINE.search(s) or _ASSERTISH_LINE.search(s):
@@ -645,14 +759,15 @@ def classify_assertion_line(line):
 def analyze_source_text_ratios(all_added, f2p_ids=None):
     """Per-test source-text vs behavioural assertion counts and ratios."""
     f2p_ids = f2p_ids or []
+    helpers = _file_read_helper_names(all_added)
     rows = []
     for name, body in _iter_added_test_bodies(all_added):
+        tainted = _tainted_file_text_vars(body, helpers)
         source_n = behav_n = 0
         for line in body.splitlines():
-            # only added-context bodies are passed in; strip leading '+' if present
             if line.startswith("+"):
                 line = line[1:]
-            kind = classify_assertion_line(line)
+            kind = classify_assertion_line(line, tainted)
             if kind == "source":
                 source_n += 1
             elif kind == "behavioural":
@@ -666,8 +781,10 @@ def analyze_source_text_ratios(all_added, f2p_ids=None):
             "behavioural": behav_n,
             "ratio": ratio,
             "graded": graded,
+            "tainted_vars": sorted(tainted),
         })
     return rows
+
 
 
 def emit_source_text_ratio_findings(tp_where, all_added, f2p_ids=None):

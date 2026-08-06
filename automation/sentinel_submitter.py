@@ -28,7 +28,11 @@ AUDIT_SCHEMA_VERSION = 2  # audit_report.json (v2: network_blocks_ok / network_b
 # Shared deterministic helpers (Phase 2 lib extract)
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
-from lib.verdicts import norm_analysis, public_matches_duplicate  # noqa: E402
+from lib.verdicts import (  # noqa: E402
+    all_validity_fields_agree,
+    norm_analysis,
+    public_matches_duplicate,
+)
 from lib.paths import ensure_workspace, safe_task_name, sha256_file  # noqa: E402
 from lib.toml_util import parse_task_toml_simple  # noqa: E402
 from lib.sync import check_instruction_sync  # noqa: E402
@@ -286,6 +290,11 @@ def migrate_workflow_state(task_name: str, old: Dict[str, Any]) -> Dict[str, Any
     dup = old.get("duplicate_analysis")
     if pub and dup and not public_matches_duplicate(str(pub), str(dup)):
         conflicts.append(f"public_analysis={pub!r} vs duplicate_analysis={dup!r}")
+    internal = old.get("internal_validity")
+    if pub and internal and dup and not all_validity_fields_agree(str(pub), str(internal), str(dup)):
+        conflicts.append(
+            f"tri-field disagree: public={pub!r} internal={internal!r} duplicate={dup!r}"
+        )
     if conflicts:
         die(
             "State migration blocked due to conflicting values: "
@@ -1441,6 +1450,12 @@ def cmd_set_verdicts(args: argparse.Namespace) -> None:
         die(f"Invalid duplicate_analysis: {dup}")
     if not public_matches_duplicate(pub, dup):
         die(f"Public Main Analysis must match Duplicate Analysis (got {pub!r} vs {dup!r})")
+    if not all_validity_fields_agree(pub, internal, dup):
+        die(
+            "Public, Internal Validity, and Duplicate must share the same semantic branch "
+            f"(got public={pub!r} internal={internal!r} duplicate={dup!r}). "
+            "Do not leave Internal as Invalid while Public/Duplicate are Fixable."
+        )
     if not args.reason or not str(args.reason).strip():
         die("Internal Validity requires --reason (evidence-based)")
     session["public_analysis"] = pub
@@ -1670,7 +1685,9 @@ def load_judge_prep_for_preflight_gate(
 # V6: PR test migrations that necessarily delete obsolete assertions in pre-existing
 # Jest suites while rewriting them for the new API. Relocating into brand-new files
 # would rewrite the PR's test structure beyond natural scope. Other FIXABLE ids stay hard.
-ACCEPT_RISK_STATIC_FIXABLE_IDS = frozenset({"V6"})
+# D2: false positive when a non-Alpine (e.g. miniforge/Debian) Dockerfile contains a
+# multi-distro `apk add` fallback substring — check_task treats any apk as Alpine-missing-bash.
+ACCEPT_RISK_STATIC_FIXABLE_IDS = frozenset({"V6", "D2"})
 
 
 def apply_judge_prep_preflight_blockers(
@@ -1781,6 +1798,11 @@ def run_preflight(
         blockers.append("All three live verdict fields must be recorded")
     elif not public_matches_duplicate(str(pub), str(dup)):
         blockers.append(f"Public/Duplicate mismatch: {pub} vs {dup}")
+    elif not all_validity_fields_agree(str(pub), str(internal), str(dup)):
+        blockers.append(
+            f"Tri-field disagreement (blocker A2): public={pub} internal={internal} "
+            f"duplicate={dup} — all three must share the same semantic branch"
+        )
     if not reason:
         blockers.append("Internal Validity reason missing")
     branch = dup

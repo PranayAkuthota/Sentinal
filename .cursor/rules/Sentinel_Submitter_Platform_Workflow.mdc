@@ -236,7 +236,7 @@ Always audit the **original** task (`extracted_original/`) before modifying `wor
 Label evidence as: **Inspected** / **Inferred** / **Executed** / **Confirmed by supplied logs** / **Not verified**. Never claim execution without evidence.
 
 <!-- source .cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc:249 -->
-Internal Validity is a **separate** internal field. Support all **nine** combinations of Internal Validity × Duplicate Analysis. Do not force Internal Validity to match Duplicate merely because Duplicate controls the branch. Do not invent inconsistent combinations without task evidence or platform context. Record the reason for Internal Validity.
+**Tri-field agreement (addendum):** Public Main Analysis, Internal Validity, and Duplicate Analysis must share the **same semantic branch** (`Fixable` / Invalid family / Valid-as-is). Internal live label `Invalid` pairs only with Public/Duplicate `Invalid/Not Fixable`. Do **not** record Fixable + Invalid + Fixable — platform automation rejects that split. Duplicate Analysis still selects the conditional branch. Record an evidence-based Internal Validity reason that matches the agreed label (do not describe the task as “internally invalid” when Internal is `Fixable`).
 
 <!-- source .cursor/rules/Sentinel_Submitter_Platform_Workflow.mdc:251 -->
 Record verdicts in `session/session.json` (automation `set-verdicts` may store them; it does not decide them).

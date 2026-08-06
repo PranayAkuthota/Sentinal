@@ -42,13 +42,13 @@ Short scannable reference only. Full procedure: `Sentinel_Submitter_Platform_Wor
 | Internal Validity | `Invalid` / `Fixable` / `Valid-as-is` |
 | Duplicate Analysis | `Fixable` / `Invalid/Not Fixable` / `Valid-as-is` |
 
-Public must match Duplicate semantically. Internal is separate; record an evidence-based reason. Do not infer Internal from Duplicate. Block final answers if Public ≠ Duplicate.
+Public, Internal, and Duplicate must **agree** on the same semantic branch (tri-field agreement). Internal `Invalid` pairs only with Public/Duplicate `Invalid/Not Fixable`. Record an evidence-based Internal reason that matches that label. Block final answers if any of the three disagree.
 
 ---
 
-## 3. Nine-case rule
+## 3. Tri-field agreement (replaces free nine-combo mixing)
 
-All nine Internal Validity × Duplicate Analysis combinations remain supported. Duplicate Analysis alone selects the conditional branch.
+Only agreeing triples are allowed. Duplicate Analysis still selects the conditional branch. Disallowed example: Public=`Fixable`, Internal=`Invalid`, Duplicate=`Fixable` (platform automation rejects).
 
 ---
 

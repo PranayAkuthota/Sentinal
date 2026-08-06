@@ -27,12 +27,26 @@ class VerdictNormTests(unittest.TestCase):
         self.assertEqual(m.norm_analysis("Fixable"), "Fixable")
         self.assertEqual(m.norm_analysis("Invalid/Not Fixable"), "Invalid/Not Fixable")
         self.assertEqual(m.norm_analysis("Invalid-Not Fixable"), "Invalid/Not Fixable")
+        self.assertEqual(m.norm_analysis("Invalid"), "Invalid/Not Fixable")
 
     def test_public_matches_duplicate(self):
         m = _load()
         self.assertTrue(m.public_matches_duplicate("Valid as-is", "Valid-as-is"))
         self.assertTrue(m.public_matches_duplicate("Fixable", "Fixable"))
         self.assertFalse(m.public_matches_duplicate("Fixable", "Valid as-is"))
+
+    def test_all_validity_fields_agree(self):
+        m = _load()
+        self.assertTrue(m.all_validity_fields_agree("Fixable", "Fixable", "Fixable"))
+        self.assertTrue(
+            m.all_validity_fields_agree(
+                "Invalid/Not Fixable", "Invalid", "Invalid/Not Fixable"
+            )
+        )
+        self.assertTrue(
+            m.all_validity_fields_agree("Valid as-is", "Valid-as-is", "Valid-as-is")
+        )
+        self.assertFalse(m.all_validity_fields_agree("Fixable", "Invalid", "Fixable"))
 
 
 if __name__ == "__main__":

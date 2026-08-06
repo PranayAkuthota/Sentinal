@@ -15,6 +15,7 @@ items below, follow this file.
 - **Valid as-is** — instruction, tests, oracle, environment, and source PR align; no rewrite; local oracle `1.0` / NOP `0.0` when required.
 - **Fixable** — all defects correctable in allowed task files without reducing/replacing PR scope.
 - **Not Fixable** — validity requires scope reduction/replacement, or a disallowed/unrecoverable environment problem.
+- **Tri-field agreement** — Public Main Analysis, Internal Validity, and Duplicate Analysis must share the **same semantic branch**. Do **not** leave Internal as `Invalid` while Public/Duplicate are `Fixable` (platform automation rejects that split). Pair Internal `Invalid` only with Public/Duplicate `Invalid/Not Fixable`. Duplicate still selects the conditional branch.
 
 ## Four core principles
 

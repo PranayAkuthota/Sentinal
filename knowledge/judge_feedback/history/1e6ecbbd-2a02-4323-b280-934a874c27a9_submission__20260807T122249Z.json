@@ -1,0 +1,106 @@
+{
+  "schema_version": 2,
+  "task_name": "1e6ecbbd-2a02-4323-b280-934a874c27a9_submission",
+  "recorded_at": "2026-08-07T12:22:49Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 3.0,
+      "self_containedness": 4.0,
+      "prescriptiveness": 2.0,
+      "test_coverage": 3.0,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "values from different contexts cannot be combined",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Context brand slab/token design not enforced; ghost_cell test only GhostToken::new",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "lasting runtime cost / mutex soft claims untested",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "with_context signature and branding details ambiguous",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "prompt dictates ghost-cell, Context brand, with_context, enumerated builders",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T14:07:46Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "values from different contexts cannot be combined",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Context brand slab/token design not enforced; ghost_cell test only GhostToken::new",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "lasting runtime cost / mutex soft claims untested",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "with_context signature and branding details ambiguous",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "prompt dictates ghost-cell, Context brand, with_context, enumerated builders",
+        "outcome": "not_resolved",
+        "similarity": 0.889,
+        "matched_in_next": "prompt names ghost-cell, with_context, Context brand, enumerated builders"
+      }
+    ],
+    "new_citations_in_next": [
+      "lifetime-parameterized Context brand / fresh brand not compile-fail tested; wrap Context::new could pass"
+    ],
+    "counts": {
+      "resolved": 4,
+      "not_resolved": 1,
+      "regressed": 0,
+      "new_in_next": 1
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

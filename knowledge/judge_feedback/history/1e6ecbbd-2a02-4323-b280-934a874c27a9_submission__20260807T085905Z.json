@@ -1,0 +1,110 @@
+{
+  "schema_version": 2,
+  "task_name": "1e6ecbbd-2a02-4323-b280-934a874c27a9_submission",
+  "recorded_at": "2026-08-07T08:59:05Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "overreach",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 3.5,
+      "self_containedness": 4.5,
+      "prescriptiveness": 3.0,
+      "test_coverage": 3.5,
+      "test_faithfulness": 3.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 1.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "environment/repo/target/ cargo build cruft shipped via COPY repo/ \u2014 packaging hard-cap",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "branded_construct_nodes_carry_context requires ConstructNode::inference_context() not stated in instruction",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "assert_eq!(cmr.len(), 64) pins hex length unstated in prompt",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "nodes from different scopes must not be combinable not enforced by compile-fail",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "ghost-cell named as intended branding mechanism is strategy-level prescription",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T12:22:49Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "environment/repo/target/ cargo build cruft shipped via COPY repo/ \u2014 packaging hard-cap",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "branded_construct_nodes_carry_context requires ConstructNode::inference_context() not stated in instruction",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "assert_eq!(cmr.len(), 64) pins hex length unstated in prompt",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "nodes from different scopes must not be combinable not enforced by compile-fail",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "ghost-cell named as intended branding mechanism is strategy-level prescription",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "values from different contexts cannot be combined",
+      "Context brand slab/token design not enforced; ghost_cell test only GhostToken::new",
+      "lasting runtime cost / mutex soft claims untested",
+      "with_context signature and branding details ambiguous",
+      "prompt dictates ghost-cell, Context brand, with_context, enumerated builders"
+    ],
+    "counts": {
+      "resolved": 5,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 5
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

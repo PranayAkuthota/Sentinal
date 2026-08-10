@@ -1,0 +1,226 @@
+{
+  "schema_version": 2,
+  "task_name": "0cf2e9a3-89c7-4f30-90d4-21e1663ddda0_submission",
+  "recorded_at": "2026-08-05T19:17:17Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "overreach",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 3.0,
+      "self_containedness": 3.0,
+      "prescriptiveness": 3.5,
+      "test_coverage": 2.5,
+      "test_faithfulness": 2.0,
+      "spec_faithfulness": 4.5,
+      "no_gaming": 5.0,
+      "robustness": 3.5,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fail-open scan: test_save_charmm_psf loops for 8 !NATOM then else: pass \u2014 empty .psf can pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fail-open scan: test_save_charmm_pdb keyed on CRYST1 with else: pass \u2014 empty .pdb can pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fail-open scan: test_save_basic_NVT if/elif startswith chain ends else: pass with no final presence assert \u2014 empty .conf can pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "same fail-open shape on test_save_basic_NPT / GCMC / GEMC_NVT",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "check UA psf/pdb for same fail-open pattern as AA writers",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "UA propanol PSF/PDB specifics not in instruction: charges 0.265/-0.700/0.435, atom BD1, residue POL, element EP, UA types A/B/C/D",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "NVT conf asserts defaults not listed in instruction: CBMC_First=12, DisFreq/RotFreq=0.15, IntraSwapFreq=0.3, RunLetter, OutputName, EqSteps, AdjSteps, PressureCalc, output-frequency fields",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "inp parser keys on exact comment strings like !atype ignored epsilon Rmin/2 \u2014 agent cannot predict from prompt",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction enumerates ~75 optional GOMC input-variable names in exact order and _get_default_variables_dict insertion/order \u2014 private helper layout",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "exact-order equality on test_get_all_possible_input_variable and test_get_default_variables_dict",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "write_gomc_control_file signature uses ellipsis; ensemble-specific controls unnamed for NPT/GCMC/GEMC_NVT",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction requires VDWGeometricSigma False but writer only emits when true",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "specific_ff_to_residue described as 4-tuple vs list return",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "solve.sh reverse-apply fallback makes re-run non-idempotent",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-06T06:21:58Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "fail-open scan: test_save_charmm_psf loops for 8 !NATOM then else: pass \u2014 empty .psf can pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "fail-open scan: test_save_charmm_pdb keyed on CRYST1 with else: pass \u2014 empty .pdb can pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "fail-open scan: test_save_basic_NVT if/elif startswith chain ends else: pass with no final presence assert \u2014 empty .conf can pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "same fail-open shape on test_save_basic_NPT / GCMC / GEMC_NVT",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "check UA psf/pdb for same fail-open pattern as AA writers",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "UA propanol PSF/PDB specifics not in instruction: charges 0.265/-0.700/0.435, atom BD1, residue POL, element EP, UA types A/B/C/D",
+        "outcome": "regressed",
+        "similarity": null,
+        "matched_in_next": null,
+        "regression_appeared_as": "Static Q9/Q10 FAIL: instruction lists exact NVT/NPT required fields and values that mirror NVT_REQUIRED_KEYS / NVT_REQUIRED_VALUES \u2014 leaking internal test logic",
+        "note": "Prior faithfulness/unstated cite cleared; next round shows Q9/Q10 or instruction-leak shape \u2014 likely oscillation (Case 05\u219406)."
+      },
+      {
+        "quoted_text": "NVT conf asserts defaults not listed in instruction: CBMC_First=12, DisFreq/RotFreq=0.15, IntraSwapFreq=0.3, RunLetter, OutputName, EqSteps, AdjSteps, PressureCalc, output-frequency fields",
+        "outcome": "regressed",
+        "similarity": null,
+        "matched_in_next": null,
+        "regression_appeared_as": "Static Q9/Q10 FAIL: instruction lists exact NVT/NPT required fields and values that mirror NVT_REQUIRED_KEYS / NVT_REQUIRED_VALUES \u2014 leaking internal test logic",
+        "note": "Prior faithfulness/unstated cite cleared; next round shows Q9/Q10 or instruction-leak shape \u2014 likely oscillation (Case 05\u219406)."
+      },
+      {
+        "quoted_text": "inp parser keys on exact comment strings like !atype ignored epsilon Rmin/2 \u2014 agent cannot predict from prompt",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "instruction enumerates ~75 optional GOMC input-variable names in exact order and _get_default_variables_dict insertion/order \u2014 private helper layout",
+        "outcome": "not_resolved",
+        "similarity": 0.5,
+        "matched_in_next": "private helper _get_default_variables_dict internal key ordering described"
+      },
+      {
+        "quoted_text": "exact-order equality on test_get_all_possible_input_variable and test_get_default_variables_dict",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "write_gomc_control_file signature uses ellipsis; ensemble-specific controls unnamed for NPT/GCMC/GEMC_NVT",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "instruction requires VDWGeometricSigma False but writer only emits when true",
+        "outcome": "regressed",
+        "similarity": null,
+        "matched_in_next": null,
+        "regression_appeared_as": "Static Q9/Q10 FAIL: instruction lists exact NVT/NPT required fields and values that mirror NVT_REQUIRED_KEYS / NVT_REQUIRED_VALUES \u2014 leaking internal test logic",
+        "note": "Prior faithfulness/unstated cite cleared; next round shows Q9/Q10 or instruction-leak shape \u2014 likely oscillation (Case 05\u219406)."
+      },
+      {
+        "quoted_text": "specific_ff_to_residue described as 4-tuple vs list return",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "solve.sh reverse-apply fallback makes re-run non-idempotent",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "Static Q9/Q10 FAIL: instruction lists exact NVT/NPT required fields and values that mirror NVT_REQUIRED_KEYS / NVT_REQUIRED_VALUES \u2014 leaking internal test logic",
+      "gpt: _get_default_variables_dict must include coul_1_4_scaling along with representative subset, but test required subset omits Pressure, Rcut, LRC, ChemPot, Fugacity",
+      "bead_to_atom_name_dict required in UA Charmm constructor but never documented in instruction constructor options",
+      "UA atom-type letter assignment A->15.035 B->13.019 D->15.999 C->1.007 pinned including non-alphabetic C/D swap; instruction only names masses and FF-qualified names",
+      "specific_ff_to_residue describes internal mechanism groups atoms by residue name",
+      "exact Foyer import statements pinned",
+      "at least one well-formed atom row vague for UA psf/pdb"
+    ],
+    "counts": {
+      "resolved": 10,
+      "not_resolved": 1,
+      "regressed": 3,
+      "new_in_next": 7
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

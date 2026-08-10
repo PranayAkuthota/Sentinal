@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "task_name": "004e50af-c9fc-4e84-b735-7f893aedb8cd_submission",
+  "recorded_at": "2026-08-07T09:10:18Z",
+  "verdict": "OK",
+  "verdict_reason": "difficulty_fail_easy",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 3.5,
+      "test_coverage": 3.5,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "FAIL EASY again; claude-opus-4-8 100% (4/4); codex-gpt-5-5 100% (4/4)",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "prescriptiveness 3.5: mandates escape_haxe_keyword and make_haxe_user_type_name internal helper names",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "helper names part of contract but tests never assert those symbols",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "FloatSet not checked for infinities or signed-zero",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T12:27:37Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "FAIL EASY again; claude-opus-4-8 100% (4/4); codex-gpt-5-5 100% (4/4)",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "prescriptiveness 3.5: mandates escape_haxe_keyword and make_haxe_user_type_name internal helper names",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "helper names part of contract but tests never assert those symbols",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "FloatSet not checked for infinities or signed-zero",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "FAIL EASY third time; both agents 100% (4/4)",
+      "HAXE_RESERVED_TYPES omits List, StringTools, ArrayAccess, Any, ValueType",
+      "fixture hard-codes only seven keywords and finite stdlib sample; incomplete set can pass",
+      "clarity 3.5: reserved-word/stdlib sets not enumerated"
+    ],
+    "counts": {
+      "resolved": 4,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 4
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

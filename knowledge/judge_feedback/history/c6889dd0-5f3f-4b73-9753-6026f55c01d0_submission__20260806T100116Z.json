@@ -1,0 +1,129 @@
+{
+  "schema_version": 2,
+  "task_name": "c6889dd0-5f3f-4b73-9753-6026f55c01d0_submission",
+  "recorded_at": "2026-08-06T10:01:16Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.5,
+      "self_containedness": 4.5,
+      "prescriptiveness": 2.5,
+      "test_coverage": 2.0,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": 4.0,
+      "no_gaming": 5.0,
+      "robustness": 5.0,
+      "packaging": 4.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction says text.delta append via e.g. data.text but test asserts data.delta",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "allow_extra_failures true leaves blank-line full-message policy.error tool.call done/finish ungraded",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "run_batch checked only for coroutine existence not subprocess peer behavior",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "raw JSON array accepted by test/oracle but instruction says fenced only else None",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "private helper signatures and 7-rule recipe over-prescribe internals",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "environment/repo/outputs/ populated prior-run artifacts ship to agent",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-08T16:40:17Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "instruction says text.delta append via e.g. data.text but test asserts data.delta",
+        "outcome": "regressed",
+        "similarity": null,
+        "matched_in_next": null,
+        "regression_appeared_as": "instruction says because the suite calls that helper / called directly by the suite",
+        "note": "Prior faithfulness/unstated cite cleared; next round shows Q9/Q10 or instruction-leak shape \u2014 likely oscillation (Case 05\u219406)."
+      },
+      {
+        "quoted_text": "allow_extra_failures true leaves blank-line full-message policy.error tool.call done/finish ungraded",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "run_batch checked only for coroutine existence not subprocess peer behavior",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "raw JSON array accepted by test/oracle but instruction says fenced only else None",
+        "outcome": "regressed",
+        "similarity": null,
+        "matched_in_next": null,
+        "regression_appeared_as": "instruction says because the suite calls that helper / called directly by the suite",
+        "note": "Prior faithfulness/unstated cite cleared; next round shows Q9/Q10 or instruction-leak shape \u2014 likely oscillation (Case 05\u219406)."
+      },
+      {
+        "quoted_text": "private helper signatures and 7-rule recipe over-prescribe internals",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "environment/repo/outputs/ populated prior-run artifacts ship to agent",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "stash commit a86ae6b1 WIP on main contains solution diff",
+      "instruction says because the suite calls that helper / called directly by the suite",
+      "design steer prefer Claude runner and exact state dict keys",
+      "test_run_batch_consumes_stubbed_cli 0/4; stub couples to internal shape",
+      "22 tracked files under web/frontend/src/features/runs deleted",
+      "Files Changed mismatched 36 f2p vs 20; network notes wrong",
+      "Delete tests/grade.py; test.sh says no sibling",
+      "task.toml missing difficulty_explanation; legacy difficulty hard vs model_difficulty medium"
+    ],
+    "counts": {
+      "resolved": 4,
+      "not_resolved": 0,
+      "regressed": 2,
+      "new_in_next": 8
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

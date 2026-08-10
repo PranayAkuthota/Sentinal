@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "task_name": "f2478b33-9567-43a4-b5d3-fa88af6784e2_submission",
+  "recorded_at": "2026-08-08T04:27:00Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "overreach",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.5,
+      "test_coverage": 3.5,
+      "test_faithfulness": 2.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "uses_catalog_sql_api requires catalog_sql_prepare plus catalog_sql_execute not named in prompt",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fork-safety tests require literal catalog_close before and catalog_open after worker-spawn",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "helpers must be discoverable in catalog.c/summary.c with SQL in C string literals",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-08T16:12:01Z",
+    "following_verdict": "REMOVE",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "uses_catalog_sql_api requires catalog_sql_prepare plus catalog_sql_execute not named in prompt",
+        "outcome": "not_resolved",
+        "similarity": 0.714,
+        "matched_in_next": "uses_catalog_sql_api requires catalog_sql_prepare plus catalog_sql_execute[_once] specifically"
+      },
+      {
+        "quoted_text": "fork-safety tests require literal catalog_close before and catalog_open after worker-spawn",
+        "outcome": "not_resolved",
+        "similarity": 1.0,
+        "matched_in_next": "fork-safety tests require literal tokens catalog_close before and catalog_open after worker-spawn"
+      },
+      {
+        "quoted_text": "helpers must be discoverable in catalog.c/summary.c with SQL in C string literals",
+        "outcome": "not_resolved",
+        "similarity": 0.571,
+        "matched_in_next": "cleanup helpers must be discoverable in catalog.c/summary.c and go through catalog_sql_prepare"
+      }
+    ],
+    "new_citations_in_next": [
+      "worker fixes must appear in specific supervisor functions with catalog_close/catalog_open ordering"
+    ],
+    "counts": {
+      "resolved": 0,
+      "not_resolved": 3,
+      "regressed": 0,
+      "new_in_next": 1
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

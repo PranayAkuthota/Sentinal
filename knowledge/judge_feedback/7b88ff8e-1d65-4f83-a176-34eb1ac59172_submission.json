@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "task_name": "7b88ff8e-1d65-4f83-a176-34eb1ac59172_submission",
+  "recorded_at": "2026-08-08T16:05:59Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.0,
+      "clarity": 4.0,
+      "self_containedness": 5.0,
+      "prescriptiveness": 2.0,
+      "test_coverage": 2.5,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 3.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "assertions only sample a few surfaces; partial migration of checked blksz sites can still build and pass",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "prompt dictates kerid_t/uint32_t and enumerates surfaces to migrate \u2014 mechanical propagation",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "model_difficulty medium contradicts difficulty hard; pass_at_k 0/3 irregular",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "get_l3_sup_handler still takes opid_t rather than fixed-width identifier type",
+      "axis": "oracle_spec_faithfulness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": "task_outputs/7b88ff8e-1d65-4f83-a176-34eb1ac59172_submission/judge_prediction.json",
+  "source": "live platform capture",
+  "notes": "P-010: Difficulty blocked at agentic judge (remove coverage_gap). Quality check 15/15 pass. Oracle/difficulty screens not run."
+}

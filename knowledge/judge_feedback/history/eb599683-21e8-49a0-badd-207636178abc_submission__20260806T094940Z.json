@@ -1,0 +1,148 @@
+{
+  "schema_version": 2,
+  "task_name": "eb599683-21e8-49a0-badd-207636178abc_submission",
+  "recorded_at": "2026-08-06T09:49:40Z",
+  "verdict": "OK",
+  "verdict_reason": "n/a",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.0,
+      "clarity": 3.5,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.0,
+      "test_coverage": 4.0,
+      "test_faithfulness": 3.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 3.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Requirement #2 ValueError must include words unsupported and format; test match=(?i)unsupported.*format",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "MP4 probe never asserts fps",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "iter_frames only exercised for GIF delta compositing",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "num_sample_frames / pixel_width / initial_upscale_factor uncovered",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests construct VideoInfo; instruction only lists probe fields",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "even spacing pins [0,2,4,7] unstated",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "palette proximity tolerance 40 unstated",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "COMMIT_EDITMSG contains task-packaging edit note",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-08T04:02:17Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "Requirement #2 ValueError must include words unsupported and format; test match=(?i)unsupported.*format",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "MP4 probe never asserts fps",
+        "outcome": "not_resolved",
+        "similarity": 1.0,
+        "matched_in_next": "test_read_sample_frames_reuses_info asserts probe never called; instruction only says info may be VideoInfo"
+      },
+      {
+        "quoted_text": "iter_frames only exercised for GIF delta compositing",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "num_sample_frames / pixel_width / initial_upscale_factor uncovered",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "tests construct VideoInfo; instruction only lists probe fields",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "even spacing pins [0,2,4,7] unstated",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "palette proximity tolerance 40 unstated",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "COMMIT_EDITMSG contains task-packaging edit note",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "environment/repo was changed at tracked source level; restore original HEAD 464509679b48ae647a545d270aa8a1817fecc5a8 with .python-version",
+      "solve.sh reverse applies golden.patch when both forward paths fail; remove fallback",
+      "GIF/MP4 must decode under atypical suffixes; golden _is_gif treats .gif before payload; MP4-as-.gif fails",
+      "TestStillImageRegression and TestSampleFrameStability are weak; need meaningful shared mesh/palette/background and still RGB/RGBA checks",
+      "grade.py does not enforce --raw-exit-code; nonzero raw must force reward 0",
+      "cli_video.py / ppa video in golden but not required or tested",
+      "task.toml missing os=linux and difficulty_explanation; set difficulty/model_difficulty hard"
+    ],
+    "counts": {
+      "resolved": 7,
+      "not_resolved": 1,
+      "regressed": 0,
+      "new_in_next": 7
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

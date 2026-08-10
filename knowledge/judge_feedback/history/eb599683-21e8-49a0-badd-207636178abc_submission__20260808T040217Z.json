@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "task_name": "eb599683-21e8-49a0-badd-207636178abc_submission",
+  "recorded_at": "2026-08-08T04:02:17Z",
+  "verdict": "OK",
+  "verdict_reason": "n/a",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 3.5,
+      "test_coverage": 4.5,
+      "test_faithfulness": 3.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 4.5
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "environment/repo was changed at tracked source level; restore original HEAD 464509679b48ae647a545d270aa8a1817fecc5a8 with .python-version",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "solve.sh reverse applies golden.patch when both forward paths fail; remove fallback",
+      "axis": "oracle_robustness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "GIF/MP4 must decode under atypical suffixes; golden _is_gif treats .gif before payload; MP4-as-.gif fails",
+      "axis": "oracle_spec_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "test_read_sample_frames_reuses_info asserts probe never called; instruction only says info may be VideoInfo",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "TestStillImageRegression and TestSampleFrameStability are weak; need meaningful shared mesh/palette/background and still RGB/RGBA checks",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "grade.py does not enforce --raw-exit-code; nonzero raw must force reward 0",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "cli_video.py / ppa video in golden but not required or tested",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "task.toml missing os=linux and difficulty_explanation; set difficulty/model_difficulty hard",
+      "axis": "packaging"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": true,
+  "fixes_applied": [
+    {
+      "file": "environment/repo/.python-version",
+      "change": "Restored tracked .python-version / original HEAD 4645096\u2026 (JF052)",
+      "axis_targeted": "packaging",
+      "citation_ref": "environment/repo was changed at tracked source level",
+      "source": "reconstructed from handoff"
+    },
+    {
+      "file": "solution/solve.sh",
+      "change": "Forward-only apply; remove reverse-apply success fallback (JF053)",
+      "axis_targeted": "oracle_robustness",
+      "citation_ref": "solve.sh reverse applies golden.patch",
+      "source": "reconstructed from handoff"
+    },
+    {
+      "file": "task.toml",
+      "change": "difficulty/model_difficulty=hard + difficulty_explanation; os=linux (JF059)",
+      "axis_targeted": "packaging",
+      "citation_ref": "task.toml missing os=linux and difficulty_explanation",
+      "source": "reconstructed from handoff"
+    }
+  ],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "live platform capture",
+  "notes": "Manual reviewer NEEDS_REVISION blockers while Agentic Judge OK and Difficulty PASS HARD. Preserve Judge OK and Difficulty; fix packaging/oracle/tests/instruction sync carefully. Do not strip network blocks."
+}

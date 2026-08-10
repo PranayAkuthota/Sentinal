@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "task_name": "d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission",
+  "recorded_at": "2026-08-07T12:24:57Z",
+  "verdict": "OK",
+  "verdict_reason": "difficulty_fail_easy_after_judge_ok",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.0,
+      "test_coverage": 3.5,
+      "test_faithfulness": 4.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Difficulty: FAIL EASY - Requires at least MEDIUM; opus 4/4 gpt 4/4",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests use only native extension and MINGW simulation; x86-only or weak-alias-dependent impl could pass",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "masked test enforces DMASKED_ALIAS regex / SLEEF_SUPPORTED_GNUABI_EXTENSIONS unstated",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction telegraphs stop deriving enable flag and masked-alias generation path",
+      "axis": "prescriptiveness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": true,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "platform_2026-08-07_fail_easy",
+  "notes": "Judge OK preserved; cheap difficulty screen FAIL EASY (100% both models). Prior reviewer pass likely over-simplified. Expand PR-natural difficulty; soft faithfulness over-spec; do not reintroduce source-regex that nuked agents. Quality parse error again."
+}

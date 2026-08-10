@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "task_name": "826cb164-b22d-421f-b443-b5186d5a9258_submission",
+  "recorded_at": "2026-08-07T09:16:31Z",
+  "verdict": "OK",
+  "verdict_reason": "n/a",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.0,
+      "clarity": 3.5,
+      "self_containedness": 4.0,
+      "prescriptiveness": 3.0,
+      "test_coverage": 4.5,
+      "test_faithfulness": 5.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Every network setting is gone from task.toml",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests.patch apply dies if tree_pr173_test.rs exists; rm -f before apply",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "refs/remotes/origin/HEAD null pointer",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests/grade.py stray static check",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "trait_alias/RCFFloat/num_traits how-to; cut to stable-Rust only",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Prefer Rc RefCell is how-to",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "golden doctests use brace patterns; cargo test claim",
+      "axis": "oracle_spec_faithfulness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": true,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "live platform capture",
+  "notes": "Reviewer NEEDS_REVISION on network blocks, test.sh apply hole, origin/HEAD, grade.py, instruction how-to. Difficulty PASS HARD preserved. Judge OK but prescriptiveness 3.0."
+}

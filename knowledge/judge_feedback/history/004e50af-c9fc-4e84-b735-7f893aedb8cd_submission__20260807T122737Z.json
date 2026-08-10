@@ -1,0 +1,97 @@
+{
+  "schema_version": 2,
+  "task_name": "004e50af-c9fc-4e84-b735-7f893aedb8cd_submission",
+  "recorded_at": "2026-08-07T12:27:37Z",
+  "verdict": "OK",
+  "verdict_reason": "difficulty_fail_easy",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 3.5,
+      "self_containedness": 4.0,
+      "prescriptiveness": 4.5,
+      "test_coverage": 4.0,
+      "test_faithfulness": 4.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "FAIL EASY third time; both agents 100% (4/4)",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "HAXE_RESERVED_TYPES omits List, StringTools, ArrayAccess, Any, ValueType",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fixture hard-codes only seven keywords and finite stdlib sample; incomplete set can pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "clarity 3.5: reserved-word/stdlib sets not enumerated",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T12:57:16Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "FAIL EASY third time; both agents 100% (4/4)",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "HAXE_RESERVED_TYPES omits List, StringTools, ArrayAccess, Any, ValueType",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "fixture hard-codes only seven keywords and finite stdlib sample; incomplete set can pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "clarity 3.5: reserved-word/stdlib sets not enumerated",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "prompt requires escaping the full reserved-word set while tests cover only a handful",
+      "stdlib collisions listed but several never asserted (IntIterator, Iterable, Null, Single, UInt, DateTools, EnumValue, ...)",
+      "helper-iteration applies to map helpers generally but only BoolMap iteration/copy is tested",
+      "get_cap_name includes List so ordinary Thrift list annotations can become List_"
+    ],
+    "counts": {
+      "resolved": 4,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 4
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

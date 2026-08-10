@@ -81,6 +81,7 @@
     },
     "fixes_applied": {
       "type": "array",
+      "description": "One entry per citation addressed. Prefer citation_ref = quoted_text.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -88,13 +89,30 @@
         "properties": {
           "file": { "type": ["string", "null"] },
           "change": { "type": ["string", "null"] },
-          "axis_targeted": { "type": ["string", "null"] }
+          "axis_targeted": { "type": ["string", "null"] },
+          "citation_ref": {
+            "type": ["string", "null"],
+            "description": "Quoted citation text (or stable id) this fix addresses"
+          },
+          "source": {
+            "type": ["string", "null"],
+            "description": "e.g. live capture, reconstructed from handoff"
+          }
         }
       }
     },
     "next_round_result": {
       "type": ["object", "null"],
-      "description": "Filled after a subsequent upload round; null until then"
+      "description": "Filled after a subsequent upload round via citation chaining; null until then",
+      "additionalProperties": true,
+      "properties": {
+        "following_recorded_at": { "type": ["string", "null"] },
+        "following_verdict": { "type": ["string", "null"] },
+        "source": { "type": ["string", "null"] },
+        "per_citation": { "type": "array" },
+        "new_citations_in_next": { "type": "array" },
+        "counts": { "type": "object" }
+      }
     },
     "prediction_ref": {
       "type": ["string", "null"],

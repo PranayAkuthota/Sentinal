@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "task_name": "f2478b33-9567-43a4-b5d3-fa88af6784e2_submission",
+  "recorded_at": "2026-08-08T16:12:01Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "overreach",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.5,
+      "test_coverage": 3.5,
+      "test_faithfulness": 2.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "uses_catalog_sql_api requires catalog_sql_prepare plus catalog_sql_execute[_once] specifically",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fork-safety tests require literal tokens catalog_close before and catalog_open after worker-spawn",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "cleanup helpers must be discoverable in catalog.c/summary.c and go through catalog_sql_prepare",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "worker fixes must appear in specific supervisor functions with catalog_close/catalog_open ordering",
+      "axis": "test_faithfulness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": false,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "platform_paste",
+  "notes": "P-010: Difficulty/oracle not run. Quality 15/15. Root cause: submitted zip 4128474a lacked API names while tests required them. Fix: state catalog_sql_* and catalog_close/open in instruction; soften file-location coupling. F-014: re-imported platform zip before edits."
+}

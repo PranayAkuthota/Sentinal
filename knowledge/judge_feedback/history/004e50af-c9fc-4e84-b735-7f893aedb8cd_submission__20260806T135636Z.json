@@ -1,0 +1,145 @@
+{
+  "schema_version": 2,
+  "task_name": "004e50af-c9fc-4e84-b735-7f893aedb8cd_submission",
+  "recorded_at": "2026-08-06T13:56:36Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "weak_check",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.0,
+      "prescriptiveness": 3.0,
+      "test_coverage": 3.0,
+      "test_faithfulness": 3.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 1.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "helper-library semantics checked only with source substrings IntMap/ternary/StringMap/toHex; invalid helpers can pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "assertIn escape_haxe_keyword / make_haxe_user_type_name are substring matches a comment satisfies",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "only String base-type collision exercised; Bool/Float/Int/Void and related type references untested",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "helper-source assertions over-specific: ternary and toHex tokens vs semantic encodings",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Thrift filename conventions Ops_service.hx Continue_args.hx OpsProcessor.hx not stated in instruction",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "PROCESS_MAP.set and private processor fn use raw keyword method names; get_enum_class_name returns raw enum name",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction dictates internal encodings (0/1 IntMap, IEEE hex) rather than observable round-trip semantics",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "environment/repo/lib/kotlin/.gradle and build/reports ship into agent-readable filesystem",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T04:36:05Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "helper-library semantics checked only with source substrings IntMap/ternary/StringMap/toHex; invalid helpers can pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "assertIn escape_haxe_keyword / make_haxe_user_type_name are substring matches a comment satisfies",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "only String base-type collision exercised; Bool/Float/Int/Void and related type references untested",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "helper-source assertions over-specific: ternary and toHex tokens vs semantic encodings",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Thrift filename conventions Ops_service.hx Continue_args.hx OpsProcessor.hx not stated in instruction",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "PROCESS_MAP.set and private processor fn use raw keyword method names; get_enum_class_name returns raw enum name",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "instruction dictates internal encodings (0/1 IntMap, IEEE hex) rather than observable round-trip semantics",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "environment/repo/lib/kotlin/.gradle and build/reports ship into agent-readable filesystem",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "FAIL EASY - Requires at least MEDIUM; claude-opus-4-8 100% (4/4); codex-gpt-5-5 100% (4/4)",
+      "helper names escape_haxe_keyword and make_haxe_user_type_name part of contract but tests never assert those symbols",
+      "fixture includes keyword field import while test_keyword_identifier_escaped only checks function",
+      "Q6 Dockerfile golang:1.25 and apt/pip packages without version pins \u2014 non-reproducible"
+    ],
+    "counts": {
+      "resolved": 8,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 4
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

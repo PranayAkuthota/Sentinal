@@ -1,0 +1,122 @@
+{
+  "schema_version": 2,
+  "task_name": "965e30ce-5a4d-4f7b-ab6d-91a0219af726_submission",
+  "recorded_at": "2026-08-07T04:33:00Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "overreach",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.0,
+      "prescriptiveness": 4.5,
+      "test_coverage": 3.5,
+      "test_faithfulness": 3.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "assert call.kwargs.get(cls) is GsAsset/GsTemporalXRef/PositionSet",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "URL path substrings xref/position/close",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "GsTemporalXRef exact class name asserted",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "GsRiskApi._exec call shape required",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "MarketDataCoordinate __str__ edge cases under-tested",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "aggregate_risk groups/sums vs retain contributor rows",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T04:55:33Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "assert call.kwargs.get(cls) is GsAsset/GsTemporalXRef/PositionSet",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "URL path substrings xref/position/close",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "GsTemporalXRef exact class name asserted",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "GsRiskApi._exec call shape required",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "MarketDataCoordinate __str__ edge cases under-tested",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "aggregate_risk groups/sums vs retain contributor rows",
+        "outcome": "not_resolved",
+        "similarity": 0.6,
+        "matched_in_next": "aggregate_risk NaN groupby can drop contributor rows"
+      }
+    ],
+    "new_citations_in_next": [
+      "get_many_assets never asserts post payload filters/as_of",
+      "position-type filter pre-filtered mock ignores filter",
+      "aggregate_risk no summed values or threshold=None",
+      "Base.from_dict equality weakly covered",
+      "repo .git flagged as packaging hard-cap"
+    ],
+    "counts": {
+      "resolved": 5,
+      "not_resolved": 1,
+      "regressed": 0,
+      "new_in_next": 5
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

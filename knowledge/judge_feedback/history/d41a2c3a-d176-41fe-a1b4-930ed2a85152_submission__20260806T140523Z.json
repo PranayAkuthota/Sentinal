@@ -1,0 +1,124 @@
+{
+  "schema_version": 2,
+  "task_name": "d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission",
+  "recorded_at": "2026-08-06T14:05:23Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 5.0,
+      "prescriptiveness": 3.0,
+      "test_coverage": 3.0,
+      "test_faithfulness": 3.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "the prompt requires actual GNUABI build/configure behavior ... but the verifier consists of static source/regex checks",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "a patch that satisfies every regex while breaking the actual build would still pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests require the exact project variable COMMON_TARGET_DEFINITIONS",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Requirements 4 and 5 pre-specify the code shape (dual definitions / macro invocations)",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "hard-fail ... independent of config-summary verbosity does not name SLEEF_SHOW_CONFIG",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "solve.sh reverse-apply fallback can revert an already-patched tree",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T09:06:18Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "the prompt requires actual GNUABI build/configure behavior ... but the verifier consists of static source/regex checks",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "a patch that satisfies every regex while breaking the actual build would still pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "tests require the exact project variable COMMON_TARGET_DEFINITIONS",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Requirements 4 and 5 pre-specify the code shape (dual definitions / macro invocations)",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "hard-fail ... independent of config-summary verbosity does not name SLEEF_SHOW_CONFIG",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "solve.sh reverse-apply fallback can revert an already-patched tree",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "Restore PR #562 CI workflow and disclose the added hardening",
+      "Cover OFF gating, true no-weak-alias/masked exports, summary/install/tester paths, and regressions",
+      "drop implementation-specific checks",
+      "fail on nonzero test exits",
+      "Set medium with 3/4 Opus and 2/4 GPT",
+      "add timeout headroom, pin dependencies, surface CMake failures, remove hidden tlfloat checkout",
+      "test_simd_sources_no_raw_per_symbol_finite_weak_aliases: 0 passed / 3 runs"
+    ],
+    "counts": {
+      "resolved": 6,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 7
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

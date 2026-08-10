@@ -1,0 +1,107 @@
+{
+  "schema_version": 2,
+  "task_name": "004e50af-c9fc-4e84-b735-7f893aedb8cd_submission",
+  "recorded_at": "2026-08-07T14:55:52Z",
+  "verdict": "OK",
+  "verdict_reason": "n/a",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.5,
+      "test_coverage": 4.5,
+      "test_faithfulness": 4.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Difficulty FAIL EASY: claude-opus 75% (3/4), gpt 100% (4/4); need worse model <=50%",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "service methods/parameters tested only on small subset of reserved-word list",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fixture mostly inspected rather than compiled as a whole",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "BytesMap/BytesSet encode null and empty Bytes as empty string",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "isset __isset_ pattern and PROCESS_MAP/args class names over-specified",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T16:24:15Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "Difficulty FAIL EASY: claude-opus 75% (3/4), gpt 100% (4/4); need worse model <=50%",
+        "outcome": "not_resolved",
+        "similarity": 1.0,
+        "matched_in_next": "Difficulty FAIL EASY: Opus 75% GPT 100%; need worse model <=50%"
+      },
+      {
+        "quoted_text": "service methods/parameters tested only on small subset of reserved-word list",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "fixture mostly inspected rather than compiled as a whole",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "BytesMap/BytesSet encode null and empty Bytes as empty string",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "isset __isset_ pattern and PROCESS_MAP/args class names over-specified",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "Q10: instruction leaks BoolMap</FloatMap</BytesMap< assertion substrings and six helper filenames as observable contract",
+      "prescriptiveness 3.5: exact keyword/stdlib lists and edge-case carve-outs telegraph the fix"
+    ],
+    "counts": {
+      "resolved": 4,
+      "not_resolved": 1,
+      "regressed": 0,
+      "new_in_next": 2
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

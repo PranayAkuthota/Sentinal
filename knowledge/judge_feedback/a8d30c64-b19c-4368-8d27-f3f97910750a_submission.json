@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "task_name": "a8d30c64-b19c-4368-8d27-f3f97910750a_submission",
+  "recorded_at": "2026-08-06T09:58:27Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": null,
+      "clarity": null,
+      "self_containedness": null,
+      "prescriptiveness": 3.0,
+      "test_coverage": 3.0,
+      "test_faithfulness": 3.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": null
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Blocked at agentic judge. Verdict: discuss (coverage_gap). Oracle check not run.",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "chip data-context-slot and data-context-id not graded",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "ariaLabel and icon handling not graded",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "non-interactive span fallback when onActivate absent not graded",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "destroy() not graded",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "full overflow collapse/expand cycle beyond partial coverage",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "ImageContext tests use manager[contextTray][containerEl] private access",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction names src/style/ directory for Q9 styles",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "module location under chat UI features; constructor how-to; offsetTop/offsetHeight row algorithm",
+      "axis": "prescriptiveness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "platform_revision_user_report_2026-08-06",
+  "notes": "Judge-first revision (P-010). Difficulty not run. User-listed fixes: allow_extra_failures=false + scoped jest; add f2p for chip attrs/aria/icon/span/destroy/overflow; DOM-only ImageContext asserts; outcome-only styles; drop location/constructor/algorithm prescriptions."
+}

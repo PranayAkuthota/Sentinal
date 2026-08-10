@@ -1,0 +1,132 @@
+{
+  "schema_version": 2,
+  "task_name": "d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission",
+  "recorded_at": "2026-08-07T09:06:18Z",
+  "verdict": "OK",
+  "verdict_reason": "reviewer_needs_revision_after_ok",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.0,
+      "test_coverage": 3.5,
+      "test_faithfulness": 4.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Restore PR #562 CI workflow and disclose the added hardening",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Cover OFF gating, true no-weak-alias/masked exports, summary/install/tester paths, and regressions",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "drop implementation-specific checks",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fail on nonzero test exits",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Set medium with 3/4 Opus and 2/4 GPT",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "add timeout headroom, pin dependencies, surface CMake failures, remove hidden tlfloat checkout",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "test_simd_sources_no_raw_per_symbol_finite_weak_aliases: 0 passed / 3 runs",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T12:24:57Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "Restore PR #562 CI workflow and disclose the added hardening",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Cover OFF gating, true no-weak-alias/masked exports, summary/install/tester paths, and regressions",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "drop implementation-specific checks",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "fail on nonzero test exits",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Set medium with 3/4 Opus and 2/4 GPT",
+        "outcome": "not_resolved",
+        "similarity": 0.667,
+        "matched_in_next": "Difficulty: FAIL EASY - Requires at least MEDIUM; opus 4/4 gpt 4/4"
+      },
+      {
+        "quoted_text": "add timeout headroom, pin dependencies, surface CMake failures, remove hidden tlfloat checkout",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "test_simd_sources_no_raw_per_symbol_finite_weak_aliases: 0 passed / 3 runs",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "tests use only native extension and MINGW simulation; x86-only or weak-alias-dependent impl could pass",
+      "masked test enforces DMASKED_ALIAS regex / SLEEF_SUPPORTED_GNUABI_EXTENSIONS unstated",
+      "instruction telegraphs stop deriving enable flag and masked-alias generation path"
+    ],
+    "counts": {
+      "resolved": 6,
+      "not_resolved": 1,
+      "regressed": 0,
+      "new_in_next": 3
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

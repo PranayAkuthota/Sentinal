@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "task_name": "1e6ecbbd-2a02-4323-b280-934a874c27a9_submission",
+  "recorded_at": "2026-08-08T04:05:34Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 3.5,
+      "self_containedness": 5.0,
+      "prescriptiveness": 3.5,
+      "test_coverage": 3.5,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 3.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "freestanding ambient Context::new / Arc Mutex design not enforced; wrapper around new could pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "model_difficulty medium vs difficulty hard; baselines n/3 irregular",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "context identity and freestanding constructor under-specified",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-08T15:38:28Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "freestanding ambient Context::new / Arc Mutex design not enforced; wrapper around new could pass",
+        "outcome": "not_resolved",
+        "similarity": 0.6,
+        "matched_in_next": "never verifies refactor away from Arc Mutex or construction only via with_context; wrapper around Context::new could pass"
+      },
+      {
+        "quoted_text": "model_difficulty medium vs difficulty hard; baselines n/3 irregular",
+        "outcome": "not_resolved",
+        "similarity": 0.5,
+        "matched_in_next": "model_difficulty medium supported only by irregular /3 baseline denominators"
+      },
+      {
+        "quoted_text": "context identity and freestanding constructor under-specified",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [],
+    "counts": {
+      "resolved": 1,
+      "not_resolved": 2,
+      "regressed": 0,
+      "new_in_next": 0
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

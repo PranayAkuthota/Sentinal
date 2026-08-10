@@ -1,0 +1,122 @@
+{
+  "schema_version": 2,
+  "task_name": "1e6ecbbd-2a02-4323-b280-934a874c27a9_submission",
+  "recorded_at": "2026-08-07T04:41:53Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 5.0,
+      "prescriptiveness": 3.0,
+      "test_coverage": 2.5,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "several core requirements are not asserted at all: depending on ghost-cell, having exactly one mutex/no other type-inference mutexes",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "threading brand through Type, Arrow, BoundRef, Bound, UbElement, ConstructNode, WitnessNode",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "making bound-forest helpers operate on an already-locked context",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "unit program CMR remains c40a1026\u2026 leaked into instruction as UNIT_CMR",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Q5: pass_to_pass empty; only cargo test --test context_brand",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "solve.sh git apply -R can undo already-applied solution",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T08:59:05Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "several core requirements are not asserted at all: depending on ghost-cell, having exactly one mutex/no other type-inference mutexes",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "threading brand through Type, Arrow, BoundRef, Bound, UbElement, ConstructNode, WitnessNode",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "making bound-forest helpers operate on an already-locked context",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "unit program CMR remains c40a1026\u2026 leaked into instruction as UNIT_CMR",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Q5: pass_to_pass empty; only cargo test --test context_brand",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "solve.sh git apply -R can undo already-applied solution",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "environment/repo/target/ cargo build cruft shipped via COPY repo/ \u2014 packaging hard-cap",
+      "branded_construct_nodes_carry_context requires ConstructNode::inference_context() not stated in instruction",
+      "assert_eq!(cmr.len(), 64) pins hex length unstated in prompt",
+      "nodes from different scopes must not be combinable not enforced by compile-fail",
+      "ghost-cell named as intended branding mechanism is strategy-level prescription"
+    ],
+    "counts": {
+      "resolved": 6,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 5
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

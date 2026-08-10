@@ -6,20 +6,18 @@ Not from memory or anecdote.
 
 ## Honesty (read this)
 
-As of 2026-08-10 inventory:
+As of 2026-08-10 inventory + ledger round-chain backfill:
 
-- **73** failure instances in Part A
-- **0** with `next_round_result = yes`
-- **1** with `next_round_result = no` (JF004 — Q9/Q10 oscillation)
-- Almost all `fixes_applied` null in feedback records
+- **73** Part A failure instances (tip feedback + catalogue)
+- **22** consecutive ledger pairs chained → see `OUTCOMES.md`
+- Citation outcomes from chaining: **resolved=104**, **not_resolved=13**, **regressed=5**
+- Tip `fixes_applied` still sparse — only handoff-reconstructed for 1e6ecbbd / eb599683,
+  and those tip rounds have **no following response yet**
 
-**Every “Fix” section is reasoning plus handoff intent, not a validated remedy.**
-Do not treat guidance as proven until capture populates `fixes_applied` and a later
-response sets `next_round_result`.
+**Case “Fix” sections remain mostly reasoning** unless an Instances row cites a chained
+outcome or a reconstructed fix. Prefer `OUTCOMES.md` for what actually recurred.
 
-### Only instances with any recorded applied fix
-
-Even these have **unknown** next-round outcomes:
+### Handoff-reconstructed fixes (next-round still unknown)
 
 | Instance | Task | What was recorded |
 |----------|------|-------------------|
@@ -28,6 +26,14 @@ Even these have **unknown** next-round outcomes:
 | JF052 | eb599683 | 07 handoff: restore `.python-version` / original HEAD |
 | JF053 | eb599683 | 07 handoff: forward-only `solve.sh` |
 | JF059 | eb599683 | 07 handoff: `difficulty` / `model_difficulty` = hard |
+
+### Chained evidence that Fix guidance can trust (examples)
+
+| Working (resolved next round) | Failing / oscillating |
+|------------------------------|------------------------|
+| Fail-open scan-loops (0cf2e9a3) | Difficulty FAIL EASY recurring (004e50af) |
+| solve.sh reverse-apply absent next round | Faithfulness “state it” → Q9/Q10 (0cf2e9a3 regressed) |
+| allow_extra_failures true cleared (c6889dd0) | catalog_sql_* overreach not_resolved (f2478b33) |
 
 ## Layout
 

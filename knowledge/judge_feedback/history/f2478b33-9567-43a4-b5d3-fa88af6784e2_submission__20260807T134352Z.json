@@ -1,0 +1,109 @@
+{
+  "schema_version": 2,
+  "task_name": "f2478b33-9567-43a4-b5d3-fa88af6784e2_submission",
+  "recorded_at": "2026-08-07T13:43:52Z",
+  "verdict": "REMOVE",
+  "verdict_reason": "weak_check",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 2.5,
+      "test_coverage": 2.0,
+      "test_faithfulness": 4.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "names the two helper functions verbatim, telegraphs the diagnosis, and prescribes the fix pattern catalog_close before the fork",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "checks are source-string existence only: a stub function whose body is just a comment would satisfy",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "substring-only strategy is a coherent coverage weakness / weak_check",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests/tests.patch contains a docstring explicitly stating Harbor checks for pgcopydb catalog cleanup / fork reconnect (PR #1000)",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "helper declarations must appear specifically in catalog.h/catalog.c and SQL must literally contain done_time_epoch is null",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T14:51:51Z",
+    "following_verdict": "DISCUSS",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "names the two helper functions verbatim, telegraphs the diagnosis, and prescribes the fix pattern catalog_close before the fork",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "checks are source-string existence only: a stub function whose body is just a comment would satisfy",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "substring-only strategy is a coherent coverage weakness / weak_check",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "tests/tests.patch contains a docstring explicitly stating Harbor checks for pgcopydb catalog cleanup / fork reconnect (PR #1000)",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "helper declarations must appear specifically in catalog.h/catalog.c and SQL must literally contain done_time_epoch is null",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "prescribes releasing/reacquiring catalog connections around worker startup rather than only observable effect",
+      "suite covers each named area only as static source-pattern checks; non-compiling stub with tokens could pass",
+      "header declaration tests and tableoid token / supervisor markers not stated in prompt",
+      "finished table COPY rows preserved only enforced indirectly"
+    ],
+    "counts": {
+      "resolved": 5,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 4
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

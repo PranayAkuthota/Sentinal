@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "task_name": "004e50af-c9fc-4e84-b735-7f893aedb8cd_submission",
+  "recorded_at": "2026-08-07T04:36:05Z",
+  "verdict": "OK",
+  "verdict_reason": "difficulty_fail_easy",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.0,
+      "prescriptiveness": 4.0,
+      "test_coverage": 3.5,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "FAIL EASY - Requires at least MEDIUM; claude-opus-4-8 100% (4/4); codex-gpt-5-5 100% (4/4)",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "helper names escape_haxe_keyword and make_haxe_user_type_name part of contract but tests never assert those symbols",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "fixture includes keyword field import while test_keyword_identifier_escaped only checks function",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Q6 Dockerfile golang:1.25 and apt/pip packages without version pins \u2014 non-reproducible",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-07T09:10:18Z",
+    "following_verdict": "OK",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "FAIL EASY - Requires at least MEDIUM; claude-opus-4-8 100% (4/4); codex-gpt-5-5 100% (4/4)",
+        "outcome": "not_resolved",
+        "similarity": 0.833,
+        "matched_in_next": "FAIL EASY again; claude-opus-4-8 100% (4/4); codex-gpt-5-5 100% (4/4)"
+      },
+      {
+        "quoted_text": "helper names escape_haxe_keyword and make_haxe_user_type_name part of contract but tests never assert those symbols",
+        "outcome": "not_resolved",
+        "similarity": 1.0,
+        "matched_in_next": "helper names part of contract but tests never assert those symbols"
+      },
+      {
+        "quoted_text": "fixture includes keyword field import while test_keyword_identifier_escaped only checks function",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "Q6 Dockerfile golang:1.25 and apt/pip packages without version pins \u2014 non-reproducible",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "prescriptiveness 3.5: mandates escape_haxe_keyword and make_haxe_user_type_name internal helper names",
+      "FloatSet not checked for infinities or signed-zero"
+    ],
+    "counts": {
+      "resolved": 2,
+      "not_resolved": 2,
+      "regressed": 0,
+      "new_in_next": 2
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

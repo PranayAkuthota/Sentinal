@@ -1,0 +1,96 @@
+{
+  "schema_version": 2,
+  "task_name": "f2478b33-9567-43a4-b5d3-fa88af6784e2_submission",
+  "recorded_at": "2026-08-07T14:51:51Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "weak_check",
+  "axes": {
+    "adjudicated": {
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 3.0,
+      "test_coverage": 2.5,
+      "test_faithfulness": 2.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "prescribes releasing/reacquiring catalog connections around worker startup rather than only observable effect",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "suite covers each named area only as static source-pattern checks; non-compiling stub with tokens could pass",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "header declaration tests and tableoid token / supervisor markers not stated in prompt",
+      "axis": null
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "finished table COPY rows preserved only enforced indirectly",
+      "axis": null
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": {
+    "following_recorded_at": "2026-08-08T04:27:00Z",
+    "following_verdict": "REMOVE",
+    "source": "chained from calibration ledger",
+    "per_citation": [
+      {
+        "quoted_text": "prescribes releasing/reacquiring catalog connections around worker startup rather than only observable effect",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "suite covers each named area only as static source-pattern checks; non-compiling stub with tokens could pass",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "header declaration tests and tableoid token / supervisor markers not stated in prompt",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      },
+      {
+        "quoted_text": "finished table COPY rows preserved only enforced indirectly",
+        "outcome": "resolved",
+        "similarity": null,
+        "matched_in_next": null
+      }
+    ],
+    "new_citations_in_next": [
+      "uses_catalog_sql_api requires catalog_sql_prepare plus catalog_sql_execute not named in prompt",
+      "fork-safety tests require literal catalog_close before and catalog_open after worker-spawn",
+      "helpers must be discoverable in catalog.c/summary.c with SQL in C string literals"
+    ],
+    "counts": {
+      "resolved": 4,
+      "not_resolved": 0,
+      "regressed": 0,
+      "new_in_next": 3
+    }
+  },
+  "prediction_ref": null,
+  "source": "reconstructed from calibration ledger",
+  "notes": "Round stub for outcome chaining; citations from ledger cited_* fields."
+}

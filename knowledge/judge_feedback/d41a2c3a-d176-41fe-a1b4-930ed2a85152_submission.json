@@ -1,50 +1,55 @@
 {
   "schema_version": 2,
   "task_name": "d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission",
-  "recorded_at": "2026-08-05T18:20:00Z",
-  "verdict": "DISCUSS",
-  "verdict_reason": "weak_check",
+  "recorded_at": "2026-08-07T12:24:57Z",
+  "verdict": "OK",
+  "verdict_reason": "difficulty_fail_easy_after_judge_ok",
   "axes": {
     "adjudicated": {
-      "realism": null,
-      "clarity": null,
-      "self_containedness": null,
-      "prescriptiveness": 2.5,
-      "test_coverage": 3.0,
-      "test_faithfulness": null,
+      "realism": 5.0,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 4.0,
+      "test_coverage": 3.5,
+      "test_faithfulness": 4.0,
       "spec_faithfulness": null,
       "no_gaming": null,
       "robustness": null,
-      "packaging": null
+      "packaging": 5.0
     },
     "per_judge": null
   },
-  "citations": [],
-  "must_haves_failed": [
-    "Q2",
-    "Q9",
-    "Q10"
-  ],
-  "difficulty_run": false,
-  "fixes_applied": [
+  "citations": [
     {
-      "file": "instruction.md",
-      "change": "Rewrote instruction (outcomes, no file/macro/FATAL recipe)",
-      "axis_targeted": "prescriptiveness"
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Difficulty: FAIL EASY - Requires at least MEDIUM; opus 4/4 gpt 4/4",
+      "axis": "packaging"
     },
     {
-      "file": "tests/tests.patch",
-      "change": "Regenerated tests.patch (no PR #562; structural FATAL/summary/dual-path; 16 f2p)",
-      "axis_targeted": "test_coverage"
+      "file": null,
+      "line_range": null,
+      "quoted_text": "tests use only native extension and MINGW simulation; x86-only or weak-alias-dependent impl could pass",
+      "axis": "test_coverage"
     },
     {
-      "file": "solution/golden.patch",
-      "change": "Fixed golden.patch alias(FUNC) \u2192 alias(stringify(TARGET))",
-      "axis_targeted": null
+      "file": null,
+      "line_range": null,
+      "quoted_text": "masked test enforces DMASKED_ALIAS regex / SLEEF_SUPPORTED_GNUABI_EXTENSIONS unstated",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction telegraphs stop deriving enable flag and masked-alias generation path",
+      "axis": "prescriptiveness"
     }
   ],
+  "must_haves_failed": null,
+  "difficulty_run": true,
+  "fixes_applied": [],
   "next_round_result": null,
-  "prediction_ref": "knowledge/judge_feedback/predictions/d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission.json",
-  "source": "backfilled from task_outputs",
-  "notes": "Evidence: findings_and_changes excerpt preserved in knowledge/proposals/20260805_080146__d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission__proposal.md (Judge: discuss (weak_check); Difficulty not run; Must-haves failed: Q2, Q9, Q10; Axes to lift: prescriptiveness (2.5), test_coverage (3.0)). Current task_outputs findings_and_changes.md was later overwritten by an overreach revision and was not used to invent fields."
+  "prediction_ref": "task_outputs/d41a2c3a-d176-41fe-a1b4-930ed2a85152_submission/judge_prediction.json",
+  "source": "platform_2026-08-07_fail_easy",
+  "notes": "Judge OK preserved; cheap difficulty screen FAIL EASY (100% both models). Prior reviewer pass likely over-simplified. Expand PR-natural difficulty; soft faithfulness over-spec; do not reintroduce source-regex that nuked agents. Quality parse error again."
 }

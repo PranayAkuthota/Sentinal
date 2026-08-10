@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "task_name": "c6889dd0-5f3f-4b73-9753-6026f55c01d0_submission",
+  "recorded_at": "2026-08-08T16:40:17Z",
+  "verdict": "OK",
+  "verdict_reason": "n/a",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 2.0,
+      "test_coverage": 4.0,
+      "test_faithfulness": 4.0,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "stash commit a86ae6b1 WIP on main contains solution diff",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "instruction says because the suite calls that helper / called directly by the suite",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "design steer prefer Claude runner and exact state dict keys",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "test_run_batch_consumes_stubbed_cli 0/4; stub couples to internal shape",
+      "axis": "test_faithfulness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "22 tracked files under web/frontend/src/features/runs deleted",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Files Changed mismatched 36 f2p vs 20; network notes wrong",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Delete tests/grade.py; test.sh says no sibling",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "task.toml missing difficulty_explanation; legacy difficulty hard vs model_difficulty medium",
+      "axis": "packaging"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": true,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": "task_outputs/c6889dd0-5f3f-4b73-9753-6026f55c01d0_submission/judge_prediction.json",
+  "source": "live platform capture",
+  "notes": "Manual reviewer Needs Revision after Judge OK + Difficulty PASS HARD. Preserve Judge/Difficulty. Q9 navigation + Q10 suite-leak failed quality. Prescriptiveness still 2.0."
+}

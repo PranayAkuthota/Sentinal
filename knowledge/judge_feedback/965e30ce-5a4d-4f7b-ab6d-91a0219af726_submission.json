@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "task_name": "965e30ce-5a4d-4f7b-ab6d-91a0219af726_submission",
+  "recorded_at": "2026-08-07T09:02:47Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 3.5,
+      "prescriptiveness": 4.0,
+      "test_coverage": 3.0,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": "tests/tests.patch",
+      "line_range": "35",
+      "quoted_text": "get_asset mocks GsAsset so raw-dict passthrough passes",
+      "axis": "test_coverage"
+    },
+    {
+      "file": "tests/tests.patch",
+      "line_range": "718",
+      "quoted_text": "SecurityMaster exchange/asset-type filters not verified on query",
+      "axis": "test_coverage"
+    },
+    {
+      "file": "solution/golden.patch",
+      "line_range": "595",
+      "quoted_text": "MarketDataCoordinate __str__ uses assetId when marketDataAsset missing",
+      "axis": "oracle_spec_faithfulness"
+    },
+    {
+      "file": "instruction.md",
+      "line_range": "32",
+      "quoted_text": "RiskModelRequest schema/endpoint under-specified",
+      "axis": "self_containedness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": null,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": "task_outputs/965e30ce-5a4d-4f7b-ab6d-91a0219af726_submission/judge_prediction.json",
+  "source": "platform_paste_2026-08-07_pm",
+  "notes": "coverage_gap: dict get_asset + SM query filters; fix __str__ empty token; clarify RiskModelRequest"
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": 2,
+  "task_name": "004e50af-c9fc-4e84-b735-7f893aedb8cd_submission",
+  "recorded_at": "2026-08-07T16:24:15Z",
+  "verdict": "OK",
+  "verdict_reason": "n/a",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 3.5,
+      "test_coverage": 4.5,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 5.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Q10: instruction leaks BoolMap</FloatMap</BytesMap< assertion substrings and six helper filenames as observable contract",
+      "axis": "prescriptiveness"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "Difficulty FAIL EASY: Opus 75% GPT 100%; need worse model <=50%",
+      "axis": "packaging"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "prescriptiveness 3.5: exact keyword/stdlib lists and edge-case carve-outs telegraph the fix",
+      "axis": "prescriptiveness"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": true,
+  "fixes_applied": [],
+  "next_round_result": null,
+  "prediction_ref": null,
+  "source": "live platform capture",
+  "notes": "Rev14: Fix Q10 leak wording; reduce spoon-feeding; harden difficulty further; keep f2p 10-20 and faithfulness."
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "task_name": "1e6ecbbd-2a02-4323-b280-934a874c27a9_submission",
+  "recorded_at": "2026-08-08T15:38:28Z",
+  "verdict": "DISCUSS",
+  "verdict_reason": "coverage_gap",
+  "axes": {
+    "adjudicated": {
+      "realism": 4.5,
+      "clarity": 4.0,
+      "self_containedness": 4.5,
+      "prescriptiveness": 3.5,
+      "test_coverage": 4.0,
+      "test_faithfulness": 4.5,
+      "spec_faithfulness": null,
+      "no_gaming": null,
+      "robustness": null,
+      "packaging": 3.0
+    },
+    "per_judge": null
+  },
+  "citations": [
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "never verifies refactor away from Arc Mutex or construction only via with_context; wrapper around Context::new could pass",
+      "axis": "test_coverage"
+    },
+    {
+      "file": null,
+      "line_range": null,
+      "quoted_text": "model_difficulty medium supported only by irregular /3 baseline denominators",
+      "axis": "packaging"
+    }
+  ],
+  "must_haves_failed": null,
+  "difficulty_run": false,
+  "fixes_applied": [
+    {
+      "file": "instruction.md",
+      "change": "TRIM: removed ArcMutex / mutex-replacement claim; requirements match graded with_context suite only (JF014)",
+      "axis_targeted": "test_coverage",
+      "citation_ref": "never verifies refactor away from Arc Mutex",
+      "source": "reconstructed from handoff"
+    },
+    {
+      "file": "task.toml",
+      "change": "Removed irregular pass_at_k_* /3 fields; kept difficulty=medium (JF015)",
+      "axis_targeted": "packaging",
+      "citation_ref": "irregular /3 baseline denominators",
+      "source": "reconstructed from handoff"
+    }
+  ],
+  "next_round_result": null,
+  "prediction_ref": "task_outputs/1e6ecbbd-2a02-4323-b280-934a874c27a9_submission/judge_prediction.json",
+  "source": "live platform capture",
+  "notes": "Rev13: Judge DISCUSS coverage_gap; Difficulty blocked; QC 15/15"
+}

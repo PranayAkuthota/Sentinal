@@ -33,15 +33,15 @@ gaps. JF004 is the only Part A instance with next_round=**no**.
 
 ## Fix — pick ONE direction per defect
 
-| Shape | Fix |
-|-------|-----|
-| Exact fields/values mirroring test constants | Reframe as outcome/state **contract**, not fixture instance (P-012) — or soften test |
-| Path “update src/…” | Require behaviour; drop filesystem navigation |
-| “suite calls that helper” | Describe public behaviour only |
-| How-to / import pins / algorithm | Cut; keep stable public requirements |
-| Error message must contain words ‘X’ and ‘Y’ | Public failure mode without match= literals |
+| Shape | Fix | Evidence |
+|-------|-----|----------|
+| Exact fields/values mirroring test constants | Soften test **or** outcome-level contract (P-012) — **never** paste key lists | Creating those lists is **EVIDENCED FAILING** cause of this case (0cf2e9a3 **3 regressed** from Case 05 “state it”). Clearing Q9/Q10 after they appear: **UNTESTED** as a proven next-round clear on that task (tip still DISCUSS). |
+| Path “update src/…” | Behaviour only; drop filesystem navigation | **UNTESTED** |
+| “suite calls that helper” | Public behaviour only | **EVIDENCED FAILING** if “fix” leaves suite-leak phrasing — `c6889dd0` **2 regressed** into suite-leak / helper wording next round. |
+| How-to / import pins | Cut | **UNTESTED** |
+| Error message must contain ‘X’ and ‘Y’ | Public failure mode without match= literals | **UNTESTED** next-round (eb599683 Q10 cite resolved in chain once; treat cautiously). |
 
-**Never** “fix faithfulness” by pasting the test’s key list back in.
+**Never** “fix faithfulness” by pasting the test’s key list back in (Case 05 default is soften).
 
 ## Verify before repackaging
 

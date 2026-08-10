@@ -1,48 +1,46 @@
 # Case 08 · Non-idempotent solve.sh (reverse-apply)
 
-**Status:** CONFIRMED (n≥2 in ledger+catalogue; FC015 peer-sourced)
+**Status:** CONFIRMED (n≥2 ledger+catalogue; FC015 peer-sourced)
 
-`solve.sh` treats reverse-apply as a success fallback and undoes the golden on a later run.
+`solve.sh` uses reverse-apply as a success fallback and undoes the golden on a later run.
 
 ## Recognise it
 
 - `solve.sh reverse applies golden.patch when both forward paths fail; remove fallback`
-- Catalogue F-015: pattern `git apply "$PATCH" || git apply --3way "$PATCH" || git apply -R "$PATCH"`
+- F-015: `git apply … \|\| … \|\| git apply -R`
 
 ## Read first
 
-- `knowledge/failures/F-015_non_idempotent_solve_sh_reverse_apply_second_oracle.json`
-- Solution Harbor layout (`solution/solve.sh`, `golden.patch`)
+- `knowledge/failures/F-015_*.json`
+- `OUTCOMES.md`
 
 ## Diagnose before editing
 
-1. Open `solution/solve.sh`; search for `apply -R`, `--reverse` as success path.
-2. Confirm whether reverse is only used after failed forward applies.
-3. Written finding: non-idempotent yes/no.
+1. Search solve.sh for `apply -R` / `--reverse` as success path.
+2. Written finding: non-idempotent yes/no.
 
 ## Fix — pick ONE direction per defect
 
-Make idempotent:
+| Action | Evidence |
+|--------|----------|
+| Idempotent: reverse `--check` → exit 0 if applied; else forward-apply; **never** `-R` as success | **EVIDENCED WORKING** — reverse-apply cites **resolved** next round on **3** tasks: `0cf2e9a3`, `1e6ecbbd`, `d41a2c3a`. |
+| Keep `\|\| git apply -R` “just in case” | **EVIDENCED FAILING** pattern (the defect itself). |
 
-1. If `git apply --reverse --check` succeeds → already applied → exit 0.
-2. Else forward-apply (optional `--3way`).
-3. **Never** use `git apply -R` / `--reverse` as a success fallback.
-
-**Recorded applied fix:** JF053 eb599683 07 — forward-only solve.sh. Next **unknown**.
-FC015 notes peer-ported — treat independent verification as incomplete.
+JF053 eb599683: forward-only applied in handoff; **next-round UNTESTED** (no following response yet).
 
 ## Verify before repackaging
 
-- [ ] No reverse success fallback in solve.sh
-- [ ] Oracle run twice locally when Docker available — both 1.0 (do not invent)
-- [ ] NOP still 0.0
+- [ ] No reverse success fallback
+- [ ] Oracle twice when Docker available (do not invent)
+- [ ] NOP 0.0
 
 ## Do not
 
-- Keep `|| git apply -R` “just in case.”
-- Claim oracle idempotent without a second run when Docker works.
+- Leave reverse fallback.
+- Claim idempotent without a second oracle run when Docker works.
 
 ## Instances
 
-- JF053 eb599683 · reverse applies golden · **applied** forward-only · next **unknown**
-- FC015 F-015 · peer catalogue same pattern · recovery stated · **unverified** independently
+- Chain · 0cf2e9a3 / 1e6ecbbd / d41a2c3a · reverse-apply · **resolved** next round
+- JF053 eb599683 · forward-only **applied** · next **unknown**
+- FC015 F-015 · peer · unverified independently

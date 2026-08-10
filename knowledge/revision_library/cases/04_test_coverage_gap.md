@@ -6,64 +6,57 @@ Requirements ungraded, weakly sampled, or mocks let a stub pass. Opposite of Cas
 
 ## Recognise it
 
-Platform wording examples:
-
-- `gpt: _get_default_variables_dict must include … but test required subset omits Pressure, Rcut, LRC, ChemPot, Fugacity`
+- `… test required subset omits Pressure, Rcut…`
 - `get_asset mocks GsAsset so raw-dict passthrough passes`
-- `SecurityMaster exchange/asset-type filters not verified on query`
-- `chip data-context-slot and data-context-id not graded` (+ aria/icon/span/destroy/overflow siblings)
-- `assertions only sample a few surfaces; partial migration … can still build and pass`
-- `never verifies refactor away from Arc Mutex or construction only via with_context…`
-- `Blocked at agentic judge. Verdict: discuss (coverage_gap). Oracle check not run.`
-- Catalogue F-001: instruction asserts behaviors with no fail_to_pass coverage
+- `chip data-context-slot … not graded` (+ siblings)
+- `never verifies refactor away from Arc Mutex…`
+- `allow_extra_failures true leaves … ungraded` (ledger)
+- `verifier also runs unrelated legacy tests…` (V16 shape)
 
 ## Read first
 
 - `.cursor/skills/sentinel-ultra-review/reference/test-quality.md`
-- `.cursor/skills/sentinel-ultra-review/reference/judge-axis-playbook.md` (test_coverage)
-- `knowledge/patterns/P-006_prefer_trimming_untested_instruction_claims_over_thin_f2p_fi.md`
-- `knowledge/patterns/P-013_gpt_binding_judge_on_test_axes.md`
+- `knowledge/patterns/P-006_*`, `P-013_*`, `P-002_*`
+- `OUTCOMES.md`
 
 ## Diagnose before editing
 
-1. List each coverage citation as a missing observable check.
-2. Map citation → instruction sentence (or mark “instruction claims X, no f2p”).
-3. Choose **add graded test** vs **trim untested claim** (P-006) — write the choice.
-4. Confirm not faithfulness/overreach (Case 05) before adding asserts on private APIs.
+1. List each coverage cite as a missing observable.
+2. Choose **add graded test** vs **trim untested claim** (P-006).
+3. Check grading config: `allow_extra_failures` and execution suite scope.
 
 ## Fix — pick ONE direction per defect
 
-| Shape | Direction A | Direction B |
-|-------|-------------|-------------|
-| Instruction claims X, no test | Add meaningful f2p for X (PR scope) | Remove/narrow claim (P-006) |
-| Mock/stub lets wrong impl pass | Assert on real observable | — |
-| Partial sample of surfaces | Broaden checks | Narrow instruction to sampled set |
-
-Do **not** “fix coverage” by dumping fixture keys into the instruction (that becomes Case 06).
-
-**Recorded applied fix:** JF014 — TRIM ArcMutex claim (1e6ecbbd 07). Next **unknown**.
+| Shape | Direction | Evidence |
+|-------|-----------|----------|
+| `allow_extra_failures=true` hides ungraded requirements | Set `false` + scope execution to task tests | **EVIDENCED WORKING** — cite **resolved** next round on `c6889dd0` (`2026-08-06`→`08-08`). |
+| Unrelated suites in execution (V16) | Scope command to tests.patch paths only | **EVIDENCED WORKING** — unrelated legacy suite cite **resolved** on `965e30ce` first pair. |
+| Instruction claims X, no test | Add f2p **or** trim claim (P-006) | Trim ArcMutex (JF014) **applied**; next **UNTESTED**. Adding f2p for mocks/filters mostly **UNTESTED** round-over-round. |
+| Mock/stub lets wrong impl pass | Assert real observable | **UNTESTED** as proven clear (965e30ce still grew new coverage cites). |
+| Dump fixture keys into instruction to “cover” | — | **EVIDENCED FAILING** path → Case 06 (do not). |
 
 ## Verify before repackaging
 
-- [ ] Every kept instruction requirement has graded coverage
-- [ ] No new private-internals asserts (Case 05)
+- [ ] Kept requirements have graded coverage
+- [ ] `allow_extra_failures=false` and scoped execution
+- [ ] No private-internals asserts (Case 05)
 - [ ] instruction ≡ problem_statement
-- [ ] static-check / judge-prep; oracle/NOP if Fixable
 
 ## Do not
 
 - Merge with Case 05.
-- Satisfy coverage by over-prescribing instruction (Case 06 oscillation risk).
+- Fix coverage by over-prescribing instruction.
 
 ## Instances
 
-- JF005 0cf2e9a3 · subset omits Pressure/Rcut/… · unknown · unknown
-- JF014 1e6ecbbd · Arc Mutex / with_context · **TRIM applied** · unknown
-- JF016 7b88ff8e · partial blksz migration · unknown · unknown
-- JF027 965e30ce · get_asset mock · unknown · unknown
-- JF028 965e30ce · SM filters · unknown · unknown
-- JF031 a8d30c64 · blocked banner · unknown · unknown
-- JF032 JF033 JF034 JF035 JF036 a8d30c64 · chip/aria/span/destroy/overflow · unknown · unknown
-- JF049 d41a2c3a · native/MINGW only · unknown · unknown
-- JF056 JF058 eb599683 · weak still/sample; cli_video untested · unknown · unknown
-- FC001 F-001 · instruction without f2p · recovery stated · unknown
+- JF005 0cf2e9a3 · subset omits… · unknown
+- JF014 1e6ecbbd · ArcMutex TRIM **applied** · next unknown
+- JF016 7b88ff8e · partial migration · unknown
+- JF027 JF028 965e30ce · mock/filters · unknown
+- JF031 a8d30c64 · blocked banner · unknown
+- JF032 JF033 JF034 JF035 JF036 a8d30c64 · chip family · unknown
+- JF049 d41a2c3a · native/MINGW · unknown
+- JF056 JF058 eb599683 · weak still/cli · unknown
+- FC001 F-001 · no f2p · unknown
+- Chain c6889dd0 · allow_extra true · **resolved**
+- Chain 965e30ce · unrelated suites · **resolved**

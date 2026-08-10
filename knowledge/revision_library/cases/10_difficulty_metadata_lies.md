@@ -25,13 +25,11 @@ FAIL EASY after Judge OK.
 
 ## Fix — pick ONE direction per defect
 
-| Shape | Fix |
-|-------|-----|
-| Irregular / invented pass_at_k | Delete those fields; do not invent replacements |
-| medium vs hard contradiction | Align labels to one honest story |
-| Explanation text | Soften to match reality |
-
-**Recorded applied fix:** JF015 1e6ecbbd 07 — deleted irregular pass_at_k_*; kept medium. Next **unknown**.
+| Shape | Fix | Evidence |
+|-------|-----|----------|
+| Irregular / invented pass_at_k | Delete fields; do not invent replacements | JF015 **applied** (1e6ecbbd); next **UNTESTED**. |
+| medium vs hard contradiction | Align to one honest story | **EVIDENCED FAILING** if left inconsistent — `1e6ecbbd` pair `04:05→15:38` still **not_resolved**: `model_difficulty medium vs difficulty hard; baselines n/3 irregular`. |
+| Explanation text | Soften to match reality | **UNTESTED** |
 
 Do not use Case 03 “expand PR hardness” as the first move when the cite is irregular baselines.
 

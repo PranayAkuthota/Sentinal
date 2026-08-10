@@ -6,34 +6,36 @@ Not from memory or anecdote.
 
 ## Honesty (read this)
 
-As of 2026-08-10 inventory + ledger round-chain backfill:
+As of 2026-08-10 inventory + ledger round-chain backfill + Fix-section grading:
 
-- **73** Part A failure instances (tip feedback + catalogue)
-- **22** consecutive ledger pairs chained → see `OUTCOMES.md`
-- Citation outcomes from chaining: **resolved=104**, **not_resolved=13**, **regressed=5**
-- Tip `fixes_applied` still sparse — only handoff-reconstructed for 1e6ecbbd / eb599683,
-  and those tip rounds have **no following response yet**
+- **73** Part A instances; **22** chained pairs → `OUTCOMES.md`
+- Citation outcomes: **resolved=104**, **not_resolved=13**, **regressed=5**
+- Every Fix option should be tagged **EVIDENCED WORKING** / **EVIDENCED FAILING** / **UNTESTED**
 
-**Case “Fix” sections remain mostly reasoning** unless an Instances row cites a chained
-outcome or a reconstructed fix. Prefer `OUTCOMES.md` for what actually recurred.
+### Cases whose guidance includes EVIDENCED FAILING options
+
+These teach a move that **did not work** (or is the defect). Prefer the rewritten defaults:
+
+| Case | Failing guidance | Data |
+|------|------------------|------|
+| **05** | Default “state arbitrary values in the instruction” | **3 regressed** on `0cf2e9a3` → Q9/Q10 |
+| **05** | catalog_sql_* “state API names / soften locations” as known cure | **3 not_resolved** on `f2478b33` last pair |
+| **03** | Trim/harden as if it clears FAIL EASY | FAIL EASY **recurred** on `004e50af` |
+| **06** | Leaving / introducing suite-leak “helper” phrasing | **2 regressed** on `c6889dd0` |
+| **10** | Leaving medium≠hard / irregular baselines | **not_resolved** on `1e6ecbbd` |
+
+### EVIDENCED WORKING (trust more)
+
+| Case | What cleared next round |
+|------|-------------------------|
+| **13** | Fail-open scans (×5 family, `0cf2e9a3`) |
+| **08** | solve.sh reverse-apply (×3 tasks) |
+| **04** | `allow_extra_failures=true` (`c6889dd0`); unrelated suites (`965e30ce`) |
+| **01** | `.gradle`/`build/reports` junk (`004e50af`) |
 
 ### Handoff-reconstructed fixes (next-round still unknown)
 
-| Instance | Task | What was recorded |
-|----------|------|-------------------|
-| JF014 | 1e6ecbbd | 07 handoff: TRIM ArcMutex claim from instruction |
-| JF015 | 1e6ecbbd | 07 handoff: delete irregular `pass_at_k_*` fields |
-| JF052 | eb599683 | 07 handoff: restore `.python-version` / original HEAD |
-| JF053 | eb599683 | 07 handoff: forward-only `solve.sh` |
-| JF059 | eb599683 | 07 handoff: `difficulty` / `model_difficulty` = hard |
-
-### Chained evidence that Fix guidance can trust (examples)
-
-| Working (resolved next round) | Failing / oscillating |
-|------------------------------|------------------------|
-| Fail-open scan-loops (0cf2e9a3) | Difficulty FAIL EASY recurring (004e50af) |
-| solve.sh reverse-apply absent next round | Faithfulness “state it” → Q9/Q10 (0cf2e9a3 regressed) |
-| allow_extra_failures true cleared (c6889dd0) | catalog_sql_* overreach not_resolved (f2478b33) |
+JF014, JF015, JF052, JF053, JF059 — applied on tip; no following response yet.
 
 ## Layout
 

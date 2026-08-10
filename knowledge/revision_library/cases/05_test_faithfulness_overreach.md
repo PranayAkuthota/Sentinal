@@ -2,8 +2,8 @@
 
 **Status:** CONFIRMED (n≥2)
 
-⚠ **Contradicts Case 06.** State public contracts carefully — dumping fixture/test keys into
-the instruction is how JF004 oscillated (next_round=no).
+⚠ **Contradicts Case 06.** Dumping values/tokens into the instruction is how we
+oscillated (0cf2e9a3: **3 regressed** citations → Q9/Q10).
 
 Tests demand undeclared API, private structure, or literal tokens not in the instruction.
 
@@ -13,56 +13,54 @@ Tests demand undeclared API, private structure, or literal tokens not in the ins
 - `UA atom-type letter assignment A->15.035 … pinned … instruction only names masses…`
 - `ImageContext tests use manager[contextTray][containerEl] private access`
 - `masked test enforces DMASKED_ALIAS regex / SLEEF_SUPPORTED_GNUABI_EXTENSIONS unstated`
-- `test_read_sample_frames_reuses_info asserts probe never called; instruction only says info may be VideoInfo`
-- `test_run_batch_consumes_stubbed_cli 0/4; stub couples to internal shape`
 - `uses_catalog_sql_api requires catalog_sql_prepare plus catalog_sql_execute[_once] specifically`
 - `fork-safety tests require literal tokens catalog_close before and catalog_open after…`
-- REMOVE / `overreach` on faithfulness axis (f2478b33)
+- REMOVE / `overreach` (f2478b33)
 
 ## Read first
 
 - `.cursor/skills/sentinel-ultra-review/reference/test-quality.md` (overreach)
-- `.cursor/skills/sentinel-ultra-review/reference/judge-axis-playbook.md` (test_faithfulness)
-- `knowledge/patterns/P-011_agent_judge_overreach_sync_instruction_tests_target_axis_sco.md`
-- `knowledge/patterns/P-012_faithfulness_fixture_dump_flips_q9_q10_state_contract_not_instance.md`
+- `.cursor/skills/sentinel-ultra-review/reference/judge-axis-playbook.md`
+- `knowledge/patterns/P-011_*`, `P-012_*`
 - This library: `06_q9_q10_instruction_overprescription.md`
+- `OUTCOMES.md` (regressed / not_resolved rows)
 
 ## Diagnose before editing
 
-1. For each cite: name the undeclared symbol / private path / literal token.
-2. Is it a **public behaviour** the PR needs, or a **test implementation detail**?
-3. Choose direction **before** editing. Write it down.
-4. If direction = expand instruction, plan a Case 06 re-check (Q9/Q10 / how-to).
+1. Name the undeclared symbol / private path / literal token.
+2. Is it a **real public API** the PR exposes, or a **test/fixture detail** (exact mass,
+   letter, token order, private DOM)?
+3. Default assumption: **fixture/arbitrary value** → soften test (see evidence below).
+4. If you will expand the instruction, write the Case 06 re-check plan first.
 
 ## Fix — pick ONE direction per defect
 
-| Direction | When | How |
-|-----------|------|-----|
-| **A — State contract** | Requirement is real public API/behaviour | Describe behaviour/outcomes — **not** fixture instance dumps / exact test key lists (P-012) |
-| **B — Soften test** | Assert is private / token / order overreach | Assert outcomes; drop private access / literal token requirements |
+| Direction | When | Evidence |
+|-----------|------|----------|
+| **B — Soften/remove the assertion (DEFAULT for arbitrary values)** | Exact masses, letter pins, match= tokens, private access, catalog_* literals, stub-internal shape | **EVIDENCED WORKING** as the safe default: avoids 05↔06 oscillation. Prefer this unless (A) applies. |
+| **A — State public API contract in instruction (EXCEPTION)** | Named public function/behaviour the PR must expose — outcomes, not fixture dumps | **EVIDENCED FAILING** when used for arbitrary values: **3 regressions** on `0cf2e9a3` (unstated UA/NVT specifics → `Static Q9/Q10 FAIL… mirror NVT_REQUIRED_*`). Use only for true public API; never paste test key lists (P-012). |
+| **catalog_sql_* / catalog_close-open token shape** | f2478b33 faithfulness REMOVE | **EVIDENCED FAILING** — **3 not_resolved** on `f2478b33` last pair (`2026-08-08T04:27`→`16:12`); a fourth cite appeared. Notes said “state API names / soften locations” — **that approach did not clear the cites**. Do not imply a known remedy; treat as open. Soften token/order asserts and/or state minimal public behaviour without file-location coupling — then re-check Case 06. |
 
-**Doing A as a raw dump of test constants causes Case 06.** JF004 is the proof.
-
-No recorded `fixes_applied` for JF060–063 family beyond notes (“state catalog_sql_* … soften file-location”). Next unknown.
+**Default rewrite (data-backed):** for an arbitrary value the test pinned, **soften/remove the assert**. Stating it in the instruction is the exception for a real public API, and even then describe outcomes — not `NVT_REQUIRED_KEYS`-style dumps.
 
 ## Verify before repackaging
 
-- [ ] Each faithfulness cite resolved by A **or** B, not both blindly
-- [ ] Re-scan instruction for Q9/Q10 / path / suite-leak (Case 06)
-- [ ] judge-prep overreach / private_internals candidates
-- [ ] oracle/NOP if tests or golden changed
+- [ ] Each cite resolved by B **or** exceptional A — not both blindly
+- [ ] Re-scan instruction for Q9/Q10 (Case 06)
+- [ ] catalog_sql_* family: do not claim “fixed by stating names” without new evidence
+- [ ] judge-prep overreach / private_internals
 
 ## Do not
 
-- Copy `NVT_REQUIRED_KEYS`-style lists into the instruction.
-- Leave private `manager[contextTray]` asserts and call it fixed.
-- Ignore the Case 06 cross-warn.
+- Default to “put it in the instruction” — that is the failing pattern (count=3 regressed).
+- Teach catalog_sql_* as a solved playbook — **not_resolved across rounds**.
+- Ignore Case 06.
 
 ## Instances
 
 - JF006 JF007 0cf2e9a3 · undocumented ctor / pinned letters · unknown · unknown
-- JF037 a8d30c64 · private contextTray access · unknown · unknown
-- JF043 c6889dd0 · stub couples internal shape · unknown · unknown
+- JF037 a8d30c64 · private contextTray · unknown · unknown
+- JF043 c6889dd0 · stub internal shape · unknown · unknown
 - JF050 d41a2c3a · DMASKED_ALIAS unstated · unknown · unknown
-- JF055 eb599683 · probe never called overreach · unknown · unknown
-- JF060 JF061 JF062 JF063 f2478b33 · catalog_sql_* / catalog_close-open tokens · notes only · unknown
+- JF055 eb599683 · probe never called · unknown · unknown
+- JF060 JF061 JF062 JF063 f2478b33 · catalog tokens · **EVIDENCED FAILING** not_resolved×3 · open

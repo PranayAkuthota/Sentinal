@@ -8,48 +8,44 @@ Difficulty screen failed easy after Agentic Judge cleared. Not a Judge-blocked t
 
 - `Difficulty FAIL EASY: Opus 75% GPT 100%; need worse model <=50%`
 - `Difficulty: FAIL EASY - Requires at least MEDIUM; opus 4/4 gpt 4/4`
-
-Judge was OK (or OK-enough to reach Difficulty). Do not open a coverage DISCUSS playbook first.
+- Ledger: `FAIL EASY - Requires at least MEDIUM; claude-opus-4-8 100% (4/4)…`
 
 ## Read first
 
 - `knowledge/patterns/P-010_agent_judge_before_difficulty.md` (order only)
-- `docs/SUBMITTER_BLOCKERS.md` difficulty / model_difficulty
-- Task’s `instruction.md` for telegraphing / over-prescription
+- `docs/SUBMITTER_BLOCKERS.md`
+- `OUTCOMES.md` (004e50af FAIL EASY not_resolved)
 
 ## Diagnose before editing
 
-1. Confirm Judge OK and Difficulty actually ran (unlike Case 09).
+1. Confirm Judge OK and Difficulty ran (unlike Case 09).
 2. Quote pass rates / FAIL EASY line.
-3. List instruction how-to / keyword lists that telegraph the fix (often Case 06-shaped).
-4. Ask: is the PR naturally harder if we stop spoon-feeding, or must scope expand?
-5. Written finding: trim-first vs expand-second choice.
+3. List telegraphing how-to / keyword lists (Case 06-shaped).
+4. Written finding: trim-first vs expand-second.
 
 ## Fix — pick ONE direction per defect
 
-**Order matters:**
+| Step | Action | Evidence |
+|------|--------|----------|
+| 1. Trim over-prescription | Cut how-to / keyword lists that telegraph the patch | **EVIDENCED FAILING** as a complete cure on `004e50af`: FAIL EASY **recurred** across pairs (`04:36→09:10` and again `14:55→16:24` with Opus 75%/GPT 100%). Trim alone has **not** cleared Difficulty on that task. |
+| 2. Expand PR-natural hardness | Only inside source PR; never invent pass_at_k | **UNTESTED** as a proven next-round clear. Still the only remaining lever after trim — treat as experimental, not a known fix. |
 
-1. **Trim over-prescription first** — remove how-to, exact keyword lists, edge carve-outs that telegraph the patch (align with Case 06 instincts).
-2. **Expand PR-natural difficulty second** — only if trim is insufficient; stay inside source PR (never replace scope).
-
-Do not invent `pass_at_k` numbers. Do not weaken graded tests solely to “make it hard.”
-
-Not the same as Case 10 (irregular metadata while Judge still failing).
+**Honesty:** our current approach (trim ± light harden) has **not** cleared FAIL EASY on `004e50af`. Do not tell yourself this case is solved. Not Case 10 (metadata lies while Judge blocked).
 
 ## Verify before repackaging
 
-- [ ] Instruction less telegraphing; problem_statement sync
-- [ ] Graded tests still cover stated requirements (Case 04/05 not regressed)
-- [ ] No fake difficulty fields
-- [ ] Local oracle/NOP still honest (pitfall 18)
+- [ ] Less telegraphing; problem_statement sync
+- [ ] No fake pass_at_k
+- [ ] Expect Difficulty may still FAIL EASY — plan another round if it does
+- [ ] oracle/NOP honest (pitfall 18)
 
 ## Do not
 
-- Fold into Judge coverage/faithfulness cases.
-- Reintroduce source-regex suites that nuke agents (d41a2c3a notes).
-- “Fix Difficulty” while Judge is still blocked (Case 09).
+- Claim “we fixed Difficulty” after one trim pass on a recurring FAIL EASY task.
+- Fold into Judge coverage cases.
+- Debug Difficulty while Judge is blocked (Case 09).
 
 ## Instances
 
-- 2026-08 · JF002 004e50af · Opus 75% GPT 100% FAIL EASY · fix unknown · next unknown
-- 2026-08 · JF048 d41a2c3a · opus 4/4 gpt 4/4 Requires MEDIUM · fix unknown · next unknown
+- JF002 004e50af · Opus 75% GPT 100% · **EVIDENCED FAILING** recurred in chain · open
+- JF048 d41a2c3a · opus 4/4 gpt 4/4 · unknown next · open

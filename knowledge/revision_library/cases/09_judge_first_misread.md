@@ -31,7 +31,7 @@ Ship only when **all** Agent Judge axes are **≥ 3.5**.
 
 - `knowledge/patterns/P-010_agent_judge_before_difficulty.md`
 - `knowledge/patterns/P-013_gpt_binding_judge_on_test_axes.md`
-- `knowledge/failures/F-010_waited_for_difficulty_while_agent_judge_blocked_the_screen.md`
+- `knowledge/failures/F-010_waited_for_difficulty_while_agent_judge_blocked_the_screen.json`
 - Then open citation cases from the Judge report (below)
 - `.cursor/skills/sentinel-ultra-review/reference/judge-axis-playbook.md`
 

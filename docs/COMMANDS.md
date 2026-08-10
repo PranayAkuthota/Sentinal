@@ -83,14 +83,26 @@ Neither modifies historical ZIPs nor auto-edits Ultra policy.
 ```bash
 python3 automation/write_judge_prediction.py --task-name TASK
 python3 automation/capture_judge_feedback.py --task-name TASK
+# after fixes, at packaging (06):
+python3 automation/record_revision_fixes.py --task-name TASK \
+  --fix 'change||file=path||axis=test_coverage||cite=citation substring'
 python3 automation/judge_stats.py
 ```
 
-See `docs/VALIDATION_STRATEGY.md` and `knowledge/judge_feedback/`.
+See `docs/VALIDATION_STRATEGY.md` and `knowledge/judge_feedback/`.  
+Revision cases: `knowledge/revision_library/ROUTER.md`. Coverage gate:
+
+```bash
+python3 automation/revision_library_coverage.py
+python3 automation/revision_library_maintain.py promote --case 15 --instance-a FC003 --instance-b JF021
+# contradict exits 1 and writes CONTRADICTIONS_PENDING.md — never silent overwrite
+python3 automation/backfill_judge_round_outcomes.py   # rebuild history/OUTCOMES from ledger
+```
 
 Note: `capture_judge_feedback.py` has no `--file` flag this pass — the Execution **07**
 prompt instructs the agent to read the pasted platform report and construct `--axes-json` /
-`--citation` flags. A `--file` ergonomic may be added later.
+`--citation` flags. A `--file` ergonomic may be added later. Capture archives the prior tip
+into `knowledge/judge_feedback/history/` and chains `next_round_result` automatically.
 
 Pre-submit blockers: `docs/SUBMITTER_BLOCKERS.md`. Failure catalog: `docs/FAILURE_CATALOG.md`.
 

@@ -58,12 +58,12 @@ gaps. JF004 is the only Part A instance with next_round=**no**.
 
 ## Instances
 
-- JF004 0cf2e9a3 · Static Q9/Q10 FAIL NVT/NPT mirrors test keys · round1 stated values · **next=no**
-- JF012–013 0cf2e9a3 · must-have Q9/Q10 · unknown · unknown
-- JF001, JF003 004e50af · Q10 BoolMap leak; keyword lists · unknown · unknown
-- JF008–010 0cf2e9a3 · mechanism / imports / private helper · unknown · unknown
+- JF004 0cf2e9a3 · Static Q9/Q10 FAIL NVT/NPT mirrors test keys · round1 stated values · **next=no** (chained regressed)
+- JF012 JF013 0cf2e9a3 · must-have Q9/Q10 · unknown · unknown
+- JF001 JF003 004e50af · Q10 BoolMap leak; keyword lists · unknown · unknown
+- JF008 JF009 JF010 0cf2e9a3 · mechanism / imports / private helper · unknown · unknown
 - JF017 7b88ff8e · dictates types + surfaces · unknown · unknown
-- JF024–025 826cb164 · how-to · unknown · unknown
-- JF038–039 a8d30c64 · src/style path; location/ctor/algorithm · unknown · unknown
-- JF041–042 c6889dd0 · suite calls helper; design steer keys · unknown · unknown
+- JF024 JF025 826cb164 · how-to · unknown · unknown
+- JF038 JF039 a8d30c64 · src/style path; location/ctor/algorithm · unknown · unknown
+- JF041 JF042 c6889dd0 · suite calls helper; design steer keys · unknown · unknown
 - JF051 d41a2c3a · telegraphs enable flag / masked-alias path · unknown · unknown

@@ -59,6 +59,17 @@ Doing both blindly caused the only known next-round failure (JF004). Both files 
 
 ## Maintenance
 
-After capturing platform feedback: match → append Instances row; no match → new
-provisional case. See Part D wiring in Execution 07 / `capture_judge_feedback`.
-Coverage check: `python3 automation/revision_library_coverage.py` (added in Part D).
+After capturing platform feedback:
+
+1. `ROUTER.md` → open case(s) **before** edits (pitfalls only in setup).
+2. Match → append dated **Instances** row; if fix differed, update guidance **or** run
+   `python3 automation/revision_library_maintain.py contradict …` (never silent overwrite).
+3. No match → new **PROVISIONAL** case from the template.
+4. At packaging: `python3 automation/record_revision_fixes.py --task-name TASK --fix '…||cite=…'`
+   (one `--fix` per citation).
+5. Next capture chains tip→history and fills `next_round_result`.
+6. Coverage: `python3 automation/revision_library_coverage.py` (fails on orphans).
+7. Second independent instance on a provisional case:
+   `python3 automation/revision_library_maintain.py promote --case NN --instance-a … --instance-b …`
+
+Round-chain backfill / outcomes: `OUTCOMES.md`, `automation/backfill_judge_round_outcomes.py`.

@@ -1,43 +1,42 @@
 # Sentinel Submitter — Platform Revision Orchestrator
 
-**Use for:** improving a task after Difficulty / Agentic Judge / Logs feedback (original + prior corrected ZIP may exist).
+**Use for:** improving a task after Difficulty / Agentic Judge / Manual Reviewer / Logs feedback.
 
 **Do not use for:** brand-new ZIP first pass → `Submitter_First_Pass.md`.
 
+**Prefer the daily path:** `Prompts/Execution/07_platform_revision.md` (checkpoint + library).
+
 ## Load order
 
-Same policy/workflow as first pass. Emphasize modules: `source_alignment`, `instruction_review`, `verifier_alignment`, `oracle_review`, `runtime_validation`, `package_answers`.
-
-Reuse `knowledge/patterns/P-010_agent_judge_before_difficulty.md` and `P-011_agent_judge_overreach_…` when platform feedback is Judge-related.
+1. `knowledge/revision_library/ROUTER.md` (after capture — **before edits**)
+2. Matching `cases/` file(s); `pitfalls/` only for process checks
+3. Policy/workflow as first pass; patterns P-010, P-011, P-012, P-006
 
 ## Platform eval order (Aug 4 2026)
 
 1. **Agent Judge first.** If Judge fails, Difficulty is **not** run.
 2. Marker: `Blocked at the agentic judge. Not run: difficulty screen (cheap single-arm rollout).`
-3. Revise and re-upload until **all Agent Judge axes are ≥ 3.5** (blocking: test_coverage + test_faithfulness; never ship “3 with reservations”).
-4. If verdict is `discuss (overreach)` → run P-011 playbook (Tests→Instruction map; remove/ungrade overreach **or** state observable public contract; no implementation spoilers).
-5. Only then interpret Difficulty: **4 trials per model**; worse model must still be **≤50%** pass rate (threshold unchanged).
-
-When Judge blocked Difficulty, do not wait for difficulty logs — they were not produced.
+3. **Manual Reviewer** may still bounce after Judge OK / Difficulty PASS HARD — Cases 01–02.
+4. Revise until **all Agent Judge axes are ≥ 3.5** (blocking: test_coverage + test_faithfulness).
+5. `discuss (overreach)` → Case 05 / P-011 (one direction only; ⚠ Case 06).
+6. Difficulty FAIL EASY after Judge OK → Case 03 (not a Judge coverage rewrite).
+7. Only then interpret Difficulty trials (worse model ≤50%).
 
 ## Execute (delta-aware)
 
-1. S0 Boot  
-2. S1 Preserve originals (never overwrite)  
-3. Diff original vs prior corrected (manual/expert)  
-4. Classify feedback: Judge-only vs Judge+Difficulty vs Difficulty-only  
-5. Re-run S3–S7 focusing on report citations (Judge citations first if both present)  
-6. S8 Verdict (often remains Fixable)  
-7. S9 Fixable edits in `working_copy/` only — keep or raise difficulty; no filler; no scope reduction  
-8. S10–S12 validate, package, learn  
+1. S0 Boot; preserve originals  
+2. F-014: platform ZIP SHA vs mirror  
+3. **Capture** `capture_judge_feedback.py` (chains prior tip → `next_round_result`)  
+4. **Router → case(s)** — first action before fixing  
+5. Classify stage; one-direction fix per citation  
+6. S9 edits in `working_copy/` only  
+7. S10–S10.5 validate; **06** package + `record_revision_fixes.py` per citation  
+8. Append case Instances; `revision_library_coverage.py` must pass  
 
 ## Non-negotiables
 
-- Do not reduce difficulty via vagueness  
-- Blocking judge axes: test coverage & faithfulness — **axis scores ≥ 3.5** before Difficulty  
-- Overreach: sync instruction ↔ tests ↔ oracle together (P-011); coverage-only chase is a trap  
-- Target quality uplift without solution leakage  
-- Checklist every cited report issue: fixed or explicitly out of scope  
-- Final Snorkel narrative answers = human paragraphs (workflow §13); not LLM/audit tone  
-- Do not claim Difficulty ran when the platform says it was not run  
-
+- Library before edits; pitfalls never replace task cases  
+- No silent Fix-section overwrite (`revision_library_maintain.py contradict`)  
+- `fixes_applied` per citation at packaging; outcomes chained on next capture  
+- Do not invent Difficulty/Oracle/rewards  
+- Final Snorkel answers = human paragraphs (workflow §13)  

@@ -60,8 +60,10 @@ Do **not** “fix coverage” by dumping fixture keys into the instruction (that
 - JF005 0cf2e9a3 · subset omits Pressure/Rcut/… · unknown · unknown
 - JF014 1e6ecbbd · Arc Mutex / with_context · **TRIM applied** · unknown
 - JF016 7b88ff8e · partial blksz migration · unknown · unknown
-- JF027–028 965e30ce · get_asset mock; SM filters · unknown · unknown
-- JF031–036 a8d30c64 · blocked banner + chip/aria/span/destroy/overflow · unknown · unknown
+- JF027 965e30ce · get_asset mock · unknown · unknown
+- JF028 965e30ce · SM filters · unknown · unknown
+- JF031 a8d30c64 · blocked banner · unknown · unknown
+- JF032 JF033 JF034 JF035 JF036 a8d30c64 · chip/aria/span/destroy/overflow · unknown · unknown
 - JF049 d41a2c3a · native/MINGW only · unknown · unknown
-- JF056, JF058 eb599683 · weak still/sample; cli_video untested · unknown · unknown
+- JF056 JF058 eb599683 · weak still/sample; cli_video untested · unknown · unknown
 - FC001 F-001 · instruction without f2p · recovery stated · unknown

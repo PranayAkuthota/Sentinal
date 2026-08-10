@@ -17,13 +17,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "automation"))
+
+from lib.round_chain import (  # noqa: E402
+    cites_from_feedback_record,
+    classify_pair,
+)
+
 FEEDBACK_DIR = ROOT / "knowledge" / "judge_feedback"
+HISTORY_DIR = FEEDBACK_DIR / "history"
+OUTCOMES_JSONL = FEEDBACK_DIR / "round_outcomes.jsonl"
 LEDGER = ROOT / "task_outputs" / "_judge_calibration_ledger.jsonl"
 SCHEMA_VERSION = 2
 
@@ -133,21 +143,77 @@ def build_record(
     }
 
 
+def _safe_stamp(iso: str) -> str:
+    return re.sub(r"[^0-9TZ]", "", iso or "unknown")[:20]
+
+
+def _archive_and_chain_prior(task: str, new_record: Dict[str, Any]) -> Optional[Path]:
+    """Move tip → history and set next_round_result via citation chaining."""
+    safe = task.replace("/", "_")
+    tip_path = FEEDBACK_DIR / f"{safe}.json"
+    if not tip_path.is_file():
+        return None
+    prior = json.loads(tip_path.read_text(encoding="utf-8"))
+    if prior.get("recorded_at") == new_record.get("recorded_at"):
+        return None
+    prior_cites = cites_from_feedback_record(prior)
+    next_cites = cites_from_feedback_record(new_record)
+    classified = classify_pair(prior_cites, next_cites)
+    prior["next_round_result"] = {
+        "following_recorded_at": new_record.get("recorded_at"),
+        "following_verdict": new_record.get("verdict"),
+        "source": "chained on capture_judge_feedback",
+        **classified,
+    }
+    if not prior.get("fixes_applied"):
+        print(
+            "WARNING: prior tip had empty fixes_applied — record fixes at packaging "
+            "via automation/record_revision_fixes.py so outcomes can be attributed."
+        )
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    hist = HISTORY_DIR / f"{safe}__{_safe_stamp(prior.get('recorded_at') or '')}.json"
+    hist.write_text(json.dumps(prior, indent=2) + "\n", encoding="utf-8")
+    with OUTCOMES_JSONL.open("a", encoding="utf-8") as fh:
+        fh.write(
+            json.dumps(
+                {
+                    "task": task,
+                    "from": prior.get("recorded_at"),
+                    "to": new_record.get("recorded_at"),
+                    "from_verdict": prior.get("verdict"),
+                    "to_verdict": new_record.get("verdict"),
+                    **classified["counts"],
+                    "per_citation": classified["per_citation"],
+                    "new_citations_in_next": classified["new_citations_in_next"],
+                }
+            )
+            + "\n"
+        )
+    print(
+        f"CHAINED prior→new: resolved={classified['counts']['resolved']} "
+        f"not_resolved={classified['counts']['not_resolved']} "
+        f"regressed={classified['counts']['regressed']} "
+        f"(archived {hist.name})"
+    )
+    print("NEXT: match citations to knowledge/revision_library/ (ROUTER.md) and append Instances.")
+    return hist
+
+
 def write_feedback(record: Dict[str, Any]) -> Path:
     FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
     task = record["task_name"]
-    # stable name for backfills / re-captures of the same task+verdict round
     safe = task.replace("/", "_")
     path = FEEDBACK_DIR / f"{safe}.json"
+
+    _archive_and_chain_prior(task, record)
+
     path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
 
-    # Mirror under task_outputs when that tree exists
     out_dir = ROOT / "task_outputs" / task
-    if out_dir.is_dir() or True:
-        out_dir.mkdir(parents=True, exist_ok=True)
-        (out_dir / "judge_feedback.json").write_text(
-            json.dumps(record, indent=2) + "\n", encoding="utf-8"
-        )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "judge_feedback.json").write_text(
+        json.dumps(record, indent=2) + "\n", encoding="utf-8"
+    )
 
     pred = load_prediction(task) if record.get("prediction_ref") else {}
     cited_texts = [
@@ -192,7 +258,7 @@ def main(argv: Optional[list] = None) -> int:
         "--fix",
         action="append",
         default=[],
-        help="Repeatable. Format: change text||file=path||axis=name",
+        help="Repeatable per citation. Format: change||file=path||axis=name||cite=quoted-or-id",
     )
     p.add_argument("--notes", default=None)
     p.add_argument(
@@ -234,7 +300,13 @@ def main(argv: Optional[list] = None) -> int:
     fixes: List[Dict[str, Any]] = []
     for raw in args.fix:
         parts = [p.strip() for p in raw.split("||") if p.strip()]
-        fix: Dict[str, Any] = {"file": None, "change": parts[0] if parts else None, "axis_targeted": None}
+        fix: Dict[str, Any] = {
+            "file": None,
+            "change": parts[0] if parts else None,
+            "axis_targeted": None,
+            "citation_ref": None,
+            "source": "capture_judge_feedback --fix",
+        }
         for pbit in parts[1:]:
             if "=" not in pbit:
                 continue
@@ -244,6 +316,10 @@ def main(argv: Optional[list] = None) -> int:
                 fix["file"] = v.strip()
             elif k == "axis":
                 fix["axis_targeted"] = v.strip()
+            elif k in ("cite", "citation", "citation_ref"):
+                fix["citation_ref"] = v.strip()
+        if not fix.get("citation_ref"):
+            die(f"--fix must include cite=… (per citation). Got: {raw!r}")
         fixes.append(fix)
 
     if args.difficulty_unknown:

@@ -60,9 +60,9 @@ No recorded `fixes_applied` for JF060–063 family beyond notes (“state catalo
 
 ## Instances
 
-- JF006–007 0cf2e9a3 · undocumented ctor / pinned letters · unknown · unknown
+- JF006 JF007 0cf2e9a3 · undocumented ctor / pinned letters · unknown · unknown
 - JF037 a8d30c64 · private contextTray access · unknown · unknown
 - JF043 c6889dd0 · stub couples internal shape · unknown · unknown
 - JF050 d41a2c3a · DMASKED_ALIAS unstated · unknown · unknown
 - JF055 eb599683 · probe never called overreach · unknown · unknown
-- JF060–063 f2478b33 · catalog_sql_* / catalog_close-open tokens · notes only · unknown
+- JF060 JF061 JF062 JF063 f2478b33 · catalog_sql_* / catalog_close-open tokens · notes only · unknown
